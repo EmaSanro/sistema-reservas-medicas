@@ -1,0 +1,301 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "API Reservas medicas",
+        "description": "API para gestionar las reservas medicas",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/reservas": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Obtener todas las reservas",
+                "operationId": "cd8e440563d14964315c801208138882",
+                "responses": {
+                    "200": {
+                        "description": "Lista de reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaReserva"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No hay reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/profesional/:idProfesional": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Obtener las reservas de un profesional",
+                "operationId": "0a7e21d9e03812dc9695e998179a6fc4",
+                "responses": {
+                    "200": {
+                        "description": "Lista de las reservas de un profesional dado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaReserva"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No hay reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/paciente/:idPaciente": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Obtener las reservas de un paciente",
+                "operationId": "f01d460862af0b994a3fef77aad01e36",
+                "responses": {
+                    "200": {
+                        "description": "Lista de las reservas de un paciente dado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaReserva"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No hay reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/reservas/reservar": {
+            "post": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Realizar una reserva",
+                "operationId": "c05cc654cc7ff84e840917f42ed8f501",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Reserva"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Reserva realizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaReserva"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se encontro un paciente/profesional con ese id"
+                    },
+                    "409": {
+                        "description": "Este paciente ya tiene una reserva para esa misma fecha"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "Paciente": {
+                "required": [
+                    "nombre",
+                    "apellido",
+                    "email",
+                    "telefono"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "Juan"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Perez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "juanPerez@gmail.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "0118574892"
+                    }
+                },
+                "type": "object"
+            },
+            "Profesional": {
+                "required": [
+                    "nombre",
+                    "apellido",
+                    "profesion",
+                    "email",
+                    "telefono"
+                ],
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "Roberto"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Falcao"
+                    },
+                    "profesion": {
+                        "type": "string",
+                        "example": "Odontologo"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "roberFalcao@outlook.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "0984728910"
+                    }
+                },
+                "type": "object"
+            },
+            "Reserva": {
+                "required": [
+                    "idProfesional",
+                    "idPaciente",
+                    "fecha"
+                ],
+                "properties": {
+                    "idProfesional": {
+                        "type": "integer",
+                        "example": 1
+                    },
+                    "idPaciente": {
+                        "type": "integer",
+                        "example": 2
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "example": "2026-03-15 18:45:00"
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaPaciente": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 10
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Alonso Martinez"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "aMartinez@gmail.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "1234567890"
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaProfesional": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Lucero Gimenez"
+                    },
+                    "profesion": {
+                        "type": "string",
+                        "example": "Pediatra"
+                    },
+                    "email": {
+                        "type": "string",
+                        "example": "luceroG@outlook.com"
+                    },
+                    "telefono": {
+                        "type": "string",
+                        "example": "347586901"
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaReserva": {
+                "properties": {
+                    "idReserva": {
+                        "type": "integer",
+                        "example": 15
+                    },
+                    "paciente": {
+                        "type": "string",
+                        "example": "Juan perez"
+                    },
+                    "profesional": {
+                        "type": "string",
+                        "example": "Roberto Falcao"
+                    },
+                    "fecha": {
+                        "type": "string",
+                        "example": "2026-04-18 15:00:00"
+                    }
+                },
+                "type": "object"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Reservas",
+            "description": "Reservas"
+        }
+    ]
+}
