@@ -10,23 +10,23 @@ class RespuestaPacienteDTO {
     #[OA\Property(example: "Alonso Martinez")]
     public readonly string $nombre;
     #[OA\Property(example: "aMartinez@gmail.com")]
-    public readonly string $email;
+    public readonly string|null $email;
     #[OA\Property(example: "1234567890")]
-    public readonly string $telefono;
+    public readonly string|null $telefono;
 
-    public function __construct(int $id, string $nombre, string $email, string $telefono) {
+    public function __construct(int $id, string $nombre, string|null $email, string|null $telefono) {
         $this->id = $id;
         $this->nombre = $nombre;
-        $this->email = $email;
-        $this->telefono = $telefono;
+        $this->email = $email ?? null;
+        $this->telefono = $telefono ?? null;
     }
 
     public static function fromArray(array $array) {
         return new self(
             (int)$array["id"],
             $array["nombre"] . " " . $array["apellido"],
-            $array["email"],
-            $array["telefono"]
+            $array["email"] ?? null,
+            $array["telefono"] ?? null
         );
     }
 }

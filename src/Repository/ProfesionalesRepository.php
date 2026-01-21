@@ -88,15 +88,16 @@ class ProfesionalesRepository {
         return $data;
     }
 
-    public function crearProfesional(ProfesionalDTO $profesional) {
+    public function registrarProfesional(ProfesionalDTO $profesional, string $passwordHash) {
         $this->db->beginTransaction();
-        $prof = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono) VALUES(?,?,?,?,?)");
+        $prof = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)");
         $created = $prof->execute([
             $profesional->getNombre(), 
             $profesional->getApellido(), 
             Roles::PROFESIONAL, 
             $profesional->getEmail(), 
-            $profesional->getTelefono()
+            $profesional->getTelefono(),
+            $passwordHash
         ]);
         if($created) {
             $id = $this->db->lastInsertId();

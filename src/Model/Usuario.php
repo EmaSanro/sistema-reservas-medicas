@@ -1,7 +1,5 @@
 <?php
 
-use OpenApi\Annotations as OA;
-
 class Usuario {
     private int $id;
     private string $nombre;
@@ -9,14 +7,16 @@ class Usuario {
     private string $rol;
     private string $email;
     private string $telefono;
+    private string $password;
 
-    public function __construct(int $id, string $nombre, string $apellido, string $rol, string $email, string $telefono) {
+    public function __construct(int $id, string $nombre, string $apellido, string $rol, string $email, string $telefono, string $password) {
         $this->id = $id;
         $this->nombre = $nombre;
         $this->apellido = $apellido;
         $this->rol = $rol;
         $this->email = $email;
         $this->telefono = $telefono;
+        $this->password = $password;
     }
 
     public function getId() {

@@ -100,9 +100,11 @@ class ProfesionalesController {
         }
     }
 
-    public function crearProfesional() {
+    public function registrarProfesional() {
         $input = json_decode(file_get_contents('php://input'), true);
+
         Validaciones::validarInput($input);
+        Validaciones::validarCriteriosPassword($input["password"]);
 
         $dto = ProfesionalDTO::fromArray($input);
 
@@ -114,7 +116,8 @@ class ProfesionalesController {
         }
         
         try {
-            $prof = $this->repo->crearProfesional($dto);
+            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
+            $prof = $this->repo->registrarProfesional($dto, $passwordHash);
             if($prof) {
                 $dto = RespuestaProfesionalDTO::fromArray($prof);
                 http_response_code(201);

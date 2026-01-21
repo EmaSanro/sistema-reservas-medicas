@@ -70,14 +70,15 @@ class PacientesRepository {
         return null;
     }
 
-    public function crearPaciente(PacienteDTO $dto) {
-        $pac = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono) VALUES(?,?,?,?,?)");
+    public function registrarPaciente(PacienteDTO $dto, string $passwordHash) {
+        $pac = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)");
         $created = $pac->execute([
             $dto->getNombre(),
             $dto->getApellido(),
             Roles::PACIENTE,
             $dto->getEmail(),
-            $dto->getTelefono()
+            $dto->getTelefono(),
+            $passwordHash
         ]);
         if($created) {
             $id = $this->db->lastInsertId();

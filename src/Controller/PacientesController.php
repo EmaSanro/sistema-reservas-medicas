@@ -28,7 +28,8 @@ class PacientesController {
         } catch (\Exception $e) {
             http_response_code(500);
             echo json_encode([
-                "ERROR" => "Error interno del servidor"
+                "ERROR" => "Error interno del servidor",
+                $e->getMessage()
             ]);
         }
     }
@@ -97,11 +98,11 @@ class PacientesController {
             ]);
         }
     }
-
-    public function crearPaciente() {
+    public function registrarPaciente() {
         $input = json_decode(file_get_contents('php://input'), true);
 
         Validaciones::validarInput($input);
+        Validaciones::validarCriteriosPassword($input["password"]);
 
         $dto = PacienteDTO::fromArray($input);
 
@@ -115,7 +116,8 @@ class PacientesController {
         }
 
         try {
-            $pac = $this->repo->crearPaciente($dto);
+            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
+            $pac = $this->repo->registrarPaciente($dto, $passwordHash);
             if($pac) {
                 $dto = RespuestaPacienteDTO::fromArray($pac);
                 http_response_code(201);

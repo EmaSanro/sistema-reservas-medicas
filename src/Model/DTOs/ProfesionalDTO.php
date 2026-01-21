@@ -1,6 +1,7 @@
 <?php
 namespace App\Model\DTOs;
 
+use App\Controller\Validaciones;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: "Profesional", required: ["nombre", "apellido", "profesion", "email", "telefono"])]
@@ -12,16 +13,19 @@ class ProfesionalDTO {
     #[Oa\Property(example: "Odontologo")]
     private string $profesion;
     #[Oa\Property(example: "roberFalcao@outlook.com")]
-    private string $email;
+    private string|null $email;
     #[Oa\Property(example: "0984728910")]
-    private string $telefono;
+    private string|null $telefono;
+    #[Oa\Property(example: "Rober13#")]
+    private string $password;
 
-    public function __construct(string $nombre, string $apellido, string $profesion, string $email, string $telefono) {
+    public function __construct(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, string $password) {
         $this->nombre = $nombre;
         $this->apellido = $apellido;
         $this->profesion = $profesion;
-        $this->email = $email;
-        $this->telefono = $telefono;
+        $this->email = $email ?? null;
+        $this->telefono = $telefono ?? null;
+        $this->password = $password;
     }
 
     public function getNombre() {
@@ -43,11 +47,15 @@ class ProfesionalDTO {
         return $this->telefono;
     }
 
+    public function getPassword() {
+        return $this->password;
+    }
+
     public static function fromArray($input) {
-        if(!isset($input["nombre"], $input["apellido"], $input["email"], $input["profesion"], $input["telefono"])) {
-            throw new \InvalidArgumentException("ERROR: Todos los campos son requeridos(nombre, apellido, profesion, email, telefono)");
+        if(!isset($input["nombre"], $input["apellido"], $input["password"], $input["profesion"]) || !(isset($input["email"]) || isset($input["telefono"]))) {
+            throw new \InvalidArgumentException("ERROR: Completa los campos requeridos(nombre, apellido, contraseña, profesion, email y/o telefono)");
         }
-        if(!filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
+        if(isset($input["email"]) && !filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
             throw new \InvalidArgumentException("ERROR : Email invalido");
         }
 
@@ -55,7 +63,9 @@ class ProfesionalDTO {
             ucwords(strtolower($input["nombre"])), 
             ucwords(strtolower($input["apellido"])), 
             ucwords(strtolower($input["profesion"])), 
-            $input["email"], 
-            $input["telefono"]);
+            $input["email"] ?? null, 
+            $input["telefono"] ?? null,
+            $input["password"]
+            );
     } 
 }

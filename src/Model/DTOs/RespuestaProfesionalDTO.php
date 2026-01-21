@@ -12,16 +12,16 @@ class RespuestaProfesionalDTO {
     #[OA\Property(example: "Pediatra")]
     public readonly string $profesion;
     #[OA\Property(example: "luceroG@outlook.com")]
-    public readonly string $email;
+    public readonly string|null $email;
     #[OA\Property(example: "347586901")]
-    public readonly string $telefono;
+    public readonly string|null $telefono;
 
-    public function __construct(int $id, string $nombreCompleto, string $profesion, string $email, string $telefono) {
+    public function __construct(int $id, string $nombreCompleto, string $profesion, string|null $email, string|null $telefono) {
         $this->id = $id;
         $this->nombre = $nombreCompleto;
         $this->profesion = $profesion;
-        $this->email = $email;
-        $this->telefono = $telefono;
+        $this->email = $email ?? null;
+        $this->telefono = $telefono ?? null;
     }
 
     public static function fromArray(array $array) {
@@ -29,8 +29,8 @@ class RespuestaProfesionalDTO {
             (int)$array["id"],
             $array["nombre"] . " " . $array["apellido"],
             $array["profesion"],
-            $array["email"],
-            $array["telefono"]
+            $array["email"] ?? null,
+            $array["telefono"] ?? null
         );
     }
 }

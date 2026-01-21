@@ -7,6 +7,7 @@ $router = new Router();
 require_once __DIR__ . '/ProfesionalRoutes.php';
 require_once __DIR__ . '/PacientesRoutes.php';
 require_once __DIR__ . '/ReservarRoutes.php';
+require_once __DIR__ . '/AuthRoutes.php';
 
 $router->get("/api/docs", function() {
     header('Content-Type: text/html; charset=utf-8');
