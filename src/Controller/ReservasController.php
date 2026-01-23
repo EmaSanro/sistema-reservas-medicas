@@ -4,10 +4,11 @@ namespace App\Controller;
 use App\Model\DTOs\RespuestaReservaDTO;
 use App\Repository\ReservasRepository;
 use App\Model\DTOs\ReservaDTO;
+use App\Security\Validaciones;
 use OpenApi\Attributes as OA;
 
 #[OA\Info(version: "1.0.0", title: "API Reservas medicas", description: "API para gestionar las reservas medicas")]
-class ReservasController {
+class ReservasController extends BaseController {
     public function __construct(private ReservasRepository $repo) {}
 
     #[OA\Get(
@@ -30,6 +31,8 @@ class ReservasController {
     )]
     public function obtenerTodas() {
         try {
+            $this->autenticar(["Profesional", "Admin"]);
+
             $reservas = $this->repo->obtenerTodas();
             if($reservas) {
                 $reservasDTO = array_map(
@@ -45,13 +48,13 @@ class ReservasController {
         }
     }
     #[OA\Get(
-        path: "/reservas/profesional/:idProfesional",
-        summary: "Obtener las reservas de un profesional",
+        path: "/reservas/mis-reservas",
+        summary: "Obtener las reservas de un usuario ya sea profesional o paciente",
         tags: ["Reservas"]
     )]
     #[OA\Response(
         response: 200,
-        description: "Lista de las reservas de un profesional dado",
+        description: "Lista de las reservas de un usuario dado",
         content: new OA\JsonContent(
             type: "array",
             items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
@@ -62,10 +65,11 @@ class ReservasController {
         description: "No hay reservas",
         content: new OA\JsonContent()
     )]
-    public function obtenerReservasDeProfesional(int $idProfesional) {
+    public function obtenerReservasPorUsuarioId() {
         try {
-            Validaciones::validarID($idProfesional);
-            $reservas = $this->repo->obtenerReservasDelProfesional($idProfesional);
+            $usuario = $this->autenticar(["Paciente", "Profesional", "Admin"]);
+            Validaciones::validarID($usuario->id);
+            $reservas = $this->repo->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
             if($reservas) {
                 $reservasDTO = array_map(
                     fn(array $reserva) => RespuestaReservaDTO::fromArray($reserva),
@@ -79,42 +83,6 @@ class ReservasController {
             return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
         }
     }
-    #[OA\Get(
-        path: "/reservas/paciente/:idPaciente",
-        summary: "Obtener las reservas de un paciente",
-        tags: ["Reservas"]
-    )]
-    #[OA\Response(
-        response: 200,
-        description: "Lista de las reservas de un paciente dado",
-        content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
-        )
-    )]
-    #[OA\Response(
-        response: 404,
-        description: "No hay reservas",
-        content: new OA\JsonContent()
-    )]
-    public function obtenerReservasDePaciente(int $idPaciente) {
-        try {
-            Validaciones::validarID($idPaciente);
-            $reservas = $this->repo->obtenerReservasDelPaciente($idPaciente);
-            if($reservas) {
-                $reservasDTO = array_map(
-                    fn(array $reserva) => RespuestaReservaDTO::fromArray($reserva),
-                    $reservas
-                );
-                return $this->jsonResponse(200, $reservasDTO);
-            } else {
-                return $this->jsonResponse(404, ["ERROR" => "Ese paciente no tiene reservas"]);
-            }
-        } catch (\PDOException $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
-        }
-    }
-
     #[OA\Post(
         path: "/reservas/reservar",
         summary: "Realizar una reserva",
@@ -139,20 +107,20 @@ class ReservasController {
     )]
     public function reservar() {
         try {
+            $paciente = $this->autenticar(["Paciente"]);
             $input = json_decode(file_get_contents("php://input"), true);
             Validaciones::validarInput($input);
 
             $dto = ReservaDTO::fromArray($input);
-            if($this->repo->buscarCoincidencia($dto->getIdPaciente(), $dto->getIdProfesional(), $dto->getFecha())) {
+            if($this->repo->buscarCoincidencia($paciente->id, $dto->getIdProfesional(), $dto->getFecha())) {
                 return $this->jsonResponse(409, ["ERROR" => "Lo siento este paciente ya tiene una reserva para esa misma fecha"]);
             }
 
-            if(!$this->repo->reservar($dto->getIdProfesional(), $dto->getIdPaciente(), $dto->getFecha())) {
+            if(!$this->repo->reservar($dto->getIdProfesional(), $paciente->id, $dto->getFecha())) {
                 return $this->jsonResponse(500, ["ERROR" => "No se ha podido reservar"]);
             }
 
-            $reserva = $this->repo->obtenerReservaEspecifica($dto->getIdPaciente(), $dto->getIdProfesional(), $dto->getFecha());
-            return $this->jsonResponse(201, RespuestaReservaDTO::fromArray($reserva));
+            return $this->jsonResponse(201, ["EXITO" => "Su reserva ha sido procesada correctamente!"]);
         } catch(\DomainException $d) {
             return $this->jsonResponse(404, ["ERROR" => "No se encontro un paciente/profesional con ese id"]);
         } catch (\PDOException $e) {
@@ -161,11 +129,14 @@ class ReservasController {
     }
 
     public function cancelarReserva(int $id) {
+        $paciente = $this->autenticar(["Paciente"]);
+        $input = json_decode(file_get_contents("php://input"), true);
+        Validaciones::validarID($id);
+        Validaciones::validarInput($input);
+        if(!$this->repo->perteneceAlPaciente($id, $paciente->id)) {
+            return $this->jsonResponse(403, ["ERROR" => "No puedes cancelar una reserva que no es tuya!"]);
+        }
         try {
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarID($id);
-            Validaciones::validarInput($input);
-
             $borrado = $this->repo->cancelarReserva($id);
             if($borrado) {
                 return $this->jsonResponse(204, "");
@@ -175,10 +146,5 @@ class ReservasController {
         } catch (\PDOException $e) {
             return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
         }
-    }
-
-    private function jsonResponse(int $code, mixed $response) {
-        http_response_code($code);
-        echo json_encode($response);
     }
 }

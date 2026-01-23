@@ -23,26 +23,16 @@ class ReservasRepository {
         return $reservas->fetchAll();
     }
 
-    public function obtenerReservasDelProfesional(int $idProfesional) {
+    public function obtenerReservasPorUsuarioId(int $id, string $rol) {
+        $columna = ($rol == "Paciente") ? "idpaciente" : "idprofesional";
         $reservas = $this->db->prepare("
             SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
             FROM reservas r 
             JOIN usuario upa ON upa.id = r.idpaciente 
             JOIN usuario upr ON upr.id = r.idprofesional 
-            WHERE idprofesional = ?
+            WHERE $columna = ?
         ");
-        $reservas->execute([$idProfesional]);
-        return $reservas->fetchAll();
-    }
-
-    public function obtenerReservasDelPaciente(int $idPaciente) {
-        $reservas = $this->db->prepare("
-            SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
-            FROM reservas r 
-            JOIN usuario upa ON upa.id = r.idpaciente 
-            JOIN usuario upr ON upr.id = r.idprofesional
-            WHERE idpaciente = ?");
-        $reservas->execute([$idPaciente]);
+        $reservas->execute([$id]);
         return $reservas->fetchAll();
     }
 
@@ -83,6 +73,14 @@ class ReservasRepository {
         ");
         $coincidencia->execute([$idPaciente, $idProfesional, $fecha]);
         return $coincidencia->rowCount() > 0;
+    }
+
+    public function perteneceAlPaciente($id, $idPaciente) {
+        $reserva = $this->db->prepare("
+            SELECT 1 FROM reserva WHERE id = ? AND idPaciente = ?
+        ");
+        $reserva->execute([$id, $idPaciente]);
+        return $reserva->fetch();
     }
 
     public function cancelarReserva($id) {

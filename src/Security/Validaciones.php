@@ -1,5 +1,5 @@
 <?php
-namespace App\Controller;
+namespace App\Security;
 class Validaciones {
 
     public static function validarID($id) {

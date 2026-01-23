@@ -2,6 +2,8 @@
 namespace App\Controller;
 
 use App\Repository\AuthRepository;
+use App\Security\JWTHandler;
+use App\Security\Validaciones;
 
 class AuthController {
 
@@ -13,12 +15,23 @@ class AuthController {
             Validaciones::validarInput($input);
             Validaciones::validarLogin($input);
     
-            $usuario = $this->repo->buscarUsuario(($input["email"] ?? $input["telefono"]), $input["password"]);
-            if($usuario) {
+            $usuario = $this->repo->buscarUsuario(($input["email"] ?? $input["telefono"]));
+            if($usuario && password_verify($input["password"], $usuario["password"])) {
+
+                $payload = [
+                    "id" => $usuario['id'],
+                    "nombre" => $usuario["nombre"] . " ". $usuario["apellido"],
+                    "rol" => $usuario["rol"],
+                    "email" => $usuario["email"],
+                    "telefono" => $usuario["telefono"]
+                ];
+                
+                $token = JWTHandler::generateToken($payload);
+
                 http_response_code(200);
                 echo json_encode([
                     "OK" => "logueado correctamente",
-                    "USUARIO" => $usuario
+                    "TOKEN" => $token
                 ]);
             } else {
                 http_response_code(401);

@@ -3,9 +3,11 @@ namespace App\Controller;
 
 use App\Model\DTOs\ProfesionalDTO;
 use App\Model\DTOs\RespuestaProfesionalDTO;
+use App\Model\Roles;
 use App\Repository\ProfesionalesRepository;
+use App\Security\Validaciones;
 
-class ProfesionalesController {
+class ProfesionalesController extends BaseController {
 
     public function __construct(private ProfesionalesRepository $repo) { }
 
@@ -17,62 +19,46 @@ class ProfesionalesController {
                     fn(array $prof) => RespuestaProfesionalDTO::fromArray($prof),
                     $profesionales
                 );
-                http_response_code(200);
-                echo json_encode($profesionalesDTO);
+                return $this->jsonResponse(200, $profesionalesDTO);
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No se han encontrado profesionales"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No se han encontrado profesionales"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
     
     public function obtenerPorId($id) {
+        $this->autenticar(["Admin"]);
+        
         Validaciones::validarID($id);
-
+        
         try {
             $prof = $this->repo->obtenerPorId($id);
             if($prof) {
                 $dto = RespuestaProfesionalDTO::fromArray($prof);
-                http_response_code(200);
-                echo json_encode($dto);
+                return $this->jsonResponse(200, $dto);
             } else {
-                http_response_code(404);
-                echo json_encode("No hay profesional con ese id");
+                return $this->jsonResponse(404, ["ERROR" => "No hay profesional con ese id"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function obtenerPor() {
         if(!isset($_GET["filtro"]) && !isset($_GET["valor"])) {
-            http_response_code(400);
-            echo json_encode([
-                "ERROR" => "Es necesario un filtro y un valor de busqueda"
-            ]);
-            return;
+            return $this->jsonResponse(400, ["ERROR" => "Es necesario un filtro y un valor de busqueda"]);
         }
+            
         $filtro = $_GET["filtro"];
         $valor = $_GET["valor"];
         $columnasPermitidas = ["nombre", "apellido", "profesion", "email", "telefono"];
-
+            
         if(!in_array($filtro, $columnasPermitidas)) {
-            http_response_code(400);
-            echo json_encode([
-                "ERROR" => "El filtro ingresado no es valido para la busqueda"
-            ]);
-            return;
+            return $this->jsonResponse(400, ["ERROR" => "El filtro ingresado no es valido para la busqueda"]);
         }
+
         try {
             if($filtro == "profesion") {
                 $profs = $this->repo->obtenerPorProfesion($valor);
@@ -84,104 +70,85 @@ class ProfesionalesController {
                     fn(array $prof) => RespuestaProfesionalDTO::fromArray($prof),
                     $profs
                 );
-                http_response_code(response_code: 200);
-                echo json_encode($profsDTO);
+                return $this->jsonResponse(200, $profsDTO);
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No se encontro ninguna coincidencia con tu criterio de busqueda"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No se encontro ninguna coincidencia con tu criterio de busqueda"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function registrarProfesional() {
+        $this->autenticar(["Admin"]);
         $input = json_decode(file_get_contents('php://input'), true);
-
+        
         Validaciones::validarInput($input);
         Validaciones::validarCriteriosPassword($input["password"]);
-
+        
         $dto = ProfesionalDTO::fromArray($input);
-
+        
         $coincidencia = $this->repo->buscarCoincidencia($dto);
         if($coincidencia) {
-            http_response_code(409);
-            echo "Error: Asegurate de que no haya ningun profesional con ese email y/o telefono ya registrado";
-            return;
+            return $this->jsonResponse(409, ["ERROR" => "Asegurate de que no haya ningun profesional con ese email y/o telefono ya registrado"]);
         }
-        
+
         try {
+        
             $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
             $prof = $this->repo->registrarProfesional($dto, $passwordHash);
             if($prof) {
                 $dto = RespuestaProfesionalDTO::fromArray($prof);
-                http_response_code(201);
-                echo json_encode($dto);
+                return $this->jsonResponse(201, $dto);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function actualizarProfesional($id) {
-        $input = json_decode(file_get_contents("php://input"), true);
+        $usuario = $this->autenticar(["Profesional", "Admin"]);
         Validaciones::validarID($id);
+        if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
+            return $this->jsonResponse(403, ["ERROR" => "No tienes permisos para actualizar un perfil que no sea el tuyo!"]);
+        }
+        
+        $input = json_decode(file_get_contents("php://input"), true);
         Validaciones::validarInput($input);
-
+        
         $dto = ProfesionalDTO::fromArray($input);
-
+        
+        $coincidencia = $this->repo->buscarCoincidencia($dto);
+        if($coincidencia && $coincidencia["id"] != $id) {
+            return $this->jsonResponse(409, ["ERROR" => "Ya hay un usuario con ese email/telefono"]);
+        }
         try {
-            $coincidencia = $this->repo->buscarCoincidencia($dto);
-            if($coincidencia && $coincidencia["id"] != $id) {
-                http_response_code(409);
-                echo json_encode([
-                    "ERROR" => "Ya hay un usuario con ese email/telefono"
-                ]);
-                return;
-            }
-            $prof = $this->repo->actualizarProfesional($id, $dto);
-            if($prof) {
-                http_response_code(200);
+            $actualizado = $this->repo->actualizarProfesional($id, $dto);
+            if($actualizado) {
                 $profesional = $this->repo->obtenerPorId($id);
                 $dto = RespuestaProfesionalDTO::fromArray($profesional);
-                echo json_encode($dto);
+                return $this->jsonResponse(200, $dto);
             } else {
-                http_response_code(204);
+                return $this->jsonResponse(204, "");
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function eliminarProfesional($id) {
-        Validaciones::validarID($id);
-
         try {
+            $this->autenticar(["Admin"]);
+            Validaciones::validarID($id);
+
             $borrado = $this->repo->eliminarProfesional($id);
             if($borrado) {
-                http_response_code(204);
+                return $this->jsonResponse(204, "");
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No hay ningun profesional con ese id"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No hay ningun profesional con ese id"]);
             }
         } catch(\Exception $e) { 
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 }

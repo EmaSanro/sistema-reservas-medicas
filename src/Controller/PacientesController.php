@@ -3,183 +3,142 @@ namespace App\Controller;
 
 use App\Model\DTOs\PacienteDTO;
 use App\Model\DTOs\RespuestaPacienteDTO;
+use App\Model\Roles;
 use App\Repository\PacientesRepository;
+use App\Security\Validaciones;
 
-class PacientesController {
+class PacientesController extends BaseController {
 
     public function __construct(private PacientesRepository $repo) {  }
 
     public function obtenerTodos() {
         try {
+            $this->autenticar(["Admin", "Profesional"]);
             $pacientes = $this->repo->obtenerTodos();
             if($pacientes) {
                 $pacientesDTO = array_map(
                     fn(array $paciente) => RespuestaPacienteDTO::fromArray($paciente),
                     $pacientes
                 );
-                http_response_code(200);
-                echo json_encode($pacientesDTO);
+                return $this->jsonResponse(200, $pacientesDTO);
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No se han encontrado pacientes"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No se han encontrado pacientes"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor",
-                $e->getMessage()
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function obtenerPorId($id) {
-        Validaciones::validarID($id);
         try {
+            $this->autenticar(["Profesional", "Admin"]);
+            Validaciones::validarID($id);
             $pac = $this->repo->obtenerPorId($id);
             if($pac) {
                 $dto = RespuestaPacienteDTO::fromArray($pac);
-                http_response_code(200);
-                echo json_encode($dto); 
+                return $this->jsonResponse(200, $dto);
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No se ha encontrado un paciente con ese id"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No se ha encontrado un paciente con ese id"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function buscarPor() {
-        if(!isset($_GET["filtro"], $_GET["valor"])) {
-            http_response_code(400);
-            echo json_encode([
-                "ERROR" => "Es necesario poner un filtro y un valor de busqueda"
-            ]);
-            return;
-        }
-        $filtro = $_GET["filtro"];
-        $valor = $_GET["valor"];
-        $filtrosPermitidos = ["nombre", "apellido", "email", "telefono"];
-
-        if(!in_array($filtro, $filtrosPermitidos)) {
-            http_response_code(400);
-            echo json_encode([
-                "ERROR" => "El filtro no esta entre los permitidos(nombre, apellido, email, telefono)"
-            ]);
-            return;
-        }
-
         try {
+            $this->autenticar(["Admin", "Profesional"]);
+            if(!isset($_GET["filtro"], $_GET["valor"])) {
+                return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
+            }
+            $filtro = $_GET["filtro"];
+            $valor = $_GET["valor"];
+            $filtrosPermitidos = ["nombre", "apellido", "email", "telefono"];
+
+            if(!in_array($filtro, $filtrosPermitidos)) {
+                return $this->jsonResponse(400, ["ERROR" => "El filtro no esta entre los permitidos(nombre, apellido, email, telefono)"]);
+            }
+
             $pacientes = $this->repo->buscarPor($filtro, $valor);
             if($pacientes) {
                 $pacientesDTO = array_map(
                     fn(array $paciente) => RespuestaPacienteDTO::fromArray($paciente),
                     $pacientes
                 );
-                http_response_code(200);
-                echo json_encode($pacientesDTO);
+                return $this->jsonResponse(200, $pacientesDTO);
             }else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "No se encontraron coincidencias con el criterio de busqueda"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "No se encontraron coincidencias con el criterio de busqueda"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
     public function registrarPaciente() {
-        $input = json_decode(file_get_contents('php://input'), true);
-
-        Validaciones::validarInput($input);
-        Validaciones::validarCriteriosPassword($input["password"]);
-
-        $dto = PacienteDTO::fromArray($input);
-
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
-        if($coincidencia) {
-            http_response_code(409);
-            echo json_encode([
-                "ERROR" => "Ya hay un usuario con ese telefono/email"
-            ]);
-            return;
-        }
-
         try {
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            Validaciones::validarInput($input);
+            Validaciones::validarCriteriosPassword($input["password"]);
+
+            $dto = PacienteDTO::fromArray($input);
+
+            $coincidencia = $this->repo->buscarCoincidencia($dto);
+            if($coincidencia) {
+                return $this->jsonResponse(409, [ "ERROR" => "Ya hay un usuario con ese telefono/email"]);
+            }
+
             $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
             $pac = $this->repo->registrarPaciente($dto, $passwordHash);
             if($pac) {
                 $dto = RespuestaPacienteDTO::fromArray($pac);
-                http_response_code(201);
-                echo json_encode($dto);
+                return $this->jsonResponse(201, $dto);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
-    }
-
-    public function actualizarPaciente($id) {
-        Validaciones::validarID($id);
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
-
-        $dto = PacienteDTO::fromArray($input);
+        }
         
+    public function actualizarPaciente($id) { // TODO terminar de segurizar los endpoints
         try {
+            $usuario = $this->autenticar(["Paciente", "Admin"]);
+            Validaciones::validarID($id);
+            if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
+                return $this->jsonResponse(403, "No tienes permiso para actualizar datos de otra persona!");
+            }
+            $input = json_decode(file_get_contents("php://input"), true);
+            Validaciones::validarInput($input);
+
+            $dto = PacienteDTO::fromArray($input);
+        
             $coincidencia = $this->repo->buscarCoincidencia($dto);
             if($coincidencia && $coincidencia["id"] != $id) {
-                http_response_code(409);
-                echo json_encode([
-                    "ERROR" => "Ya hay un usuario con ese email/telefono"
-                ]);
-                return;
+                return $this->jsonResponse(409, ["ERROR" => "Ya hay un usuario con ese email/telefono"]);
             }
+
             $pac = $this->repo->actualizarPaciente($id, $dto);
             if($pac) {
                 $dto = RespuestaPacienteDTO::fromArray($pac);
-                http_response_code(200);
-                echo json_encode($dto);
+                return $this->jsonResponse(200, $dto);
             } else {
-                http_response_code(204);
+                return $this->jsonResponse(204, "");
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 
     public function eliminarPaciente($id) {
+        $this->autenticar(["Admin"]);
         Validaciones::validarID($id);
         try {
             $borrado = $this->repo->eliminarPaciente($id);
             if($borrado) {
-                http_response_code(204);
+                return $this->jsonResponse(204, "");
             } else {
-                http_response_code(404);
-                echo json_encode([
-                    "ERROR" => "Paciente no encontrado con ese id"
-                ]);
+                return $this->jsonResponse(404, ["ERROR" => "Paciente no encontrado con ese id"]);
             }
         } catch (\Exception $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Error interno del servidor"
-            ]);
+            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
     }
 }

@@ -10,6 +10,7 @@ class ProfesionalesRepository {
 
     public function __construct() {
         $this->db = Database::getConnection();
+        // $this->crearAdmin();
     }
 
     public function obtenerTodos() {
@@ -80,7 +81,7 @@ class ProfesionalesRepository {
             ];
         }
     }
-    
+    // TODO Modificar la siguiente funcion para evitar cualquier error de traer un usuario con email o telefono null;
     public function buscarCoincidencia(ProfesionalDTO $dto) {
         $prof = $this->db->prepare("SELECT * FROM usuario WHERE telefono = ? OR email = ?");
         $prof->execute([$dto->getTelefono(), $dto->getEmail()]);
@@ -132,7 +133,7 @@ class ProfesionalesRepository {
 
         $profActualizado2 = $this->db->prepare("UPDATE profesional SET profesion = ? WHERE idprofesional = ?");
         $profActualizado2->execute([$dto->getProfesion(), $id]);
-
+        // TODO Corregir metodo para retornar el profesional actualizado y no un boolean
         return $profActualizado->rowCount() > 0 || $profActualizado2->rowCount() > 0;
     }
 
@@ -142,4 +143,12 @@ class ProfesionalesRepository {
 
         return $prof->rowCount() > 0;
     }
+
+    // private function crearAdmin() {
+    //     $query = $this->db->prepare("
+    //         INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)
+    //     ");
+    //     $passwordHash = password_hash("emasanro", PASSWORD_BCRYPT);
+    //     $query->execute(["Emanuel", "San Roman", Roles::ADMIN, "esanroman@gmail.com", "", $passwordHash]);
+    // }
 }
