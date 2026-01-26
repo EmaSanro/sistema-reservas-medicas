@@ -81,7 +81,6 @@ class ProfesionalesRepository {
             ];
         }
     }
-    // TODO Modificar la siguiente funcion para evitar cualquier error de traer un usuario con email o telefono null;
     public function buscarCoincidencia(ProfesionalDTO $dto) {
         $prof = $this->db->prepare("SELECT * FROM usuario WHERE telefono = ? OR email = ?");
         $prof->execute([$dto->getTelefono(), $dto->getEmail()]);
@@ -100,24 +99,25 @@ class ProfesionalesRepository {
             $profesional->getTelefono(),
             $passwordHash
         ]);
-        if($created) {
-            $id = $this->db->lastInsertId();
-
-            $prof = $this->db->prepare("INSERT INTO profesional(idprofesional, profesion) VALUES(?,?)");
-            $prof->execute([$id, $profesional->getProfesion()]);
-
-            $this->db->commit();
-
-            return [
-                "id" => $id,
-                "nombre" => $profesional->getNombre(),
-                "apellido" => $profesional->getApellido(),
-                "profesion" => $profesional->getProfesion(),
-                "email" => $profesional->getEmail(),
-                "telefono" => $profesional->getTelefono()
-            ];
+        
+        if(!$created) {
+            throw new \Exception("Error al crear el profesional");
         }
-        return null;
+        $id = $this->db->lastInsertId();
+
+        $prof = $this->db->prepare("INSERT INTO profesional(idprofesional, profesion) VALUES(?,?)");
+        $prof->execute([$id, $profesional->getProfesion()]);
+
+        $this->db->commit();
+
+        return [
+            "id" => $id,
+            "nombre" => $profesional->getNombre(),
+            "apellido" => $profesional->getApellido(),
+            "profesion" => $profesional->getProfesion(),
+            "email" => $profesional->getEmail(),
+            "telefono" => $profesional->getTelefono()
+        ];
     }
 
     public function actualizarProfesional(int $id, ProfesionalDTO $dto) {

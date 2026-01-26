@@ -57,15 +57,11 @@ class ReservasRepository {
     }
 
     public function buscarCoincidencia($idPaciente, $idProfesional, $fecha) {
-        $paciente = $this->db->prepare("
-            SELECT 1 FROM usuario WHERE id = ? AND rol = ?
-        ");
-        $paciente->execute([$idPaciente, Roles::PACIENTE]);
         $profesional = $this->db->prepare("
             SELECT 1 FROM profesional WHERE idprofesional = ?
         ");
         $profesional->execute([$idProfesional]);
-        if(!$profesional->fetch() || !$paciente->fetch()) {
+        if(!$profesional->fetch()) {
             throw new \DomainException();
         }
         $coincidencia = $this->db->prepare("

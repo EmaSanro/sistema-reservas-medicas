@@ -1,21 +1,16 @@
 <?php
 namespace App\Security;
+
 class Validaciones {
 
     public static function validarID($id) {
         if(!isset($id)) {
             http_response_code(400);
-            echo json_encode([
-                "ERROR" => "Asegurate de ingresar un ID"
-            ]);
-            return;
+            throw new \BadFunctionCallException("Asegurate de ingresar un ID");
         }
         if(!is_numeric($id)) {
             http_response_code(400);
-            echo json_encode([
-                "ERROR" => "Asegurate de que el ID sea un numero valido"
-            ]);
-            return;
+            throw new \InvalidArgumentException("Asegurate de que el ID sea un numero valido");
         }
     }
 
@@ -29,24 +24,15 @@ class Validaciones {
     public static function validarCriteriosPassword($password) {
         if(strlen($password) < 8) {
             http_response_code(400);
-            echo json_encode([
-                "Invalido" => "La contraseña debe contener minimo 8 caracteres"
-            ]);
-            return;
+            throw new \LengthException("La contraseña debe contener minimo 8 caracteres");
         }
         if(!preg_match("/[A-Z]/", $password)) {
             http_response_code(400);
-            echo json_encode([
-                "Invalido" => "La contraseña tiene que tener una letra en mayuscula"
-            ]);
-            return;
+            throw new \InvalidArgumentException("La contraseña tiene que tener una letra en mayuscula");
         }
         if(!preg_match("/[^a-zA-Z0-9]/", $password)) {
             http_response_code(400);
-            echo json_encode([
-                "Invalido" => "La contraseña debe tener un caracter especial"
-            ]);
-            return;
+            throw new \InvalidArgumentException("La contraseña debe tener un caracter especial");
         }
     }
 
