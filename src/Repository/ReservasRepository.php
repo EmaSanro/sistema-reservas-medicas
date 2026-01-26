@@ -86,4 +86,20 @@ class ReservasRepository {
         $reserva->execute([$id]);
         return $reserva->rowCount() > 0;
     }
+
+    public function ReservasPendientesNotificacion() {
+        $reserva = $this->db->prepare("
+            SELECT r.*, p.nombre, p.email FROM reservas r
+            JOIN usuario p ON p.id = r.idpaciente
+            WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND r.notificado = 0
+        ");
+        $reserva->execute();
+        return $reserva->fetchAll();
+    }
+
+    public function marcarComoNotificado($id) {
+        $reserva = $this->db->prepare("
+            UPDATE reservas SET notificado = 1 WHERE id = ?");
+        $reserva->execute([$id]);
+    }
 }
