@@ -1,6 +1,7 @@
 <?php
 
-use App\Security\Validaciones;
+namespace App\Service;
+
 use Twilio\Rest\Client;
 
 class WhatsappService {
@@ -12,15 +13,20 @@ class WhatsappService {
         $this->numeroTwilio = $_ENV["NUM_TWILIO"];
     }
 
-    public function enviarRecordatorio($telefonoDestino, $paciente, $fecha, $hora) {
-        $mensaje = "Hola {$paciente}, recordamos que tienes una reserva para el día {$fecha} a las {$hora}.";
-        $this->cliente->messages->create(
-            "whatsapp:{$telefonoDestino}",
-            [
-                "from" => "whatsapp:{$this->numeroTwilio}",
-                "body" => $mensaje
-            ]
-        );
-        return true;
+    public function enviarRecordatorio($telefonoDestino, $paciente, $fecha, $hora, $archivoIcs) {
+        try {
+            $mensaje = "Hola {$paciente}, recordamos que tienes una reserva para el día {$fecha} a las {$hora}.";
+            $this->cliente->messages->create(
+                "whatsapp:{$telefonoDestino}",
+                [
+                    "from" => "whatsapp:{$this->numeroTwilio}",
+                    "body" => $mensaje,
+                    "mediaUrl" => [$archivoIcs]
+                ]
+            );
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
     }
 }

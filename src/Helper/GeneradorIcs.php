@@ -1,4 +1,7 @@
 <?php
+namespace App\Helper;
+
+use DateTime;
 
 class GeneradorIcs {
     public function generarIcs(
