@@ -15,11 +15,11 @@ class WhatsappService {
 
     public function enviarRecordatorio($telefonoDestino, $paciente, $fecha, $hora, $archivoIcs) {
         try {
-            $mensaje = "Hola {$paciente}, recordamos que tienes una reserva para el día {$fecha} a las {$hora}.";
+            $mensaje = "Hola {$paciente}, recordamos que tienes una reserva para el día {$fecha} a las {$hora}. No olvides asistir!";
             $this->cliente->messages->create(
-                "whatsapp:{$telefonoDestino}",
+                "whatsapp:$telefonoDestino",
                 [
-                    "from" => "whatsapp:{$this->numeroTwilio}",
+                    "from" => "whatsapp:$this->numeroTwilio",
                     "body" => $mensaje,
                     "mediaUrl" => [$archivoIcs]
                 ]

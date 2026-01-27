@@ -1,6 +1,7 @@
 <?php
-namespace App\Config;
+namespace AppConfig;
 
+use Dotenv\Dotenv;
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -8,7 +9,11 @@ class MailerConfig {
 
     public static function getMailer() {
         $mail = new PHPMailer(true);
-        $SMTP_HOST = $_ENV["STMP_HOST"];
+        
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../'); 
+        $dotenv->load();
+        
+        $SMTP_HOST = $_ENV["SMTP_HOST"];
         $SMTP_USER = $_ENV["SMTP_USER"];
         $SMTP_PASS = $_ENV["SMTP_PASS"];
         try {
