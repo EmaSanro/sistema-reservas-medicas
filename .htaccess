@@ -7,4 +7,11 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^(.+?)/?$ router.php?url=$1 [L,QSA,B]
+
+    Options -Indexes
+
+    <FilesMatch "\.(ics)$">
+        ForceType text/calendar
+        Header set Content-Disposition attachment
+    </FilesMatch>
 </IfModule>

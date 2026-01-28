@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Service;
+
+use Twilio\Rest\Client;
+
+class WhatsappService {
+    private Client $cliente;
+    private string $numeroTwilio;
+
+    public function __construct() {
+        $this->cliente = new Client($_ENV["SID_TWILIO"], $_ENV["TOKEN_TWILIO"]);
+        $this->numeroTwilio = $_ENV["NUM_TWILIO"];
+    }
+
+    public function enviarRecordatorio($telefonoDestino, $paciente, $fecha, $hora, $archivoIcs) {
+        try {
+            $mensaje = "Hola {$paciente}, recordamos que tienes una reserva para el día {$fecha} a las {$hora}. No olvides asistir!";
+            $this->cliente->messages->create(
+                "whatsapp:$telefonoDestino",
+                [
+                    "from" => "whatsapp:$this->numeroTwilio",
+                    "body" => $mensaje,
+                    "mediaUrl" => [$archivoIcs]
+                ]
+            );
+            return true;
+        } catch (\Exception $e) {
+            throw new \Exception($e->getMessage());
+        }
+    }
+}

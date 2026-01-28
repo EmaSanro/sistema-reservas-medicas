@@ -8,6 +8,10 @@ class Database {
     // private static $db;
     
     public static function getConnection() {
+
+        $dotenv = Dotenv::createImmutable(__DIR__ . '/../'); 
+        $dotenv->load();
+
         $DB_HOST = $_ENV["DB_HOST"];
         $DB_PORT = $_ENV["DB_PORT"];
         $DB_NAME = $_ENV["DB_NAME"];

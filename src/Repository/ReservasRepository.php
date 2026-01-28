@@ -4,6 +4,7 @@ namespace App\Repository;
 use App\Model\Roles;
 use AppConfig\Database;
 use DateTime;
+use PDO;
 
 class ReservasRepository {
     private $db;
@@ -85,5 +86,22 @@ class ReservasRepository {
         ");
         $reserva->execute([$id]);
         return $reserva->rowCount() > 0;
+    }
+
+    public function ReservasPendientesNotificacion() {
+        $reserva = $this->db->prepare("
+            SELECT r.*, pac.nombre as paciente, pac.email, pac.telefono, prof.nombre as profesional FROM reservas r
+            JOIN usuario pac ON pac.id = r.idpaciente
+            JOIN usuario prof ON prof.id = r.idprofesional
+            WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND r.notificado = 0
+        ");
+        $reserva->execute();
+        return $reserva->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function marcarComoNotificado($id) {
+        $reserva = $this->db->prepare("
+            UPDATE reservas SET notificado = 1 WHERE id = ?");
+        $reserva->execute([$id]);
     }
 }
