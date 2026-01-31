@@ -32,12 +32,13 @@ class ConsultorioController extends BaseController {
     }
 
     public function crearConsultorio() {
+        $usuario = $this->autenticar(["Admin", "Profesional"]);
         $input = json_decode(file_get_contents("php://input"), true);
         Validaciones::validarInput($input);
 
         try {
             $dto = ConsultorioDTO::fromArray($input);
-            $consultorio = $this->service->crearConsultorio($dto);
+            $consultorio = $this->service->crearConsultorio($dto, $usuario);
             return $this->jsonResponse(201, $consultorio);
         } catch (\Exception $e) {
             return $this->jsonResponse(400, ["ERROR" => $e->getMessage()]);
@@ -45,13 +46,14 @@ class ConsultorioController extends BaseController {
     }
 
     public function actualizarConsultorio($id) {
+        $usuario = $this->autenticar(["Admin", "Profesional"]);
         $input = json_decode(file_get_contents("php://input"), true);
         Validaciones::validarID($id);
         Validaciones::validarInput($input);
 
         try {
             $dto = ConsultorioDTO::fromArray($input);
-            $consultorio = $this->service->actualizarConsultorio($dto, $id);
+            $consultorio = $this->service->actualizarConsultorio($dto, $id, $usuario);
             return $this->jsonResponse(200, $consultorio);
         } catch (\Exception $e) {
             return $this->jsonResponse(400, ["ERROR" => $e->getMessage()]);
@@ -59,10 +61,11 @@ class ConsultorioController extends BaseController {
     }
 
     public function borrarConsultorio($id) {
+        $usuario = $this->autenticar(["Admin", "Profesional"]);
         Validaciones::validarID($id);
 
         try {
-            $borrado = $this->service->borrarConsultorio($id);
+            $borrado = $this->service->borrarConsultorio($id, $usuario);
             if($borrado) {
                 return $this->jsonResponse(204, "");
             }

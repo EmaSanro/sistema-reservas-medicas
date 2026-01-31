@@ -38,15 +38,16 @@ class ConsultorioRepository {
         return $consultorio->fetch(PDO::FETCH_ASSOC);
     }
     
-    public function crearConsultorio($data) {
+    public function crearConsultorio($data, $idprofesional) {
         $query = $this->db->prepare("
-            INSERT INTO consultorio(direccion, ciudad, horario_apertura, horario_cierre) VALUES(?,?,?,?)
+            INSERT INTO consultorio(direccion, ciudad, horario_apertura, horario_cierre, idprofesional) VALUES(?,?,?,?,?)
         ");
         $query->execute([
             $data["direccion"],
             $data["ciudad"],
             $data["horario_apertura"],
-            $data["horario_cierre"]
+            $data["horario_cierre"],
+            $idprofesional
         ]);
         if($query->rowCount() > 0) {
             return [
@@ -96,5 +97,13 @@ class ConsultorioRepository {
         ");
         $consultorio->execute([$ciudad, $direccion]);
         return $consultorio->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function esAtendidoPor($idConsultorio) {
+        $query = $this->db->prepare("
+            SELECT idprofesional FROM consultorio WHERE id = ?
+        ");
+        $query->execute([$idConsultorio]);
+        return $query->fetch(PDO::FETCH_ASSOC);
     }
 }
