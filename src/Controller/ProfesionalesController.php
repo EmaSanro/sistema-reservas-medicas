@@ -53,18 +53,19 @@ class ProfesionalesController extends BaseController {
             
         $filtro = $_GET["filtro"];
         $valor = $_GET["valor"];
-        $columnasPermitidas = ["nombre", "apellido", "profesion", "email", "telefono"];
+        $columnasPermitidas = ["nombre", "apellido", "profesion", "email", "telefono", "consultorio"];
             
         if(!in_array($filtro, $columnasPermitidas)) {
             return $this->jsonResponse(400, ["ERROR" => "El filtro ingresado no es valido para la busqueda"]);
         }
 
         try {
-            if($filtro == "profesion") {
-                $profs = $this->repo->obtenerPorProfesion($valor);
-            } else {
-                $profs = $this->repo->buscarPor($filtro, $valor);
-            }
+            $profs = match($filtro) {
+                'profesion' => $this->repo->obtenerPorProfesion($valor),
+                'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor),
+                default => $this->repo->buscarPor($filtro, $valor)
+            };
+            
             if($profs) {
                 $profsDTO = array_map(
                     fn(array $prof) => RespuestaProfesionalDTO::fromArray($prof),
