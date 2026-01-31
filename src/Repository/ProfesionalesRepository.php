@@ -4,6 +4,7 @@ namespace App\Repository;
 use App\Model\DTOs\ProfesionalDTO;
 use App\Model\Roles;
 use AppConfig\Database;
+use PDO;
 
 class ProfesionalesRepository {
     private $db;
@@ -81,6 +82,19 @@ class ProfesionalesRepository {
             ];
         }
     }
+    
+    public function obtenerProfesionalPorUbicacion($valor) { 
+        $query = $this->db->prepare("
+            SELECT u.*, p.profesion FROM usuario u 
+            JOIN profesional p ON u.id = p.idprofesional 
+            JOIN consultorio c ON p.idprofesional = c.idprofesional 
+            WHERE c.direccion LIKE ? OR c.ciudad LIKE ?
+        ");
+        $query->execute(["%$valor%", "%$valor%"]);
+        $profs = $query->fetchAll(PDO::FETCH_ASSOC);
+        return $profs ?: null;
+    }
+
     public function buscarCoincidencia(ProfesionalDTO $dto) {
         $prof = $this->db->prepare("SELECT * FROM usuario WHERE telefono = ? OR email = ?");
         $prof->execute([$dto->getTelefono(), $dto->getEmail()]);

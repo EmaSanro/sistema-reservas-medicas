@@ -13,9 +13,7 @@ abstract class BaseController {
 
             // 2. Si se especificaron roles, verificar que el usuario tenga uno de ellos
             if (!empty($rolesPermitidos) && !in_array($usuario->rol, $rolesPermitidos)) {
-                $this->jsonResponse(403, [
-                    "ERROR" => "No tienes permisos para acceder a este recurso."
-                ]);
+                throw new \Exception("No tienes permisos para acceder a este recurso");
             }
             return $usuario;
         } catch (\Exception $e) {
