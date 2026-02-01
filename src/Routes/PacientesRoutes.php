@@ -1,9 +1,11 @@
 <?php
 use App\Controller\PacientesController;
 use App\Repository\PacientesRepository;
+use App\Service\PacientesService;
 
 $pacientesRepository = new PacientesRepository();
-$pacientesController = new PacientesController($pacientesRepository);
+$pacientesService = new PacientesService($pacientesRepository);
+$pacientesController = new PacientesController($pacientesService);
 
 
 $router->get("/api/pacientes", [$pacientesController, "obtenerTodos"]);

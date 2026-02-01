@@ -20,13 +20,4 @@ class RespuestaPacienteDTO {
         $this->email = $email ?? null;
         $this->telefono = $telefono ?? null;
     }
-
-    public static function fromArray(array $array) {
-        return new self(
-            (int)$array["id"],
-            $array["nombre"] . " " . $array["apellido"],
-            $array["email"] ?? null,
-            $array["telefono"] ?? null
-        );
-    }
 }

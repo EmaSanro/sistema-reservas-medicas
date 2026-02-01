@@ -1,6 +1,7 @@
 <?php
 namespace App\Repository;
 
+use App\Model\Consultorio;
 use AppConfig\Database;
 use PDO;
 
@@ -18,13 +19,14 @@ class ConsultorioRepository {
         $consultorio->execute();
         $consultorios = [];
         foreach($consultorios as $consultorio) {
-            $consultorios[] = [
-                "id" => $consultorio["id"],
-                "ciudad" => $consultorio["ciudad"],
-                "direccion" => $consultorio["direccion"],
-                "horario_apertura" => $consultorio["horario_apertura"],
-                "horario_cierre" => $consultorio["horario_cierre"],
-            ];
+            $consultorios[] = new Consultorio(
+                $consultorio["id"],
+                $consultorio["ciudad"],
+                $consultorio["direccion"],
+                $consultorio["horario_apertura"],
+                $consultorio["horario_cierre"],
+                $consultorio["idprofesional"]
+            );
         }
         if(!$consultorios) return null;
         return $consultorios;
@@ -35,7 +37,16 @@ class ConsultorioRepository {
             SELECT * FROM consultorio WHERE id = ?
         ");
         $consultorio->execute([$id]);
-        return $consultorio->fetch(PDO::FETCH_ASSOC);
+        $data = $consultorio->fetch(PDO::FETCH_ASSOC);
+        if(!$data) return null;
+        return new Consultorio(
+            $data["id"],
+            $data["ciudad"],
+            $data["direccion"],
+            $data["horario_apertura"],
+            $data["horario_cierre"],
+            $data["idprofesional"]
+        );
     }
     
     public function crearConsultorio($data, $idprofesional) {
@@ -50,17 +61,19 @@ class ConsultorioRepository {
             $idprofesional
         ]);
         if($query->rowCount() > 0) {
-            return [
-                "direccion" => $data["direccion"],
-                "ciudad" => $data["ciudad"],
-                "horario_apertura" => $data["horario_apertura"],
-                "horario_cierre" => $data["horario_cierre"]
-            ];
+            return new Consultorio(
+                $data["id"],
+                $data["direccion"],
+                $data["ciudad"],
+                $data["horario_apertura"],
+                $data["horario_cierre"],
+                $idprofesional
+            );
         }
         return null;
     }
 
-    public function actualizarConsultorio($data, $id) {
+    public function actualizarConsultorio($data, $id, $idProfesional) {
         $updateQuery = $this->db->prepare("
             UPDATE consultorio set ciudad = ?, direccion = ?, horario_apertura = ?, horario_cierre = ?
             WHERE id = ?
@@ -72,13 +85,14 @@ class ConsultorioRepository {
             $data["horario_cierre"]
         ]);
         if($updateQuery->rowCount() > 0) {
-            return [
-                "id" => $id,
-                "direccion" => $data["direccion"],
-                "ciudad" => $data["ciudad"],
-                "horario_apertura" => $data["horario_apertura"],
-                "horario_cierre" => $data["horario_cierre"]
-            ];
+            return new Consultorio(
+                $id,
+                $data["direccion"],
+                $data["ciudad"],
+                $data["horario_apertura"],
+                $data["horario_cierre"],
+                $idProfesional
+            );
         }
         return null;
     }

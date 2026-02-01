@@ -19,8 +19,8 @@ class PacienteDTO {
     public function __construct(string $nombre, string $apellido, string|null $email, string|null $telefono, string $password) {
         $this->nombre = $nombre;
         $this->apellido = $apellido;
-        $this->email = $email ?? "";
-        $this->telefono = $telefono ?? "";
+        $this->email = $email ?? null;
+        $this->telefono = $telefono ?? null;
         $this->password = $password;
     }
 
@@ -32,11 +32,11 @@ class PacienteDTO {
         return $this->apellido;
     }
 
-    public function getEmail(): string {
+    public function getEmail(): string|null {
         return $this->email;
     }
 
-    public function getTelefono(): string {
+    public function getTelefono(): string|null {
         return $this->telefono;
     }
 

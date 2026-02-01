@@ -1,6 +1,7 @@
 <?php
 namespace App\Repository;
 
+use App\Model\Reserva;
 use App\Model\Roles;
 use AppConfig\Database;
 use DateTime;
@@ -14,47 +15,74 @@ class ReservasRepository {
     }
 
     public function obtenerTodas() {
-        $reservas = $this->db->prepare("
-            SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
-            FROM reservas r 
-            JOIN usuario upa ON upa.id = r.idpaciente 
-            JOIN usuario upr ON upr.id = r.idprofesional;
+        $query = $this->db->prepare("
+            SELECT * FROM reservas 
         ");
-        $reservas->execute();
-        return $reservas->fetchAll();
+        $query->execute();
+        $data = $query->fetchAll(PDO::FETCH_ASSOC);
+
+        if(!$data) return null;
+        
+        $reservas = [];
+        foreach($data as $reserva) {
+            $reservas[] = new Reserva(
+                $reserva["id"],
+                $reserva["idpaciente"],
+                $reserva["idprofesional"],
+                $reserva["fecha_reserva"]
+            );
+        }
+        return $reservas;
     }
 
     public function obtenerReservasPorUsuarioId(int $id, string $rol) {
         $columna = ($rol == "Paciente") ? "idpaciente" : "idprofesional";
-        $reservas = $this->db->prepare("
-            SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
-            FROM reservas r 
-            JOIN usuario upa ON upa.id = r.idpaciente 
-            JOIN usuario upr ON upr.id = r.idprofesional 
-            WHERE $columna = ?
+        $query = $this->db->prepare("
+            SELECT * FROM reservas WHERE $columna = ?
         ");
-        $reservas->execute([$id]);
-        return $reservas->fetchAll();
+        $query->execute([$id]);
+        $data = $query->fetchAll();
+        $reservas = [];
+
+        if(!$data) return null;
+
+        foreach($data as $reserva) {
+            $reservas[] = new Reserva(
+                $reserva["id"],
+                $reserva["idpaciente"],
+                $reserva["idprofesional"],
+                $reserva["fecha_reserva"]
+            );
+        }
+        return $reservas;
     }
 
-    public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
-        $reserva = $this->db->prepare("
-            SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
-            FROM reservas r 
-            JOIN usuario upa ON upa.id = r.idpaciente 
-            JOIN usuario upr ON upr.id = r.idprofesional
-            WHERE idpaciente = ? AND idprofesional = ? and fecha_reserva = ?
-        ");
-        $reserva->execute([$idPaciente, $idProfesional, $fecha]);
-        return $reserva->fetch();
-    }
+    // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
+    //     $reserva = $this->db->prepare("
+    //         SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
+    //         FROM reservas r 
+    //         JOIN usuario upa ON upa.id = r.idpaciente 
+    //         JOIN usuario upr ON upr.id = r.idprofesional
+    //         WHERE idpaciente = ? AND idprofesional = ? and fecha_reserva = ?
+    //     ");
+    //     $reserva->execute([$idPaciente, $idProfesional, $fecha]);
+    //     return $reserva->fetch();
+    // }
 
-    public function reservar(int $idProfesional, int $idPaciente, string $date) {
+    public function reservar($dto, $idPaciente) {
         $reservar = $this->db->prepare("
             INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva) VALUES(?,?,?)
         ");
-        $reservar->execute([$idProfesional, $idPaciente, $date]);
-        return $reservar->rowCount() > 0;
+        $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha()]);
+        if($reservar->rowCount() > 0) {
+            return new Reserva(
+                $this->db->lastInsertId(),
+                $idPaciente,
+                $dto->getIdProfesional(),
+                $dto->getFecha()
+            );
+        }
+        return null;
     }
 
     public function buscarCoincidencia($idPaciente, $idProfesional, $fecha) {
@@ -74,7 +102,7 @@ class ReservasRepository {
 
     public function perteneceAlPaciente($id, $idPaciente) {
         $reserva = $this->db->prepare("
-            SELECT 1 FROM reserva WHERE id = ? AND idPaciente = ?
+            SELECT 1 FROM reservas WHERE id = ? AND idPaciente = ?
         ");
         $reserva->execute([$id, $idPaciente]);
         return $reserva->fetch();

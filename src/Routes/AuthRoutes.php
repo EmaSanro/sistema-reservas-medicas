@@ -2,8 +2,10 @@
 
 use App\Controller\AuthController;
 use App\Repository\AuthRepository;
+use App\Service\AuthService;
 
 $authRepository = new AuthRepository();
-$authController = new AuthController($authRepository);
+$authService = new AuthService($authRepository);
+$authController = new AuthController($authService);
 
 $router->post("/api/auth/login", [$authController, "login"]);

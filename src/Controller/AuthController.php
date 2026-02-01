@@ -1,49 +1,44 @@
 <?php
 namespace App\Controller;
 
-use App\Repository\AuthRepository;
-use App\Security\JWTHandler;
 use App\Security\Validaciones;
+use App\Service\AuthService;
 
-class AuthController {
+class AuthController extends BaseController {
 
-    public function __construct(private AuthRepository $repo) { }
+    public function __construct(private AuthService $service) { }
 
     public function login() {
+        $input = json_decode(file_get_contents("php://input"), true);
+        Validaciones::validarInput($input);
+        Validaciones::validarLogin($input);
+
         try {
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
-            Validaciones::validarLogin($input);
-    
-            $usuario = $this->repo->buscarUsuario(($input["email"] ?? $input["telefono"]));
-            if($usuario && password_verify($input["password"], $usuario["password"])) {
-
-                $payload = [
-                    "id" => $usuario['id'],
-                    "nombre" => $usuario["nombre"] . " ". $usuario["apellido"],
-                    "rol" => $usuario["rol"],
-                    "email" => $usuario["email"],
-                    "telefono" => $usuario["telefono"]
-                ];
-                
-                $token = JWTHandler::generateToken($payload);
-
-                http_response_code(200);
-                echo json_encode([
-                    "OK" => "logueado correctamente",
-                    "TOKEN" => $token
-                ]);
+            $token = $this->service->login($input);
+            
+            if($token) {
+                return $this->jsonResponse(
+                    200,
+                    [
+                        "OK" => "logueado correctamente",
+                        "TOKEN" => $token
+                    ]
+                );
             } else {
-                http_response_code(401);
-                echo json_encode([
-                    "ERROR" => "Credenciales incorrectas!"
-                ]);
+                return $this->jsonResponse(
+                    401,
+                    [
+                        "ERROR" => "Credenciales incorrectas!"
+                    ]
+                );
             }
         } catch (\PDOException $e) {
-            http_response_code(500);
-            echo json_encode([
-                "ERROR" => "Ha ocurrido un error en la base de datos"
-            ]);
+            return $this->jsonResponse(
+                500,
+                [
+                    "ERROR" => "Ha ocurrido un error en la base de datos"
+                ]
+            );
         }
     }
 }

@@ -2,25 +2,19 @@
 namespace App\Controller;
 
 use App\Model\DTOs\PacienteDTO;
-use App\Model\DTOs\RespuestaPacienteDTO;
-use App\Model\Roles;
-use App\Repository\PacientesRepository;
 use App\Security\Validaciones;
+use App\Service\PacientesService;
 
 class PacientesController extends BaseController {
 
-    public function __construct(private PacientesRepository $repo) {  }
+    public function __construct(private PacientesService $service) {  }
 
     public function obtenerTodos() {
+        $this->autenticar(["Admin", "Profesional"]);
         try {
-            $this->autenticar(["Admin", "Profesional"]);
-            $pacientes = $this->repo->obtenerTodos();
+            $pacientes = $this->service->obtenerTodos();
             if($pacientes) {
-                $pacientesDTO = array_map(
-                    fn(array $paciente) => RespuestaPacienteDTO::fromArray($paciente),
-                    $pacientes
-                );
-                return $this->jsonResponse(200, $pacientesDTO);
+                return $this->jsonResponse(200, $pacientes);
             } else {
                 return $this->jsonResponse(404, ["ERROR" => "No se han encontrado pacientes"]);
             }
@@ -30,13 +24,12 @@ class PacientesController extends BaseController {
     }
 
     public function obtenerPorId($id) {
+        $this->autenticar(["Profesional", "Admin"]);
+        Validaciones::validarID($id);
         try {
-            $this->autenticar(["Profesional", "Admin"]);
-            Validaciones::validarID($id);
-            $pac = $this->repo->obtenerPorId($id);
+            $pac = $this->service->obtenerPorId($id);
             if($pac) {
-                $dto = RespuestaPacienteDTO::fromArray($pac);
-                return $this->jsonResponse(200, $dto);
+                return $this->jsonResponse(200, $pac);
             } else {
                 return $this->jsonResponse(404, ["ERROR" => "No se ha encontrado un paciente con ese id"]);
             }
@@ -46,26 +39,17 @@ class PacientesController extends BaseController {
     }
 
     public function buscarPor() {
+        $this->autenticar(["Admin", "Profesional"]);
+        if(!isset($_GET["filtro"], $_GET["valor"])) {
+            return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
+        }
+        $filtro = $_GET["filtro"];
+        $valor = $_GET["valor"];
+        
         try {
-            $this->autenticar(["Admin", "Profesional"]);
-            if(!isset($_GET["filtro"], $_GET["valor"])) {
-                return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
-            }
-            $filtro = $_GET["filtro"];
-            $valor = $_GET["valor"];
-            $filtrosPermitidos = ["nombre", "apellido", "email", "telefono"];
-
-            if(!in_array($filtro, $filtrosPermitidos)) {
-                return $this->jsonResponse(400, ["ERROR" => "El filtro no esta entre los permitidos(nombre, apellido, email, telefono)"]);
-            }
-
-            $pacientes = $this->repo->buscarPor($filtro, $valor);
+            $pacientes = $this->service->buscarPor($filtro, $valor);
             if($pacientes) {
-                $pacientesDTO = array_map(
-                    fn(array $paciente) => RespuestaPacienteDTO::fromArray($paciente),
-                    $pacientes
-                );
-                return $this->jsonResponse(200, $pacientesDTO);
+                return $this->jsonResponse(200, $pacientes);
             }else {
                 return $this->jsonResponse(404, ["ERROR" => "No se encontraron coincidencias con el criterio de busqueda"]);
             }
@@ -74,56 +58,39 @@ class PacientesController extends BaseController {
         }
     }
     public function registrarPaciente() {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        Validaciones::validarInput($input);
+        Validaciones::validarCriteriosPassword($input["password"]);
+        
+        $dto = PacienteDTO::fromArray($input);
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
-
-            Validaciones::validarInput($input);
-            Validaciones::validarCriteriosPassword($input["password"]);
-
-            $dto = PacienteDTO::fromArray($input);
-
-            $coincidencia = $this->repo->buscarCoincidencia($dto);
-            if($coincidencia) {
-                return $this->jsonResponse(409, [ "ERROR" => "Ya hay un usuario con ese telefono/email"]);
-            }
-
-            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
-            $pac = $this->repo->registrarPaciente($dto, $passwordHash);
+            $pac = $this->service->registrarPaciente($dto);
             if($pac) {
-                $dto = RespuestaPacienteDTO::fromArray($pac);
-                return $this->jsonResponse(201, $dto);
+                return $this->jsonResponse(201, $pac);
             }
         } catch (\Exception $e) {
             $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
         }
         }
         
-    public function actualizarPaciente($id) { // TODO terminar de segurizar los endpoints
+    public function actualizarPaciente($id) {
+        $usuario = $this->autenticar(["Paciente", "Admin"]);
+        Validaciones::validarID($id);
+
+        $input = json_decode(file_get_contents("php://input"), true);
+        Validaciones::validarInput($input);
+
+        $dto = PacienteDTO::fromArray($input);
         try {
-            $usuario = $this->autenticar(["Paciente", "Admin"]);
-            Validaciones::validarID($id);
-            if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
-                return $this->jsonResponse(403, "No tienes permiso para actualizar datos de otra persona!");
-            }
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
-
-            $dto = PacienteDTO::fromArray($input);
-        
-            $coincidencia = $this->repo->buscarCoincidencia($dto);
-            if($coincidencia && $coincidencia["id"] != $id) {
-                return $this->jsonResponse(409, ["ERROR" => "Ya hay un usuario con ese email/telefono"]);
-            }
-
-            $pac = $this->repo->actualizarPaciente($id, $dto);
+            $pac = $this->service->actualizarPaciente($id, $dto, $usuario);
             if($pac) {
-                $dto = RespuestaPacienteDTO::fromArray($pac);
-                return $this->jsonResponse(200, $dto);
+                return $this->jsonResponse(200, $pac);
             } else {
                 return $this->jsonResponse(204, "");
             }
         } catch (\Exception $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Error interno del servidor"]);
+            return $this->jsonResponse(500, ["ERROR" => $e->getMessage()]);
         }
     }
 
@@ -131,7 +98,7 @@ class PacientesController extends BaseController {
         $this->autenticar(["Admin"]);
         Validaciones::validarID($id);
         try {
-            $borrado = $this->repo->eliminarPaciente($id);
+            $borrado = $this->service->eliminarPaciente($id);
             if($borrado) {
                 return $this->jsonResponse(204, "");
             } else {

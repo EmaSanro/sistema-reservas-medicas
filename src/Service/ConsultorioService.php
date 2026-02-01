@@ -13,7 +13,7 @@ class ConsultorioService {
         $consultorios = $this->repo->obtenerConsultorios();
         if($consultorios) {
             $consultoriosDTO = array_map(
-                fn($consultorio) => RespuestaConsultorioDTO::fromArray($consultorio),
+                fn($consultorio) => $consultorio->toDTO(),
                 $consultorios
             );
             return $consultoriosDTO;
@@ -24,7 +24,7 @@ class ConsultorioService {
     public function obtenerConsultorio($id) {
         $consultorio = $this->repo->obtenerConsultorio($id);
         if($consultorio) {
-            $consultorioDTO = RespuestaConsultorioDTO::fromArray($consultorio);
+            $consultorioDTO = $consultorio->toDTO();
             return $consultorioDTO;
         }
         return null;
@@ -39,7 +39,7 @@ class ConsultorioService {
 
         $consultorio = $this->repo->crearConsultorio($dto, $idProfesional);
         if($consultorio) {
-            $consultorioDTO = RespuestaConsultorioDTO::fromArray($consultorio);
+            $consultorioDTO = $consultorio->toDTO();
             return $consultorioDTO;
         }
         return null;
@@ -50,18 +50,19 @@ class ConsultorioService {
             throw new \Exception("No existe un consultorio con ese id");
         }
 
-        if($usuario->rol != Roles::ADMIN && $this->repo->esAtendidoPor($id) != $usuario->id) {
+        $consultorio = $this->repo->esAtendidoPor($id);
+        if($usuario->rol != Roles::ADMIN && $consultorio["idprofesional"] != $usuario->id) {
             throw new \Exception("No tienes permisos para actualizar un consultorio que no es tuyo!");
         }
         
         $coincidencia = $this->repo->buscarPorCiudadDireccion($dto->getCiudad(), $dto->getDireccion());
-        if($coincidencia && $coincidencia["id"] = $id) {
+        if($coincidencia && $coincidencia["id"] != $id) {
             throw new \Exception("No puedes usar la misma direccion y ciudad que un consultorio que ya existe");
         }
 
-        $consultorio = $this->repo->actualizarConsultorio($dto, $id); 
+        $consultorio = $this->repo->actualizarConsultorio($dto, $id, $consultorio["idprofesional"]);
         if($consultorio) {
-            return RespuestaConsultorioDTO::fromArray($consultorio);
+            return $consultorio->toDTO();
         }
         return null;
     }

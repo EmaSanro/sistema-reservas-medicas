@@ -2,9 +2,11 @@
 
 use App\Controller\ReservasController;
 use App\Repository\ReservasRepository;
+use App\Service\ReservasService;
 
-$reservarRepository = new ReservasRepository();
-$reservasController = new ReservasController($reservarRepository);
+$reservasRepository = new ReservasRepository();
+$reservasService = new ReservasService($reservasRepository);
+$reservasController = new ReservasController($reservasService);
 
 $router->get("/api/reservas", [$reservasController, "obtenerTodas"]);
 $router->get("/api/reservas/mis-reservas", [$reservasController, "obtenerReservasPorUsuarioId"]);

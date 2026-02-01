@@ -2,13 +2,13 @@
 namespace App\Controller;
 
 use App\Model\DTOs\RespuestaReservaDTO;
-use App\Repository\ReservasRepository;
 use App\Model\DTOs\ReservaDTO;
 use App\Security\Validaciones;
+use App\Service\ReservasService;
 use OpenApi\Attributes as OA;
 
 class ReservasController extends BaseController {
-    public function __construct(private ReservasRepository $repo) {}
+    public function __construct(private ReservasService $service) {}
 
     #[OA\Get(
         path: "/reservas",
@@ -29,16 +29,11 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent()
     )]
     public function obtenerTodas() {
+        $this->autenticar(["Admin"]);
         try {
-            $this->autenticar(["Admin"]);
-
-            $reservas = $this->repo->obtenerTodas();
+            $reservas = $this->service->obtenerTodas();
             if($reservas) {
-                $reservasDTO = array_map(
-                    fn(array $reserva) => RespuestaReservaDTO::fromArray($reserva),
-                    $reservas 
-                );
-                return $this->jsonResponse(200, $reservasDTO);
+                return $this->jsonResponse(200, $reservas);
             } else {
                 return $this->jsonResponse(404, ["ERROR" => "No se encontraron reservas"]);
             }
@@ -65,15 +60,11 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent()
     )]
     public function obtenerReservasPorUsuarioId() {
+        $usuario = $this->autenticar(["Paciente", "Profesional", "Admin"]);
         try {
-            $usuario = $this->autenticar(["Paciente", "Profesional", "Admin"]);
-            $reservas = $this->repo->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
+            $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
             if($reservas) {
-                $reservasDTO = array_map(
-                    fn(array $reserva) => RespuestaReservaDTO::fromArray($reserva),
-                    $reservas
-                );
-                return $this->jsonResponse(200, $reservasDTO);
+                return $this->jsonResponse(200, $reservas);
             } else {
                 return $this->jsonResponse(404, ["ERROR" => "No tienes reservas"]);
             }
@@ -104,41 +95,34 @@ class ReservasController extends BaseController {
         description: "Este paciente/profesional ya tiene una reserva para esa misma fecha"
     )]
     public function reservar() {
+        $paciente = $this->autenticar(["Paciente"]);
+        $input = json_decode(file_get_contents("php://input"), true);
+        Validaciones::validarInput($input);
         try {
-            $paciente = $this->autenticar(["Paciente"]);
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
-
             $dto = ReservaDTO::fromArray($input);
-            if($this->repo->buscarCoincidencia($paciente->id, $dto->getIdProfesional(), $dto->getFecha())) {
-                return $this->jsonResponse(409, ["ERROR" => "Lo siento este paciente/profesional ya tiene una reserva para esa misma fecha"]);
-            }
 
-            if(!$this->repo->reservar($dto->getIdProfesional(), $paciente->id, $dto->getFecha())) {
-                return $this->jsonResponse(500, ["ERROR" => "No se ha podido reservar"]);
+            $reserva = $this->service->reservar($dto, $paciente);
+            if($reserva) {
+                return $this->jsonResponse(201, ["EXITO" => "Su reserva ha sido procesada correctamente!"]);
             }
-
-            return $this->jsonResponse(201, ["EXITO" => "Su reserva ha sido procesada correctamente!"]);
         } catch(\DomainException $d) {
             return $this->jsonResponse(404, ["ERROR" => "No se encontro un profesional con ese id"]);
         } catch (\PDOException $e) {
             return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos", "Mensaje" => $e->getMessage()]);
         }
     }
-
+    // TODO cambiar funcionalidad cancelarReserva para que no se elimine el registro, sino que se marque como CANCELADA (constituye a cambios en la BD y modelos y DTOs)
     public function cancelarReserva(int $id) {
         $paciente = $this->autenticar(["Paciente"]);
-
-        if(!$this->repo->perteneceAlPaciente($id, $paciente->id)) {
-            return $this->jsonResponse(403, ["ERROR" => "No puedes cancelar una reserva que no es tuya!"]);
-        }
         try {
-            $borrado = $this->repo->cancelarReserva($id);
+            $borrado = $this->service->cancelarReserva($id, $paciente);
             if($borrado) {
                 return $this->jsonResponse(204, "");
             } else {
                 return $this->jsonResponse(404, "No hay una reserva con ese id");
             }
+        } catch(\Exception $e) {
+                return $this->jsonResponse(400, $e->getMessage());
         } catch (\PDOException $e) {
             return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
         }

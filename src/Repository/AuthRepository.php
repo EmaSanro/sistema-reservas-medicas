@@ -1,8 +1,11 @@
 <?php
 namespace App\Repository;
 
+use App\Model\Profesional;
 use App\Model\Roles;
+use App\Model\Usuario;
 use AppConfig\Database;
+use PDO;
 
 class AuthRepository {
     private $db;
@@ -16,32 +19,31 @@ class AuthRepository {
             SELECT * FROM usuario WHERE email = ? OR telefono = ?
         ");
         $query->execute([$data, $data]);
-        $usuario = $query->fetch();
+        $usuario = $query->fetch(PDO::FETCH_ASSOC);
         if($usuario["rol"] == Roles::PROFESIONAL) {
             $query = $this->db->prepare("
             SELECT * FROM profesional WHERE idprofesional = ?
             ");
             $query->execute([$usuario["id"]]);
             $prof = $query->fetch();
-            return [
-                "id" => $usuario["id"],
-                "nombre" => $usuario["nombre"],
-                "apellido" => $usuario["apellido"],
-                "profesion" => $prof["profesion"],
-                "rol" => $prof["rol"],
-                "email" => $usuario["email"] ?? "",
-                "telefono" => $usuario["telefono"] ?? "",
-                "password" => $usuario["password"]
-            ];
+            return new Profesional(
+                $usuario["id"],
+                $usuario["nombre"],
+                $usuario["apellido"],
+                $prof["profesion"],
+                $usuario["email"] ?? "",
+                $usuario["telefono"] ?? "",
+                $usuario["password"]
+            );
         }
-        return [
-            "id" => $usuario["id"],
-            "nombre" => $usuario["nombre"],
-            "apellido" => $usuario["apellido"],
-            "rol" => $usuario["rol"],
-            "email" => $usuario["email"] ?? "",
-            "telefono" => $usuario["telefono"] ?? "",
-            "password" => $usuario["password"]
-        ];
+        return new Usuario(
+            $usuario["id"],
+            $usuario["nombre"],
+            $usuario["apellido"],
+            $usuario["rol"],
+            $usuario["email"] ?? "",
+            $usuario["telefono"] ?? "",
+            $usuario["password"]
+        );
     }
 }

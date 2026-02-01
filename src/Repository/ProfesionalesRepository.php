@@ -2,6 +2,7 @@
 namespace App\Repository;
 
 use App\Model\DTOs\ProfesionalDTO;
+use App\Model\Profesional;
 use App\Model\Roles;
 use AppConfig\Database;
 use PDO;
@@ -11,14 +12,26 @@ class ProfesionalesRepository {
 
     public function __construct() {
         $this->db = Database::getConnection();
-        // $this->crearAdmin();
     }
 
     public function obtenerTodos() {
-        $profs = $this->db->prepare("SELECT * FROM usuario JOIN profesional ON usuario.id = profesional.idprofesional WHERE rol = ?");
+        $profs = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE rol = ?");
         $profs->execute([Roles::PROFESIONAL]);
-        $data = $profs->fetchAll();
-        return $data;
+        $data = $profs->fetchAll(PDO::FETCH_ASSOC);
+        $profesionales = [];
+        foreach($data as $profesional) {
+            $profesionales[] = new Profesional(
+                $profesional["id"],
+                $profesional["nombre"],
+                $profesional["apellido"],
+                $profesional["profesion"],
+                $profesional["email"],
+                $profesional["telefono"],
+                $profesional["password"],
+            );
+        }
+        if(!$profesionales) return null;
+        return $profesionales;
     }
 
     public function obtenerPorId(int $id) {
@@ -26,35 +39,63 @@ class ProfesionalesRepository {
         $prof->execute([$id]);
         $data = $prof->fetch();
         if($data) {
-            return [
-                "id" => $data["id"],
-                "nombre" => $data["nombre"],
-                "apellido" => $data["apellido"],
-                "profesion" => $data["profesion"],
-                "email" => $data["email"],
-                "telefono" =>$data["telefono"]
-            ];
+            return new Profesional(
+                $data["id"],
+                $data["nombre"],
+                $data["apellido"],
+                $data["profesion"],
+                $data["email"],
+                $data["telefono"],
+                $data["password"]
+            );
         }
+        return null;
     }
 
     public function buscarPor(string $filtro, string $valor) {
         $profs = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE $filtro LIKE ? AND u.rol = ?");
         $profs->execute(["%$valor%", Roles::PROFESIONAL]);
-        $data = $profs->fetchAll();
-        return $data;
+        $data = $profs->fetchAll(PDO::FETCH_ASSOC);
+        $profesionales = [];
+        foreach($data as $profesional) {
+            $profesionales[] = new Profesional(
+                $profesional["id"],
+                $profesional["nombre"],
+                $profesional["apellido"],
+                $profesional["profesion"],
+                $profesional["email"],
+                $profesional["telefono"],
+                $profesional["password"],
+            );
+        }
+        if(!$profesionales) return null;
+        return $profesionales;
     }
 
     public function obtenerPorProfesion($profesion) {
         $profs = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE p.profesion LIKE ?");
         $profs->execute([ucwords("%$profesion%")]);
-        $data = $profs->fetchAll();
-        return $data;
+        $data = $profs->fetchAll(PDO::FETCH_ASSOC);
+        $profesionales = [];
+        foreach($data as $profesional) {
+            $profesionales[] = new Profesional(
+                $profesional["id"],
+                $profesional["nombre"],
+                $profesional["apellido"],
+                $profesional["profesion"],
+                $profesional["email"],
+                $profesional["telefono"],
+                $profesional["password"],
+            );
+        }
+        if(!$profesionales) return null;
+        return $profesionales;
     }
 
     public function obtenerPorTelefono(string $telefono) {
         $prof = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE telefono = ? AND rol = ?");
         $prof->execute([$telefono, Roles::PROFESIONAL]);
-        $data = $prof->fetch();
+        $data = $prof->fetch(PDO::FETCH_ASSOC);
         if($data) {
             return [
                 "id" => $data["id"],
@@ -92,7 +133,20 @@ class ProfesionalesRepository {
         ");
         $query->execute(["%$valor%", "%$valor%"]);
         $profs = $query->fetchAll(PDO::FETCH_ASSOC);
-        return $profs ?: null;
+        $profesionales = [];
+        foreach($profs as $profesional) {
+            $profesionales[] = new Profesional(
+                $profesional["id"],
+                $profesional["nombre"],
+                $profesional["apellido"],
+                $profesional["profesion"],
+                $profesional["email"],
+                $profesional["telefono"],
+                $profesional["password"],
+            );
+        }
+        if(!$profesionales) return null;
+        return $profesionales;
     }
 
     public function buscarCoincidencia(ProfesionalDTO $dto) {
@@ -124,31 +178,43 @@ class ProfesionalesRepository {
 
         $this->db->commit();
 
-        return [
-            "id" => $id,
-            "nombre" => $profesional->getNombre(),
-            "apellido" => $profesional->getApellido(),
-            "profesion" => $profesional->getProfesion(),
-            "email" => $profesional->getEmail(),
-            "telefono" => $profesional->getTelefono()
-        ];
+        return new Profesional(
+            $id,
+            $profesional->getNombre(),
+            $profesional->getApellido(),
+            $profesional->getProfesion(),
+            $profesional->getEmail(),
+            $profesional->getTelefono(),
+            $passwordHash
+        );
     }
 
-    public function actualizarProfesional(int $id, ProfesionalDTO $dto) {
-        $profActualizado = $this->db->prepare("UPDATE usuario SET nombre = ?, apellido = ?, email = ?, telefono = ? WHERE id = ? AND rol = ?");
+    public function actualizarProfesional(int $id, ProfesionalDTO $dto, $passwordHash) {
+        $profActualizado = $this->db->prepare("UPDATE usuario SET nombre = ?, apellido = ?, email = ?, telefono = ?, password = ? WHERE id = ? AND rol = ?");
         $profActualizado->execute([
             $dto->getNombre(), 
             $dto->getApellido(), 
             $dto->getEmail(),
             $dto->getTelefono(),
+            $passwordHash,
             $id,
             Roles::PROFESIONAL
         ]);
 
         $profActualizado2 = $this->db->prepare("UPDATE profesional SET profesion = ? WHERE idprofesional = ?");
         $profActualizado2->execute([$dto->getProfesion(), $id]);
-        // TODO Corregir metodo para retornar el profesional actualizado y no un boolean
-        return $profActualizado->rowCount() > 0 || $profActualizado2->rowCount() > 0;
+        if($profActualizado->rowCount() > 0 && $profActualizado2->rowCount() > 0) {
+            return new Profesional(
+                $id,
+                $dto->getNombre(), 
+                $dto->getApellido(), 
+                $dto->getProfesion(),
+                $dto->getEmail(),
+                $dto->getTelefono(),
+                $passwordHash
+            );
+        }
+        return null;
     }
 
     public function eliminarProfesional($id) {
@@ -157,12 +223,4 @@ class ProfesionalesRepository {
 
         return $prof->rowCount() > 0;
     }
-
-    // private function crearAdmin() {
-    //     $query = $this->db->prepare("
-    //         INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)
-    //     ");
-    //     $passwordHash = password_hash("emasanro", PASSWORD_BCRYPT);
-    //     $query->execute(["Emanuel", "San Roman", Roles::ADMIN, "esanroman@gmail.com", "", $passwordHash]);
-    // }
 }

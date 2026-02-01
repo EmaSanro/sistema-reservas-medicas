@@ -6,9 +6,50 @@ use App\Helper\GeneradorIcs;
 use PHPMailer\PHPMailer\Exception;
 
 class ReservasService {
-    // private $repo = new ReservasRepository();
-
     public function __construct(private ReservasRepository $repo) {}
+
+    public function obtenerTodas() {
+        $reservas = $this->repo->obtenerTodas();
+        if($reservas) {
+            $reservasDTO = array_map(
+                    fn($reserva) => $reserva->toDTO(),
+                    $reservas
+                );
+            return $reservasDTO;
+        }
+        return null;
+    }
+
+    public function obtenerReservasPorUsuarioId($id, $rol) {
+        $reservas = $this->repo->obtenerReservasPorUsuarioId($id, $rol);
+        if($reservas) {
+            $reservasDTO = array_map(
+                fn($reserva) => $reserva->toDTO(),
+                $reservas  
+            );
+            return $reservasDTO;
+        }
+        return null;
+    }
+
+    public function reservar($dto, $paciente) {
+        if($this->repo->buscarCoincidencia($paciente->id, $dto->getIdProfesional(), $dto->getFecha())) {
+            throw new \Exception("Lo siento este paciente/profesional ya tiene una reserva para esa misma fecha");
+        }
+
+        $reserva = $this->repo->reservar($dto, $paciente->id);
+        if($reserva) {
+            return $reserva->toDTO();
+        }
+        return null;
+    }
+
+    public function cancelarReserva($idReserva, $paciente) {
+        if(!$this->repo->perteneceAlPaciente($idReserva, $paciente->id)) {
+            throw new \Exception("No puedes cancelar una reserva que no es tuya!");
+        }
+        return $this->repo->cancelarReserva($idReserva);
+    }
 
     public function enviarNotificacion() {
         try {

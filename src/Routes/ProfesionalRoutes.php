@@ -1,9 +1,11 @@
 <?php
 use App\Controller\ProfesionalesController;
 use App\Repository\ProfesionalesRepository;
+use App\Service\ProfesionalesService;
 
 $profesionalesRepository = new ProfesionalesRepository();
-$profesionalesController = new ProfesionalesController($profesionalesRepository);
+$profesionalesService = new ProfesionalesService($profesionalesRepository);
+$profesionalesController = new ProfesionalesController($profesionalesService);
 
 $router->get('/api/profesionales', [$profesionalesController, "obtenerTodos"]);
 $router->get("/api/profesionales/buscar", [$profesionalesController, "obtenerPor"]);

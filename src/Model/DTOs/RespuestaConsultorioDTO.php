@@ -7,20 +7,13 @@ class RespuestaConsultorioDTO {
     public readonly string $direccion;
     public readonly string $ciudad;
     public readonly string $horario;
+    public readonly int|null $idprofesional;
 
-    public function __construct(int $id, string $direccion, string $ciudad, string $horario) {
+    public function __construct(int $id, string $direccion, string $ciudad, string $horario, int $idprofesional) {
         $this->id = $id;
         $this->direccion = $direccion;
         $this->ciudad = $ciudad;
         $this->horario = $horario;
-    }
-
-    public static function fromArray(array $input) {
-        return new self(
-            $input["id"],
-            $input["direccion"],
-            $input["ciudad"],
-            $input["horario_apertura"] . " - " . $input["horario_cierre"]
-        );
+        $this->idprofesional = $idprofesional ?? null;
     }
 }
