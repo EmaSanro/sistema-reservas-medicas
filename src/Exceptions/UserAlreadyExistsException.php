@@ -1,6 +1,6 @@
 <?php
 namespace App\Exceptions;
 
-class UserAlreadyExists extends AppException {
+class UserAlreadyExistsException extends AppException {
     protected int $statusCode = 409;
 }
