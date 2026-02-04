@@ -1,6 +1,7 @@
 <?php
 namespace App\Security;
 
+use App\Exceptions\Auth\InvalidTokenException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
@@ -28,7 +29,7 @@ class JWTHandler {
         $headers = apache_request_headers();
 
         if(!isset($headers["Authorization"])) {
-            throw new \Exception("Token no proporcionado");
+            throw new InvalidTokenException("Token no proporcionado");
         }
 
         $authHeader = $headers["Authorization"];
@@ -38,7 +39,7 @@ class JWTHandler {
             $decoded = JWT::decode($token, new Key(self::getSecretKey(), "HS256"));
             return $decoded->data;
         } catch (\Exception $e) {
-            throw new \Exception("Token invalido o expirado");
+            throw new InvalidTokenException("Token invalido o expirado");
         }
     }
 }

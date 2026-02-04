@@ -1,57 +1,49 @@
 <?php
 namespace App\Service;
 
+use App\Exceptions\Auth\ForbiddenException;
+use App\Exceptions\Reservas\ReservaAlreadyCancelledException;
+use App\Exceptions\Reservas\ReservaAlreadyExistsException;
 use App\Repository\ReservasRepository;
 use App\Helper\GeneradorIcs;
+use App\Model\DTOs\RespuestaReservaDTO;
 use PHPMailer\PHPMailer\Exception;
 
 class ReservasService {
     public function __construct(private ReservasRepository $repo) {}
 
-    public function obtenerTodas() {
+    public function obtenerTodas(): array {
         $reservas = $this->repo->obtenerTodas();
-        if($reservas) {
-            $reservasDTO = array_map(
-                    fn($reserva) => $reserva->toDTO(),
-                    $reservas
-                );
-            return $reservasDTO;
-        }
-        return null;
+
+        return array_map(fn($reserva) => $reserva->toDTO(), $reservas ?? []);
     }
 
-    public function obtenerReservasPorUsuarioId($id, $rol) {
+    public function obtenerReservasPorUsuarioId($id, $rol): array {
         $reservas = $this->repo->obtenerReservasPorUsuarioId($id, $rol);
-        if($reservas) {
-            $reservasDTO = array_map(
-                fn($reserva) => $reserva->toDTO(),
-                $reservas  
-            );
-            return $reservasDTO;
-        }
-        return null;
+
+        return array_map(fn($reserva) => $reserva->toDTO(), $reservas ?? []);
     }
 
-    public function reservar($dto, $paciente) {
+    public function reservar($dto, $paciente): RespuestaReservaDTO {
         if($this->repo->buscarCoincidencia($paciente->id, $dto->getIdProfesional(), $dto->getFecha())) {
-            throw new \Exception("Lo siento este paciente/profesional ya tiene una reserva para esa misma fecha");
+            throw new ReservaAlreadyExistsException("Lo siento este paciente/profesional ya tiene una reserva para esa misma fecha");
         }
 
         $reserva = $this->repo->reservar($dto, $paciente->id);
-        if($reserva) {
-            return $reserva->toDTO();
-        }
-        return null;
+
+        return $reserva->toDTO();
     }
 
-    public function cancelarReserva($idReserva, $paciente) {
+    public function cancelarReserva($idReserva, $paciente): void {
         if(!$this->repo->perteneceAlPaciente($idReserva, $paciente->id)) {
-            throw new \Exception("No puedes cancelar una reserva que no es tuya!");
+            throw new ForbiddenException("No puedes cancelar una reserva que no es tuya!");
         }
-        return $this->repo->cancelarReserva($idReserva);
+        if(!$this->repo->cancelarReserva($idReserva)) {
+            throw new ReservaAlreadyCancelledException("Ya fue cancelada esta reserva");
+        }
     }
 
-    public function enviarNotificacion() {
+    public function enviarNotificacion(): void {
         try {
             $reservas = $this->repo->ReservasPendientesNotificacion();
             $ics = new GeneradorIcs();

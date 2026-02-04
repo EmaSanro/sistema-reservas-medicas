@@ -1,6 +1,8 @@
 <?php
 namespace App\Repository;
 
+use App\Exceptions\DatabaseException;
+use App\Exceptions\Reservas\ReservaNotFoundException;
 use App\Model\Reserva;
 use App\Model\Roles;
 use AppConfig\Database;
@@ -14,15 +16,13 @@ class ReservasRepository {
         $this->db = Database::getConnection();
     }
 
-    public function obtenerTodas() {
+    public function obtenerTodas(): array {
         $query = $this->db->prepare("
             SELECT * FROM reservas 
         ");
         $query->execute();
         $data = $query->fetchAll(PDO::FETCH_ASSOC);
 
-        if(!$data) return null;
-        
         $reservas = [];
         foreach($data as $reserva) {
             $reservas[] = new Reserva(
@@ -35,16 +35,14 @@ class ReservasRepository {
         return $reservas;
     }
 
-    public function obtenerReservasPorUsuarioId(int $id, string $rol) {
-        $columna = ($rol == "Paciente") ? "idpaciente" : "idprofesional";
+    public function obtenerReservasPorUsuarioId(int $id, string $rol): array {
+        $columna = ($rol == Roles::PACIENTE) ? "idpaciente" : "idprofesional";
         $query = $this->db->prepare("
             SELECT * FROM reservas WHERE $columna = ?
         ");
         $query->execute([$id]);
         $data = $query->fetchAll();
         $reservas = [];
-
-        if(!$data) return null;
 
         foreach($data as $reserva) {
             $reservas[] = new Reserva(
@@ -69,23 +67,31 @@ class ReservasRepository {
     //     return $reserva->fetch();
     // }
 
-    public function reservar($dto, $idPaciente) {
-        $reservar = $this->db->prepare("
-            INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva) VALUES(?,?,?)
-        ");
-        $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha()]);
-        if($reservar->rowCount() > 0) {
+    public function reservar($dto, $idPaciente): Reserva {
+        try {
+            $this->db->beginTransaction();
+            $reservar = $this->db->prepare("
+                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva) VALUES(?,?,?)
+            ");
+            $reservaCreated = $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha()]);
+            $this->db->commit();
+            if(!$reservaCreated) {
+                throw new DatabaseException("Error al crear la reserva");
+            }
             return new Reserva(
                 $this->db->lastInsertId(),
                 $idPaciente,
                 $dto->getIdProfesional(),
                 $dto->getFecha()
             );
+        } catch (\Throwable $th) {
+            $this->db->rollBack();
+            throw new DatabaseException("No se pudo realizar la reserva");
         }
-        return null;
+        
     }
 
-    public function buscarCoincidencia($idPaciente, $idProfesional, $fecha) {
+    public function buscarCoincidencia($idPaciente, $idProfesional, $fecha): bool {
         $profesional = $this->db->prepare("
             SELECT 1 FROM profesional WHERE idprofesional = ?
         ");
@@ -100,7 +106,7 @@ class ReservasRepository {
         return $coincidencia->rowCount() > 0;
     }
 
-    public function perteneceAlPaciente($id, $idPaciente) {
+    public function perteneceAlPaciente($id, $idPaciente): mixed {
         $reserva = $this->db->prepare("
             SELECT 1 FROM reservas WHERE id = ? AND idPaciente = ?
         ");
@@ -108,15 +114,18 @@ class ReservasRepository {
         return $reserva->fetch();
     }
 
-    public function cancelarReserva($id) {
+    public function cancelarReserva($id): bool {
         $reserva = $this->db->prepare("
             DELETE FROM reservas WHERE id = ?
         ");
         $reserva->execute([$id]);
+        if($reserva->rowCount() === 0) {
+            throw new ReservaNotFoundException("No se pudo encontrar una reserva con ese id");
+        }
         return $reserva->rowCount() > 0;
     }
 
-    public function ReservasPendientesNotificacion() {
+    public function ReservasPendientesNotificacion(): array {
         $reserva = $this->db->prepare("
             SELECT r.*, pac.nombre as paciente, pac.email, pac.telefono, prof.nombre as profesional FROM reservas r
             JOIN usuario pac ON pac.id = r.idpaciente
@@ -127,7 +136,7 @@ class ReservasRepository {
         return $reserva->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function marcarComoNotificado($id) {
+    public function marcarComoNotificado($id): void {
         $reserva = $this->db->prepare("
             UPDATE reservas SET notificado = 1 WHERE id = ?");
         $reserva->execute([$id]);

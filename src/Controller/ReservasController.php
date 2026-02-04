@@ -1,8 +1,10 @@
 <?php
 namespace App\Controller;
 
+use App\Middleware\AuthMiddleware;
 use App\Model\DTOs\RespuestaReservaDTO;
 use App\Model\DTOs\ReservaDTO;
+use App\Model\Roles;
 use App\Security\Validaciones;
 use App\Service\ReservasService;
 use OpenApi\Attributes as OA;
@@ -29,17 +31,11 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent()
     )]
     public function obtenerTodas() {
-        $this->autenticar(["Admin"]);
-        try {
-            $reservas = $this->service->obtenerTodas();
-            if($reservas) {
-                return $this->jsonResponse(200, $reservas);
-            } else {
-                return $this->jsonResponse(404, ["ERROR" => "No se encontraron reservas"]);
-            }
-        } catch (\PDOException $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
-        }
+        AuthMiddleware::handle([Roles::ADMIN]);
+
+        $reservas = $this->service->obtenerTodas();
+
+        return $this->jsonResponse(200, $reservas);
     }
     #[OA\Get(
         path: "/reservas/mis-reservas",
@@ -60,17 +56,11 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent()
     )]
     public function obtenerReservasPorUsuarioId() {
-        $usuario = $this->autenticar(["Paciente", "Profesional", "Admin"]);
-        try {
-            $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
-            if($reservas) {
-                return $this->jsonResponse(200, $reservas);
-            } else {
-                return $this->jsonResponse(404, ["ERROR" => "No tienes reservas"]);
-            }
-        } catch (\PDOException $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
-        }
+        $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
+
+        $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->getId(), $usuario->getRol());
+        
+        return $this->jsonResponse(200, $reservas);
     }
     #[OA\Post(
         path: "/reservas/reservar",
@@ -95,36 +85,23 @@ class ReservasController extends BaseController {
         description: "Este paciente/profesional ya tiene una reserva para esa misma fecha"
     )]
     public function reservar() {
-        $paciente = $this->autenticar(["Paciente"]);
+        $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+
         $input = json_decode(file_get_contents("php://input"), true);
         Validaciones::validarInput($input);
-        try {
-            $dto = ReservaDTO::fromArray($input);
 
-            $reserva = $this->service->reservar($dto, $paciente);
-            if($reserva) {
-                return $this->jsonResponse(201, ["EXITO" => "Su reserva ha sido procesada correctamente!"]);
-            }
-        } catch(\DomainException $d) {
-            return $this->jsonResponse(404, ["ERROR" => "No se encontro un profesional con ese id"]);
-        } catch (\PDOException $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos", "Mensaje" => $e->getMessage()]);
-        }
+        $dto = ReservaDTO::fromArray($input);
+
+        $reserva = $this->service->reservar($dto, $paciente);
+
+        return $this->jsonResponse(201, $reserva);
     }
     // TODO cambiar funcionalidad cancelarReserva para que no se elimine el registro, sino que se marque como CANCELADA (constituye a cambios en la BD y modelos y DTOs)
     public function cancelarReserva(int $id) {
-        $paciente = $this->autenticar(["Paciente"]);
-        try {
-            $borrado = $this->service->cancelarReserva($id, $paciente);
-            if($borrado) {
-                return $this->jsonResponse(204, "");
-            } else {
-                return $this->jsonResponse(404, "No hay una reserva con ese id");
-            }
-        } catch(\Exception $e) {
-                return $this->jsonResponse(400, $e->getMessage());
-        } catch (\PDOException $e) {
-            return $this->jsonResponse(500, ["ERROR" => "Ha ocurrido un error en la base de datos"]);
-        }
+        $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+
+        $this->service->cancelarReserva($id, $paciente);
+
+        return $this->jsonResponse(204, "");
     }
 }
