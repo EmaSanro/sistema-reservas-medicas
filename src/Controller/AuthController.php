@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Exceptions\DatabaseException;
 use App\Security\Validaciones;
 use App\Service\AuthService;
 
@@ -32,7 +33,7 @@ class AuthController extends BaseController {
                     ]
                 );
             }
-        } catch (\PDOException $e) {
+        } catch (DatabaseException $e) {
             return $this->jsonResponse(
                 500,
                 [

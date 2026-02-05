@@ -1,6 +1,7 @@
 <?php
 namespace App\Repository;
 
+use App\Exceptions\DatabaseException;
 use App\Model\Profesional;
 use App\Model\Roles;
 use App\Model\Usuario;
@@ -20,6 +21,9 @@ class AuthRepository {
         ");
         $query->execute([$data, $data]);
         $usuario = $query->fetch(PDO::FETCH_ASSOC);
+
+        if(!$usuario) return null;
+        
         if($usuario["rol"] == Roles::PROFESIONAL) {
             $query = $this->db->prepare("
             SELECT * FROM profesional WHERE idprofesional = ?

@@ -1,6 +1,8 @@
 <?php
 namespace App\Security;
 
+use App\Exceptions\Auth\InvalidJSONException;
+
 class Validaciones {
 
     public static function validarID($id) {
@@ -17,7 +19,7 @@ class Validaciones {
     public static function validarInput($input) {
         if(!$input) {
             http_response_code(400);
-            throw new \JsonException("JSON Invalido");
+            throw new InvalidJSONException("JSON Invalido");
         }
     }
 
