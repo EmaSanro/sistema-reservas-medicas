@@ -11,7 +11,7 @@ class ConsultorioController extends BaseController {
 
     public function __construct(private ConsultorioService $service ) { }
 
-    public function obtenerConsultorios(): void {
+    public function obtenerConsultorios() {
         AuthMiddleware::handle([Roles::ADMIN]);
         
         $consultorios = $this->service->obtenerConsultorios();
@@ -19,7 +19,7 @@ class ConsultorioController extends BaseController {
         return $this->jsonResponse(200, $consultorios);
     }
 
-    public function obtenerConsultorioPorId($id): void {
+    public function obtenerConsultorioPorId($id) {
         AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
         Validaciones::validarID($id);
         
@@ -28,7 +28,7 @@ class ConsultorioController extends BaseController {
         return $this->jsonResponse(200, $consultorio);
     }
 
-    public function crearConsultorio(): void {
+    public function crearConsultorio() {
         $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
         $input = json_decode(file_get_contents("php://input"), true);
@@ -41,7 +41,7 @@ class ConsultorioController extends BaseController {
         return $this->jsonResponse(201, $consultorio);
     }
 
-    public function actualizarConsultorio($id): void {
+    public function actualizarConsultorio($id) {
         $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
         $input = json_decode(file_get_contents("php://input"), true);
@@ -55,7 +55,7 @@ class ConsultorioController extends BaseController {
         return $this->jsonResponse(200, $consultorio);
     }
 
-    public function borrarConsultorio($id): void {
+    public function borrarConsultorio($id) {
         $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
         Validaciones::validarID($id);
 

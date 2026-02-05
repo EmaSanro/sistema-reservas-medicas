@@ -11,7 +11,7 @@ class PacientesController extends BaseController {
 
     public function __construct(private PacientesService $service) {  }
 
-    public function obtenerTodos(): void {
+    public function obtenerTodos() {
         AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
         $pacientes = $this->service->obtenerTodos();
@@ -19,7 +19,7 @@ class PacientesController extends BaseController {
         return $this->jsonResponse(200, $pacientes);
     }
 
-    public function obtenerPorId($id): void {
+    public function obtenerPorId($id) {
         AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
         Validaciones::validarID($id);
 
@@ -28,7 +28,7 @@ class PacientesController extends BaseController {
         return $this->jsonResponse(200, $pac);
     }
 
-    public function buscarPor(): void {
+    public function buscarPor() {
         AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
         if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
@@ -41,7 +41,7 @@ class PacientesController extends BaseController {
 
         return $this->jsonResponse(200, $pacientes);
     }
-    public function registrarPaciente(): void {
+    public function registrarPaciente() {
         $input = json_decode(file_get_contents('php://input'), true);
         
         Validaciones::validarInput($input);
@@ -54,7 +54,7 @@ class PacientesController extends BaseController {
         return $this->jsonResponse(201, $pac);
     }
         
-    public function actualizarPaciente($id): void {
+    public function actualizarPaciente($id) {
         $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
         Validaciones::validarID($id);
 
@@ -72,7 +72,7 @@ class PacientesController extends BaseController {
         return $this->jsonResponse(200, $pac);
     }
 
-    public function eliminarPaciente($id): void {
+    public function eliminarPaciente($id) {
         AuthMiddleware::handle([Roles::ADMIN]);
         Validaciones::validarID($id);
 
