@@ -2,11 +2,12 @@
 namespace App\Repository;
 
 use App\Exceptions\DatabaseException;
+use App\Exceptions\Reservas\ReservaCompletedException;
 use App\Exceptions\Reservas\ReservaNotFoundException;
+use App\Model\EstadoReserva;
 use App\Model\Reserva;
 use App\Model\Roles;
 use AppConfig\Database;
-use DateTime;
 use PDO;
 
 class ReservasRepository {
@@ -29,7 +30,8 @@ class ReservasRepository {
                 $reserva["id"],
                 $reserva["idpaciente"],
                 $reserva["idprofesional"],
-                $reserva["fecha_reserva"]
+                $reserva["fecha_reserva"],
+                $reserva["estado"]
             );
         }
         return $reservas;
@@ -49,10 +51,27 @@ class ReservasRepository {
                 $reserva["id"],
                 $reserva["idpaciente"],
                 $reserva["idprofesional"],
-                $reserva["fecha_reserva"]
+                $reserva["fecha_reserva"],
+                $reserva["estado"]
             );
         }
         return $reservas;
+    }
+
+    public function obtenerReserva($id) {
+        $stmtReserva = $this->db->prepare("
+            SELECT * FROM reserva WHERE id = ?
+        ");
+        $stmtReserva->execute([$id]);
+        $data = $stmtReserva->fetch(PDO::FETCH_ASSOC);
+        if(!$data) return null;
+        return new Reserva(
+            $id,
+            $data["idpaciente"],
+            $data["idprofesional"],
+            $data["fecha_reserva"],
+            $data["estado"],
+        );
     }
 
     // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
@@ -71,9 +90,9 @@ class ReservasRepository {
         try {
             $this->db->beginTransaction();
             $reservar = $this->db->prepare("
-                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva) VALUES(?,?,?)
+                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva, estado) VALUES(?,?,?,?)
             ");
-            $reservaCreated = $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha()]);
+            $reservaCreated = $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha(), $dto->getEstadoReserva()]);
             $this->db->commit();
             if(!$reservaCreated) {
                 throw new DatabaseException("Error al crear la reserva");
@@ -82,7 +101,8 @@ class ReservasRepository {
                 $this->db->lastInsertId(),
                 $idPaciente,
                 $dto->getIdProfesional(),
-                $dto->getFecha()
+                $dto->getFecha(),
+                $dto->getEstadoReserva()
             );
         } catch (\Throwable $th) {
             $this->db->rollBack();
@@ -114,15 +134,18 @@ class ReservasRepository {
         return $reserva->fetch();
     }
 
-    public function cancelarReserva($id): bool {
-        $reserva = $this->db->prepare("
-            DELETE FROM reservas WHERE id = ?
-        ");
-        $reserva->execute([$id]);
-        if($reserva->rowCount() === 0) {
-            throw new ReservaNotFoundException("No se pudo encontrar una reserva con ese id");
+    public function cancelarReserva(Reserva $reserva): bool {
+        switch ($reserva->getEstadoReserva()) {
+            case EstadoReserva::CANCELADA: return false;
+            case EstadoReserva::COMPLETADA: throw new ReservaCompletedException("No se puede cancelar una reserva ya completada");
         }
-        return $reserva->rowCount() > 0;
+
+        $update = $this->db->prepare("
+            UPDATE reserva SET estado = ? fecha_cancelacion = NOW() WHERE id = ? AND estado = ? AND fecha_reserva > NOW() + INTERVAL 24 HOUR
+        ");
+        $update->execute([EstadoReserva::CANCELADA, $reserva->getId(), EstadoReserva::CONFIRMADA]);
+
+        return $update->rowCount() > 0;
     }
 
     public function ReservasPendientesNotificacion(): array {

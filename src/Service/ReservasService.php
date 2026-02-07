@@ -2,11 +2,14 @@
 namespace App\Service;
 
 use App\Exceptions\Auth\ForbiddenException;
+use App\Exceptions\Reservas\CancelacionTardiaException;
 use App\Exceptions\Reservas\ReservaAlreadyCancelledException;
 use App\Exceptions\Reservas\ReservaAlreadyExistsException;
 use App\Repository\ReservasRepository;
 use App\Helper\GeneradorIcs;
 use App\Model\DTOs\RespuestaReservaDTO;
+use DateInterval;
+use DateTime;
 use PHPMailer\PHPMailer\Exception;
 
 class ReservasService {
@@ -38,8 +41,17 @@ class ReservasService {
         if(!$this->repo->perteneceAlPaciente($idReserva, $paciente->id)) {
             throw new ForbiddenException("No puedes cancelar una reserva que no es tuya!");
         }
-        if(!$this->repo->cancelarReserva($idReserva)) {
-            throw new ReservaAlreadyCancelledException("Ya fue cancelada esta reserva");
+
+        $reserva = $this->repo->obtenerReserva($idReserva);
+        $horasMinimas = 24;
+        $fechaLimite = new DateTime();
+        $fechaLimite->add(new DateInterval("PT{$horasMinimas}H"));
+        
+        if($reserva->getFechaReserva() < $fechaLimite) {
+            throw new CancelacionTardiaException("Solo se pueden cancelar reservas con al menos {$horasMinimas}hs de anticipacion");
+        }
+        if (!$this->repo->cancelarReserva($reserva)) {
+            throw new ReservaAlreadyCancelledException("La reserva ya fue cancelada");
         }
     }
 

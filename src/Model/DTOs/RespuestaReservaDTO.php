@@ -12,11 +12,14 @@ class RespuestaReservaDTO {
     public readonly int $idProfesional;
     #[OA\Property(example: "2026-04-18 15:00:00")]
     public readonly string $fecha;
+    #[OA\Property(example:"Confirmada")]
+    public readonly string $estado;
 
-    public function __construct($id, $idPaciente, $idProfesional, $fecha) {
+    public function __construct($id, $idPaciente, $idProfesional, $fecha, $estado) {
         $this->idReserva = $id;
         $this->idPaciente = $idPaciente;
         $this->idProfesional = $idProfesional;
         $this->fecha = $fecha;
+        $this->estado = $estado;
     }
 }

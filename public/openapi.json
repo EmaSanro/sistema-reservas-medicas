@@ -15,7 +15,7 @@
                 "operationId": "cd8e440563d14964315c801208138882",
                 "responses": {
                     "200": {
-                        "description": "Lista de reservas",
+                        "description": "Lista todas las reservas existentes",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -35,19 +35,24 @@
                             }
                         }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         },
-        "/reservas/profesional/:idProfesional": {
+        "/reservas/mis-reservas": {
             "get": {
                 "tags": [
                     "Reservas"
                 ],
-                "summary": "Obtener las reservas de un profesional",
-                "operationId": "0a7e21d9e03812dc9695e998179a6fc4",
+                "summary": "Obtener las reservas de un usuario ya sea profesional o paciente",
+                "operationId": "f1ce477f477051b0c069e5230ab7f2f1",
                 "responses": {
                     "200": {
-                        "description": "Lista de las reservas de un profesional dado",
+                        "description": "Lista de las reservas de un usuario dado",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -67,39 +72,12 @@
                             }
                         }
                     }
-                }
-            }
-        },
-        "/reservas/paciente/:idPaciente": {
-            "get": {
-                "tags": [
-                    "Reservas"
-                ],
-                "summary": "Obtener las reservas de un paciente",
-                "operationId": "f01d460862af0b994a3fef77aad01e36",
-                "responses": {
-                    "200": {
-                        "description": "Lista de las reservas de un paciente dado",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaReserva"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "No hay reservas",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
                     }
-                }
+                ]
             }
         },
         "/reservas/reservar": {
@@ -124,19 +102,111 @@
                         "description": "Reserva realizada",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RespuestaReserva"
-                                }
+                                "schema": {},
+                                "example": [
+                                    "EXITO => Su reserva ha sido procesada correctamente!"
+                                ]
                             }
                         }
                     },
                     "404": {
-                        "description": "No se encontro un paciente/profesional con ese id"
+                        "description": "No hay resultado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un profesional con ese id"
+                                }
+                            }
+                        }
                     },
                     "409": {
-                        "description": "Este paciente ya tiene una reserva para esa misma fecha"
+                        "description": "Reserva superpuesta",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Este usuario ya tiene una reserva para esa misma fecha"
+                                }
+                            }
+                        }
                     }
-                }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/reservas/cancelar/{id}": {
+            "put": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Cancelar una reserva",
+                "operationId": "a6819a8d222efde6ad1382678d8e6575",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Reserva cancelada!",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "EXITO": "Reserva cancelada!"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Cancelacion tardia",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Solo se puede cancelar una reserva con Xhs de anticipacion"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "La reserva ya fue cancelada o completada",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "La reserva ya fue cancelada!"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Error del servidor",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Error Interno del Servidor!"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             }
         }
     },
@@ -160,11 +230,13 @@
                     },
                     "email": {
                         "type": "string",
-                        "example": "juanPerez@gmail.com"
+                        "example": "juanPerez@gmail.com",
+                        "nullable": true
                     },
                     "telefono": {
                         "type": "string",
-                        "example": "0118574892"
+                        "example": "0118574892",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -192,11 +264,17 @@
                     },
                     "email": {
                         "type": "string",
-                        "example": "roberFalcao@outlook.com"
+                        "example": "roberFalcao@outlook.com",
+                        "nullable": true
                     },
                     "telefono": {
                         "type": "string",
-                        "example": "0984728910"
+                        "example": "0984728910",
+                        "nullable": true
+                    },
+                    "password": {
+                        "type": "string",
+                        "example": "Rober13#"
                     }
                 },
                 "type": "object"
@@ -204,7 +282,6 @@
             "Reserva": {
                 "required": [
                     "idProfesional",
-                    "idPaciente",
                     "fecha"
                 ],
                 "properties": {
@@ -212,13 +289,13 @@
                         "type": "integer",
                         "example": 1
                     },
-                    "idPaciente": {
-                        "type": "integer",
-                        "example": 2
-                    },
                     "fecha": {
                         "type": "string",
                         "example": "2026-03-15 18:45:00"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "Confirmada"
                     }
                 },
                 "type": "object"
@@ -235,11 +312,13 @@
                     },
                     "email": {
                         "type": "string",
-                        "example": "aMartinez@gmail.com"
+                        "example": "aMartinez@gmail.com",
+                        "nullable": true
                     },
                     "telefono": {
                         "type": "string",
-                        "example": "1234567890"
+                        "example": "1234567890",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -260,11 +339,13 @@
                     },
                     "email": {
                         "type": "string",
-                        "example": "luceroG@outlook.com"
+                        "example": "luceroG@outlook.com",
+                        "nullable": true
                     },
                     "telefono": {
                         "type": "string",
-                        "example": "347586901"
+                        "example": "347586901",
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -275,20 +356,32 @@
                         "type": "integer",
                         "example": 15
                     },
-                    "paciente": {
-                        "type": "string",
-                        "example": "Juan perez"
+                    "idPaciente": {
+                        "type": "integer",
+                        "example": "24"
                     },
-                    "profesional": {
-                        "type": "string",
-                        "example": "Roberto Falcao"
+                    "idProfesional": {
+                        "type": "integer",
+                        "example": "12"
                     },
                     "fecha": {
                         "type": "string",
                         "example": "2026-04-18 15:00:00"
+                    },
+                    "estado": {
+                        "type": "string",
+                        "example": "Confirmada"
                     }
                 },
                 "type": "object"
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Ingresa tu token JWT aquí para autenticarte",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
             }
         }
     },

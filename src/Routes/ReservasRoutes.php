@@ -14,4 +14,4 @@ $router->get("/api/reservas/profesional/:idProfesional", [$reservasController, "
 $router->get("/api/reservas/paciente/:idPaciente", [$reservasController, "obtenerReservasDePaciente"]);
 $router->get("/api/reservas/buscarPor", [$reservasController, "obtenerPor"]);
 $router->post("/api/reservas/reservar", [$reservasController, "reservar"]);
-$router->delete("/api/reservas/:id", [$reservasController, "cancelarReserva"]);
+$router->put("/api/reservas/cancelar/:id", [$reservasController, "cancelarReserva"]);

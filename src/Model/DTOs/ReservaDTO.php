@@ -1,6 +1,7 @@
 <?php
 namespace App\Model\DTOs;
 
+use App\Model\EstadoReserva;
 use OpenApi\Attributes as OA;
 #[OA\Schema(schema: "Reserva", required: ["idProfesional", "fecha"])]
 class ReservaDTO {
@@ -9,10 +10,13 @@ class ReservaDTO {
     private int $idProfesional;
     #[OA\Property(example: "2026-03-15 18:45:00")]
     private string $fecha;
+    #[OA\Property(example: "Confirmada")]
+    private string $estado;
 
     public function __construct(int $idProfesional, string $fecha) {
         $this->idProfesional = $idProfesional;
         $this->fecha = $fecha;
+        $this->estado = EstadoReserva::CONFIRMADA;
     }
 
     public function getIdProfesional() {
@@ -21,6 +25,10 @@ class ReservaDTO {
 
     public function getFecha() {
         return $this->fecha;
+    }
+
+    public function getEstadoReserva() {
+        return $this->estado;
     }
 
     public static function fromArray($input) {
