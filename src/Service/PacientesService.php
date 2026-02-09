@@ -4,14 +4,17 @@ namespace App\Service;
 use App\Exceptions\Auth\ForbiddenException;
 use App\Exceptions\InvalidFilterException;
 use App\Exceptions\Pacientes\PacienteNotFoundException;
+use App\Exceptions\Pacientes\PacienteWithReserveException;
 use App\Exceptions\UserAlreadyExistsException;
+use App\Exceptions\ValidationException;
 use App\Model\DTOs\RespuestaPacienteDTO;
 use App\Model\Roles;
 use App\Repository\PacientesRepository;
+use App\Repository\ReservasRepository;
 
 class PacientesService {
 
-    public function __construct(private PacientesRepository $repo){ }
+    public function __construct(private PacientesRepository $repo, private ReservasRepository $reservasRepo){ }
 
     public function obtenerTodos(): array {
         $pacientes = $this->repo->obtenerTodos();
@@ -70,10 +73,13 @@ class PacientesService {
         return $pac?->toDTO() ?: null;
     }
 
-    public function eliminarPaciente($id): void {
-        $eliminado = $this->repo->eliminarPaciente($id);
-        if(!$eliminado) {
-            throw new PacienteNotFoundException("No se encontro un paciente para eliminar");
+    public function darDeBajaPaciente($id, $motivo): void {
+        if(strlen($motivo) > 255) {
+            throw new ValidationException("El motivo no puede contener mas de 255 caracteres!");
         }
+        if($this->reservasRepo->tieneFuturasReservasPaciente($id)) {
+            throw new PacienteWithReserveException("El paciente tiene futuras reservas!");
+        }
+        $this->repo->darDeBajaPaciente($id, $motivo);
     }
 }

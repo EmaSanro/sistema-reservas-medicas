@@ -164,4 +164,28 @@ class ReservasRepository {
             UPDATE reservas SET notificado = 1 WHERE id = ?");
         $reserva->execute([$id]);
     }
+
+    public function tieneFuturasReservasProfesional($id) {
+        $stmtReservas = $this->db->prepare("
+            SELECT 1 FROM reservas 
+            WHERE idprofesional = ?
+                AND estado = ?
+                AND fecha_reserva > NOW()
+            LIMIT 1
+        ");
+        $stmtReservas->execute([$id, EstadoReserva::CONFIRMADA]);
+        return $stmtReservas->fetch() !== false;
+    }
+
+    public function tieneFuturasReservasPaciente($id) {
+        $stmtReservas = $this->db->prepare("
+            SELECT 1 FROM reservas
+            WHERE idpaciente = ?
+                AND estado = ?
+                AND fecha_reserva > NOW()
+            LIMIT 1
+        ");
+        $stmtReservas->execute([$id, EstadoReserva::CONFIRMADA]);
+        return $stmtReservas->fetch() !== false;
+    }
 }

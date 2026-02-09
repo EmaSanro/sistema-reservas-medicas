@@ -1,10 +1,12 @@
 <?php
 use App\Controller\ProfesionalesController;
 use App\Repository\ProfesionalesRepository;
+use App\Repository\ReservasRepository;
 use App\Service\ProfesionalesService;
 
 $profesionalesRepository = new ProfesionalesRepository();
-$profesionalesService = new ProfesionalesService($profesionalesRepository);
+$reservasRepository = new ReservasRepository();
+$profesionalesService = new ProfesionalesService($profesionalesRepository, $reservasRepository);
 $profesionalesController = new ProfesionalesController($profesionalesService);
 
 $router->get('/api/profesionales', [$profesionalesController, "obtenerTodos"]);

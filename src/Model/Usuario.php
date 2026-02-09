@@ -9,15 +9,21 @@ class Usuario {
     private string $rol;
     private string|null $email;
     private string|null $telefono;
+    private bool $activo;
+    private string $motivo_baja;
+    private string $fecha_baja;
     private string $password;
 
-    public function __construct(int $id, string $nombre, string $apellido, string $rol, string|null $email, string|null $telefono, string $password) {
+    public function __construct(int $id, string $nombre, string $apellido, string $rol, string|null $email, string|null $telefono, bool $activo, string|null $motivo_baja, string|null $fecha_baja, string $password) {
         $this->id = $id;
         $this->nombre = $nombre;
         $this->apellido = $apellido;
         $this->rol = $rol;
         $this->email = $email ?? null;
         $this->telefono = $telefono ?? null;
+        $this->activo = $activo;
+        $this->motivo_baja = $motivo_baja ?? null;
+        $this->fecha_baja = $fecha_baja ?? null;
         $this->password = $password;
     }
 
@@ -45,6 +51,18 @@ class Usuario {
         return $this->telefono ?? null;
     }
 
+    public function getActivo(): bool {
+        return $this->activo;
+    }
+
+    public function getMotivoBaja(): string {
+        return $this->motivo_baja;
+    }
+
+    public function getFechaBaja(): string {
+        return $this->fecha_baja;
+    }
+
     public function getPassword() : string {
         return $this->password;
     }
@@ -54,7 +72,10 @@ class Usuario {
             $this->id,
             "$this->nombre $this->apellido",
             $this->email,
-            $this->telefono
+            $this->telefono,
+            $this->activo,
+            $this->motivo_baja,
+            $this->fecha_baja
         ); 
     }
 }

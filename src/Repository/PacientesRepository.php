@@ -2,6 +2,8 @@
 namespace App\Repository;
 
 use App\Exceptions\DatabaseException;
+use App\Exceptions\Pacientes\PacienteNotFoundException;
+use App\Exceptions\UserAlreadyInactiveException;
 use App\Model\DTOs\PacienteDTO;
 use App\Model\Roles;
 use App\Model\Usuario;
@@ -29,6 +31,9 @@ class PacientesRepository {
                 $pac["rol"],
                 $pac["email"],
                 $pac["telefono"],
+                $pac["activo"],
+                $pac["motivo_baja"],
+                $pac["fecha_baja"],
                 $pac["password"]
             );
         }
@@ -50,6 +55,9 @@ class PacientesRepository {
             $data["rol"],
             $data["email"],
             $data["telefono"],
+            $data["activo"],
+            $data["motivo_baja"],
+            $data["fecha_baja"],
             $data["password"]
         );
     }
@@ -67,6 +75,9 @@ class PacientesRepository {
                 $pac["rol"],
                 $pac["email"],
                 $pac["telefono"],
+                $pac["activo"],
+                $pac["motivo_baja"],
+                $pac["fecha_baja"],
                 $pac["password"]
             );
         }
@@ -87,6 +98,9 @@ class PacientesRepository {
             $data["rol"],
             $data["email"],
             $data["telefono"],
+            $data["activo"],
+            $data["motivo_baja"],
+            $data["fecha_baja"],
             $data["password"]
         );
     }
@@ -94,13 +108,14 @@ class PacientesRepository {
     public function registrarPaciente(PacienteDTO $dto, string $passwordHash): Usuario {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)");
+            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(?,?,?,?,?,?,?)");
             $stmtUsuario->execute([
                 $dto->getNombre(),
                 $dto->getApellido(),
                 Roles::PACIENTE,
                 $dto->getEmail(),
                 $dto->getTelefono(),
+                true,
                 $passwordHash
             ]);
             $this->db->commit();
@@ -114,6 +129,9 @@ class PacientesRepository {
                 Roles::PACIENTE,
                 $dto->getEmail(),
                 $dto->getTelefono(),
+                true,
+                null,
+                null,
                 $passwordHash
             );
         } catch (\Throwable $th) {
@@ -150,6 +168,9 @@ class PacientesRepository {
                 Roles::PACIENTE,
                 $dto->getEmail(),
                 $dto->getTelefono(),
+                true,
+                null,
+                null,
                 $passwordHash
                 );
         } catch (\Throwable $th) {
@@ -158,12 +179,29 @@ class PacientesRepository {
         }
     }
 
-    public function eliminarPaciente(int $id): bool {
-        $pac = $this->db->prepare("DELETE FROM usuario WHERE id = ? AND rol = ?");
-        $pac->execute([$id, Roles::PACIENTE]);
+    public function darDeBajaPaciente(int $id, $motivo): bool {
+        $pac = $this->db->prepare("
+            UPDATE usuario SET activo = false, motivo_baja = ?, fecha_baja = NOW()
+            WHERE id = ? AND rol = ? AND activo = true
+        ");
+        $pac->execute([$motivo, $id, Roles::PACIENTE]);
         if($pac->rowCount() === 0) {
-            throw new DatabaseException("No se pudo eliminar el paciente");
+            $stmtCheck = $this->db->prepare("
+                SELECT activo FROM usuario 
+                WHERE id = ? AND rol = ?
+            ");
+            $stmtCheck->execute([$id, Roles::PACIENTE]);
+            $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+            if(!$usuario) {
+                throw new PacienteNotFoundException("Paciente no encontrado");
+            }
+            if(!$usuario["activo"]) {
+                throw new UserAlreadyInactiveException("El paciente ya se encuentra inactivo!");
+            }
+
+            throw new DatabaseException("No se pudo dar de baja el paciente");
         }
-        return $pac->rowCount() > 0;
+        return true;
     }
 }

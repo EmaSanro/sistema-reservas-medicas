@@ -225,7 +225,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\Response(
         response: 400,
-        description: "ID invalido",
+        description: "Solicitud erronea: ID invalido | No hay motivo | motivo muy largo",
         content: new OA\JsonContent(example:["ERROR" => "ID invalido"])
     )]
     #[OA\Response(
@@ -236,8 +236,14 @@ class PacientesController extends BaseController {
     public function eliminarPaciente($id) {
         AuthMiddleware::handle([Roles::ADMIN]);
         Validaciones::validarID($id);
+        $data = json_decode(file_get_contents("php://input"), true);
+        $motivo = $data["motivo"] ?? "";
 
-        $this->service->eliminarPaciente($id);
+        if(empty(trim($motivo))) {
+            return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+        }
+
+        $this->service->darDeBajaPaciente($id, $motivo);
 
         return $this->jsonResponse(204, "");
     }

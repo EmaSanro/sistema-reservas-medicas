@@ -7,8 +7,8 @@ use App\Model\Roles;
 class Profesional extends Usuario {
     private string $profesion;
 
-    public function __construct(int $id, string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, string $password) {
-        parent::__construct($id, $nombre, $apellido, Roles::PROFESIONAL, $email, $telefono, $password);
+    public function __construct(int $id, string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, bool $activo, string|null $motivo_baja, string|null $fecha_baja, string $password) {
+        parent::__construct($id, $nombre, $apellido, Roles::PROFESIONAL, $email, $telefono, $activo, $motivo_baja, $fecha_baja, $password);
         $this->profesion = $profesion;
     }
     public function getProfesion() {
@@ -22,6 +22,9 @@ class Profesional extends Usuario {
             $this->profesion,
             parent::getEmail(),
             parent::getTelefono(),
+            parent::getActivo(),
+            parent::getMotivoBaja(),
+            parent::getFechaBaja()
         );
     }
 }

@@ -15,12 +15,20 @@ class RespuestaProfesionalDTO {
     public readonly string|null $email;
     #[OA\Property(example: "347586901")]
     public readonly string|null $telefono;
+    #[OA\Property(example: "true")]
+    public readonly bool $activo;
+    #[OA\Property(example: "Cambio de hospital")]
+    public readonly string $motivo_baja;
+    #[OA\Property(example: "2026-03-1 08:00:13")]
+    public readonly string $fecha_baja;
 
-    public function __construct(int $id, string $nombreCompleto, string $profesion, string|null $email, string|null $telefono) {
+    public function __construct(int $id, string $nombreCompleto, string $profesion, string|null $email, string|null $telefono, bool $activo, string|null $motivo_baja, string|null $fecha_baja) {
         $this->id = $id;
         $this->nombre = $nombreCompleto;
         $this->profesion = $profesion;
         $this->email = $email ?? null;
         $this->telefono = $telefono ?? null;
+        $this->motivo_baja = $motivo_baja;
+        $this->fecha_baja = $fecha_baja;
     }
 }

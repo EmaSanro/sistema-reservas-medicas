@@ -203,7 +203,7 @@ class ProfesionalesController extends BaseController {
 
     #[OA\Delete(
         path: "/profesionales/{id}",
-        summary: "Eliminar un profesional",
+        summary: "Baja de un profesional",
         tags: ["Profesionales"],
         security: [ ["bearerAuth" => []] ]
     )]
@@ -215,12 +215,12 @@ class ProfesionalesController extends BaseController {
     )]
     #[OA\Response(
         response: 204,
-        description: "Profesional eliminado",
+        description: "Profesional dado de baja",
         content: new OA\JsonContent()
     )]
     #[OA\Response(
         response: 400,
-        description: "Solicitud erronea: ID invalido",
+        description: "Solicitud erronea: ID invalido | no hay motivo de baja | motivo muy largo",
         content: new OA\JsonContent(example:["ERROR" => "ID Invalido"])
     )]
     #[OA\Response(
@@ -228,11 +228,17 @@ class ProfesionalesController extends BaseController {
         description: "Profesional no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un profesional a eliminar con ese id"])
     )]
-    public function eliminarProfesional($id) {
+    public function darDeBajaProfesional($id) {
         AuthMiddleware::handle([Roles::ADMIN]);
         Validaciones::validarID($id);
+        $data = json_decode(file_get_contents("php://input"), true);
+        $motivo = $data["motivo"] ?? "";
 
-        $this->service->eliminarProfesional($id);
+        if(empty(trim($motivo))) {
+            return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+        }
+
+        $this->service->darDeBajaProfesional($id, $motivo);
 
         return $this->jsonResponse(204, "");
     }

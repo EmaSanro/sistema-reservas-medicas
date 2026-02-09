@@ -4,14 +4,17 @@ namespace App\Service;
 use App\Exceptions\Auth\ForbiddenException;
 use App\Exceptions\InvalidFilterException;
 use App\Exceptions\Profesionales\ProfesionalNotFoundException;
+use App\Exceptions\Profesionales\ProfesionalWithReserveException;
 use App\Exceptions\UserAlreadyExistsException;
+use App\Exceptions\ValidationException;
 use App\Model\DTOs\RespuestaProfesionalDTO;
 use App\Model\Roles;
 use App\Repository\ProfesionalesRepository;
+use App\Repository\ReservasRepository;
 
 class ProfesionalesService {
 
-    public function __construct(private ProfesionalesRepository $repo) { }
+    public function __construct(private ProfesionalesRepository $repo, private ReservasRepository $reservaRepo) { }
 
     public function obtenerTodos(): array {
         $profesionales = $this->repo->obtenerTodos();
@@ -76,10 +79,13 @@ class ProfesionalesService {
         return $profActualizado->toDTO();
     }
 
-    public function eliminarProfesional($id) {
-        $eliminado = $this->repo->eliminarProfesional($id);
-        if(!$eliminado) {
-            throw new ProfesionalNotFoundException("No se encontro un profesional para eliminar");
+    public function darDeBajaProfesional($id, $motivo) {
+        if(strlen($motivo) > 255) {
+            throw new ValidationException("El motivo no puede superar los 255 caracteres");
         }
+        if($this->reservaRepo->tieneFuturasReservasProfesional($id)) {
+            throw new ProfesionalWithReserveException("El profesional tiene futuras reservas");
+        }
+        $this->repo->darDeBajaProfesional($id, $motivo);
     }
 }

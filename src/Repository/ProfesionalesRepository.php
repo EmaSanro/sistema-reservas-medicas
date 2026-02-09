@@ -2,6 +2,8 @@
 namespace App\Repository;
 
 use App\Exceptions\DatabaseException;
+use App\Exceptions\Profesionales\ProfesionalNotFoundException;
+use App\Exceptions\UserAlreadyInactiveException;
 use App\Model\DTOs\ProfesionalDTO;
 use App\Model\Profesional;
 use App\Model\Roles;
@@ -28,10 +30,12 @@ class ProfesionalesRepository {
                 $profesional["profesion"],
                 $profesional["email"],
                 $profesional["telefono"],
+                $profesional["activo"],
+                $profesional["motivo_baja"],
+                $profesional["fecha_baja"],
                 $profesional["password"],
             );
         }
-        if(!$profesionales) return null;
         return $profesionales;
     }
 
@@ -47,6 +51,9 @@ class ProfesionalesRepository {
                 $data["profesion"],
                 $data["email"],
                 $data["telefono"],
+                $data["activo"],
+                $data["motivo_baja"],
+                $data["fecha_baja"],
                 $data["password"]
             );
         }
@@ -66,6 +73,9 @@ class ProfesionalesRepository {
                 $profesional["profesion"],
                 $profesional["email"],
                 $profesional["telefono"],
+                $profesional["activo"],
+                $profesional["motivo_baja"],
+                $profesional["fecha_baja"],
                 $profesional["password"],
             );
         }
@@ -85,6 +95,9 @@ class ProfesionalesRepository {
                 $profesional["profesion"],
                 $profesional["email"],
                 $profesional["telefono"],
+                $profesional["activo"],
+                $profesional["motivo_baja"],
+                $profesional["fecha_baja"],
                 $profesional["password"],
             );
         }
@@ -103,6 +116,9 @@ class ProfesionalesRepository {
                 $data["profesion"],
                 $data["email"],
                 $data["telefono"],
+                $data["activo"],
+                $data["motivo_baja"],
+                $data["fecha_baja"],
                 $data["password"]
             );
         }
@@ -121,6 +137,9 @@ class ProfesionalesRepository {
                 $data["profesion"],
                 $data["email"],
                 $data["telefono"],
+                $data["activo"],
+                $data["motivo_baja"],
+                $data["fecha_baja"],
                 $data["password"]
             );
         }
@@ -145,6 +164,9 @@ class ProfesionalesRepository {
                 $profesional["profesion"],
                 $profesional["email"],
                 $profesional["telefono"],
+                $profesional["activo"],
+                $profesional["motivo_baja"],
+                $profesional["fecha_baja"],
                 $profesional["password"],
             );
         }
@@ -161,13 +183,14 @@ class ProfesionalesRepository {
     public function registrarProfesional(ProfesionalDTO $profesional, string $passwordHash): Profesional {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, password) VALUES(?,?,?,?,?,?)");
+            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(?,?,?,?,?,?,?)");
             $created = $stmtUsuario->execute([
                 $profesional->getNombre(), 
                 $profesional->getApellido(), 
                 Roles::PROFESIONAL, 
                 $profesional->getEmail(), 
                 $profesional->getTelefono(),
+                true,
                 $passwordHash
             ]);
             
@@ -191,6 +214,9 @@ class ProfesionalesRepository {
                 $profesional->getProfesion(),
                 $profesional->getEmail(),
                 $profesional->getTelefono(),
+                true,
+                null,
+                null,
                 $passwordHash
             );
         } catch (\Throwable $th) {
@@ -226,6 +252,9 @@ class ProfesionalesRepository {
                 $dto->getProfesion(),
                 $dto->getEmail(),
                 $dto->getTelefono(),
+                true,
+                null,
+                null,
                 $passwordHash
                 );
         } catch (\Throwable $th) {
@@ -234,12 +263,29 @@ class ProfesionalesRepository {
         }
     }
 
-    public function eliminarProfesional($id): bool {
-        $stmtUsuario = $this->db->prepare("DELETE FROM usuario WHERE id = ? and rol = ?");
-        $stmtUsuario->execute([$id, Roles::PROFESIONAL]);
+    public function darDeBajaProfesional($id, $motivo): bool {
+        $stmtUsuario = $this->db->prepare("
+            UPDATE usuario SET activo = false, fecha_baja = NOW(), motivo_baja = ? 
+            WHERE id = ? AND rol = ? AND activo = true
+        ");
+        $stmtUsuario->execute([$motivo, $id, Roles::PROFESIONAL]);
         if($stmtUsuario->rowCount() === 0) {
-            throw new DatabaseException("No se pudo eliminar el profesional");
+            $stmtCheck = $this->db->prepare("
+                SELECT activo FROM usuario
+                WHERE id = ? AND rol = ?
+            ");
+            $stmtCheck->execute([$id, Roles::PROFESIONAL]);
+            $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
+
+            if(!$usuario) {
+                throw new ProfesionalNotFoundException("Profesional no encontrado");
+            }
+            if(!$usuario["activo"]) {
+                throw new UserAlreadyInactiveException("El profesional ya se encuentra inactivo");
+            }
+
+            throw new DatabaseException("No se pudo dar de baja el profesional");
         }
-        return $stmtUsuario->rowCount() > 0;
+        return true;
     }
 }
