@@ -4,7 +4,7 @@ namespace App\Model\DTOs;
 use App\Controller\Validaciones;
 use OpenApi\Attributes as OA;
 
-#[Oa\Schema(schema: "Paciente", required: ["nombre", "apellido", "email", "telefono"])]
+#[Oa\Schema(schema: "Paciente", required: ["nombre", "apellido", "email", "telefono", "password"])]
 class PacienteDTO {
     #[OA\Property(example: "Juan")]
     private string $nombre;
@@ -14,6 +14,7 @@ class PacienteDTO {
     private string|null $email;
     #[OA\Property(example: "0118574892")]
     private string|null $telefono;
+    #[OA\Property(example: "JuanP34$")]
     private string $password;
 
     public function __construct(string $nombre, string $apellido, string|null $email, string|null $telefono, string $password) {

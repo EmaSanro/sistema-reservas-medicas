@@ -4,7 +4,7 @@ namespace App\Model\DTOs;
 use App\Controller\Validaciones;
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(schema: "Profesional", required: ["nombre", "apellido", "profesion", "email", "telefono"])]
+#[OA\Schema(schema: "Profesional", required: ["nombre", "apellido", "profesion", "email", "telefono", "password"])]
 class ProfesionalDTO {
     #[Oa\Property(example: "Roberto")]
     private string $nombre;

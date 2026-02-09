@@ -25,11 +25,6 @@ class ReservasController extends BaseController {
             items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
         )
     )]
-    #[OA\Response(
-        response: 404,
-        description: "No hay reservas",
-        content: new OA\JsonContent()
-    )]
     public function obtenerTodas() {
         AuthMiddleware::handle([Roles::ADMIN]);
 
@@ -54,7 +49,7 @@ class ReservasController extends BaseController {
     #[OA\Response(
         response: 404,
         description: "No hay reservas",
-        content: new OA\JsonContent()
+        content: new OA\JsonContent(example:["ERROR" => "No tienes reservas realizadas"])
     )]
     public function obtenerReservasPorUsuarioId() {
         $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
@@ -71,12 +66,12 @@ class ReservasController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Reserva")
+        content: new OA\JsonContent(example: "#/components/schemas/Reserva")
     )]
     #[OA\Response(
         response: 201,
         description: "Reserva realizada",
-        content: new OA\JsonContent(example:["EXITO => Su reserva ha sido procesada correctamente!"])
+        content: new OA\JsonContent(ref: "#/components/schemas/RespuestaReserva")
     )]
     #[OA\Response(
         response: 404,

@@ -1,12 +1,19 @@
 <?php
 
 namespace App\Model\DTOs;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(schema: "Consultorio", required: ["direccion", "ciudad", "horario_apertura", "horario_cierre"])]
 class ConsultorioDTO {
+    #[OA\Property(example: "Avenida Valve 200")]
     private string $direccion;
+    #[OA\Property(example: "Lomas de zamora")]
     private string $ciudad;
+    #[OA\Property(example: "08:00")]
     private string $horario_apertura;
+    #[OA\Property(example: "19:00")]
     private string $horario_cierre;
+    #[OA\Property(example: "12")]
     private int|null $idProfesional;
 
     public function __construct(string $direccion, string $ciudad, string $horario_apertura, string $horario_cierre, int|null $idProfesional) {

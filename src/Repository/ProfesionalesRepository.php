@@ -53,7 +53,7 @@ class ProfesionalesRepository {
         return null;
     }
 
-    public function buscarPor(string $filtro, string $valor): array|null {
+    public function buscarPor(string $filtro, string $valor): array {
         $profs = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE $filtro LIKE ? AND u.rol = ?");
         $profs->execute(["%$valor%", Roles::PROFESIONAL]);
         $data = $profs->fetchAll(PDO::FETCH_ASSOC);
@@ -72,7 +72,7 @@ class ProfesionalesRepository {
         return $profesionales;
     }
 
-    public function obtenerPorProfesion($profesion): array|null {
+    public function obtenerPorProfesion($profesion): array {
         $profs = $this->db->prepare("SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE p.profesion LIKE ?");
         $profs->execute([ucwords("%$profesion%")]);
         $data = $profs->fetchAll(PDO::FETCH_ASSOC);
@@ -88,7 +88,6 @@ class ProfesionalesRepository {
                 $profesional["password"],
             );
         }
-        if(!$profesionales) return null;
         return $profesionales;
     }
 
@@ -128,7 +127,7 @@ class ProfesionalesRepository {
         return null;
     }
     
-    public function obtenerProfesionalPorUbicacion($valor): array|null { 
+    public function obtenerProfesionalPorUbicacion($valor): array { 
         $query = $this->db->prepare("
             SELECT u.*, p.profesion FROM usuario u 
             JOIN profesional p ON u.id = p.idprofesional 
@@ -149,7 +148,6 @@ class ProfesionalesRepository {
                 $profesional["password"],
             );
         }
-        if(!$profesionales) return null;
         return $profesionales;
     }
 

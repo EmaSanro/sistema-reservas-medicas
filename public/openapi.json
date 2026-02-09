@@ -6,6 +6,959 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Loguearse",
+                "operationId": "1ce31663c50c78ff1404e254dc09eb72",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {},
+                            "example": "#/components/schemas/Paciente"
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Logueado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "OK": "correctamente",
+                                    "TOKEN": "{token}"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "JSON invalido o datos de logueo incompletos",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": "Json Invalido"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Datos incorrectos",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Credenciales incorrectas"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/consultorios": {
+            "get": {
+                "tags": [
+                    "Consultorios"
+                ],
+                "summary": "Listado de consultorios",
+                "operationId": "5fc838bb250ca46ae15dccd9230c4cef",
+                "responses": {
+                    "200": {
+                        "description": "Lista de todos los consultorios registrados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaConsultorio"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Consultorios"
+                ],
+                "summary": "Registrar consultorio",
+                "operationId": "690e7cf518f3f22555e396e3b17101bb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {},
+                            "example": "#/components/schemas/Consultorio"
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Consultorio creado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaConsultorio"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "JSON invalido o datos de registro incompletos/erroneos",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Formato de horario invalido"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto: consultorio ya existente",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya existe un consultorio registrado en esa ciudad y direccion"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/consultorios/{id}": {
+            "get": {
+                "tags": [
+                    "Consultorios"
+                ],
+                "summary": "Consultorio obtenido por id",
+                "operationId": "0f5316751b1834e3a0426ded40977c94",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Consultorio obtenido",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaConsultorio"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Consultorio no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se ha encontrado un consultorio con ese id"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Consultorios"
+                ],
+                "summary": "Actualizar datos de consultorio",
+                "operationId": "e8c09f89027441a8322ec945c3e68b00",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {},
+                            "example": "#/components/schemas/Consultorio"
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Datos del consultorio actualizados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaConsultorio"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Peticion erronea: id invalido | json invalido | formato horario invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Datos invalidos"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Consultorio no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un consultorio para actualizar con ese id"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto: consultorio existente",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya existe un consultorio con la direccion y ciudad ingresadas"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Consultorios"
+                ],
+                "summary": "Eliminar consultorio",
+                "operationId": "065f9a8ddf4ebe86763bdc5a57d05caf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Consultorio eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "El id ingresado es invalido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Consultorio no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un consultorio para eliminar"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/pacientes": {
+            "get": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Lista de pacientes",
+                "operationId": "b1d9cf95597b0cd8db0d7c23adee970b",
+                "responses": {
+                    "200": {
+                        "description": "Lista de pacientes",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaPaciente"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Registrarse como paciente",
+                "operationId": "522dced178fb59ac01a53b78dd7fb012",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {},
+                            "example": "#/components/schemas/Paciente"
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registrado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaPaciente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "JSON invalido o criterios de password no cumplidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "La contraseña debe tener minimo 8 caracteres"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Usuario ya registrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya se registro un usuario con ese email y/o telefono"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pacientes/{id}": {
+            "get": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Paciente por ID",
+                "operationId": "823fd3103be6418c975afd1d3c4b0bb7",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Paciente obtenido por su ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaPaciente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "el ID ingresado no es valido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Paciente no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No hay un paciente con ese id"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Eliminar paciente",
+                "operationId": "d38b442fab6f372b723c339ca7499601",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Paciente eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "ID invalido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Paciente no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No existe un paciente con el id especificado"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/pacientes/buscar": {
+            "get": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Buscar pacientes",
+                "operationId": "a4608cae9889f44337f50c19c05c6f6a",
+                "parameters": [
+                    {
+                        "name": "filtro",
+                        "in": "query",
+                        "description": "Filtro de busqueda(nombre, apellido, email, telefono)",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "valor",
+                        "in": "query",
+                        "description": "Valor de busqueda",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Listado de pacientes filtrados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaPaciente"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Filtro invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "El filtro ingresado es un filtro invalido"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/paciente/{id}": {
+            "put": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Actualizar datos del usuario",
+                "operationId": "68d5f480ad81079f613a5c3d9d69ddf9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {},
+                            "example": "#/components/schemas/Paciente"
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Datos actualizados",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaPaciente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "id o json invalido o criterios de contraseña no respetados",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "JSON invalido"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Usuario existente",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya existe un usuario registrado con ese email y/o telefono"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/profesionales": {
+            "get": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Listado de los profesionales",
+                "operationId": "ccfca017f0d2e5fa6e858adb77b0bfad",
+                "responses": {
+                    "200": {
+                        "description": "Lista de los profesionales",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaProfesional"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Registrar un profesional",
+                "operationId": "67c711d92fed6013c1ba618749cc8103",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Profesional"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Profesional registrado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaProfesional"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud erronea: JSON invalido | formato de contraseña incorrecto",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "La contraseña debe tener un caracter especial!"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto: Usuario existente!",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya existe un usuario registrado con ese email y/o telefono ingresado/s"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/profesionales/{id}": {
+            "get": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Obtener un profesional por su id",
+                "operationId": "aab51ec8aef01422fd3ab5a2f2c333fe",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Existe un profesional con ese ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaProfesional"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "El id ingresado no es valido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No se hallo un profesional con ese id",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un profesional con ese id"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Actualizar datos del profesional",
+                "operationId": "0b43f5a35efd5d3e7d4c4291bac6305e",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Profesional"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profesional actualizado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaProfesional"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud erronea: JSON Invalido | ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "JSON invalido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Profesional no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un profesional con ese id"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflicto: Usuario ya existente con esos datos!",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya existe un usuario con ese email y/o telefono ingresado/s"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Eliminar un profesional",
+                "operationId": "bfc55d53459ab61a6a02a1fcf3cbe07f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Profesional eliminado",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud erronea: ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "ID Invalido"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Profesional no encontrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No se encontro un profesional a eliminar con ese id"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/profesionales/buscar": {
+            "get": {
+                "tags": [
+                    "Profesionales"
+                ],
+                "summary": "Buscar profesionales",
+                "operationId": "217da9c1f26923e2e9f4e0882b4e727e",
+                "parameters": [
+                    {
+                        "name": "filtro",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "valor",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Listado de profesionales obtenidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/RespuestaProfesional"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solicitud invalida: filtro o valor no ingresado | el filtro no es valido para la busqueda",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "El filtro ingresado no es valido para la busqueda"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/reservas": {
             "get": {
                 "tags": [
@@ -24,14 +977,6 @@
                                         "$ref": "#/components/schemas/RespuestaReserva"
                                     }
                                 }
-                            }
-                        }
-                    },
-                    "404": {
-                        "description": "No hay reservas",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
                             }
                         }
                     }
@@ -68,7 +1013,10 @@
                         "description": "No hay reservas",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No tienes reservas realizadas"
+                                }
                             }
                         }
                     }
@@ -91,9 +1039,8 @@
                     "required": true,
                     "content": {
                         "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Reserva"
-                            }
+                            "schema": {},
+                            "example": "#/components/schemas/Reserva"
                         }
                     }
                 },
@@ -102,10 +1049,9 @@
                         "description": "Reserva realizada",
                         "content": {
                             "application/json": {
-                                "schema": {},
-                                "example": [
-                                    "EXITO => Su reserva ha sido procesada correctamente!"
-                                ]
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaReserva"
+                                }
                             }
                         }
                     },
@@ -212,12 +1158,45 @@
     },
     "components": {
         "schemas": {
+            "Consultorio": {
+                "required": [
+                    "direccion",
+                    "ciudad",
+                    "horario_apertura",
+                    "horario_cierre"
+                ],
+                "properties": {
+                    "direccion": {
+                        "type": "string",
+                        "example": "Avenida Valve 200"
+                    },
+                    "ciudad": {
+                        "type": "string",
+                        "example": "Lomas de zamora"
+                    },
+                    "horario_apertura": {
+                        "type": "string",
+                        "example": "08:00"
+                    },
+                    "horario_cierre": {
+                        "type": "string",
+                        "example": "19:00"
+                    },
+                    "idProfesional": {
+                        "type": "integer",
+                        "example": "12",
+                        "nullable": true
+                    }
+                },
+                "type": "object"
+            },
             "Paciente": {
                 "required": [
                     "nombre",
                     "apellido",
                     "email",
-                    "telefono"
+                    "telefono",
+                    "password"
                 ],
                 "properties": {
                     "nombre": {
@@ -237,6 +1216,10 @@
                         "type": "string",
                         "example": "0118574892",
                         "nullable": true
+                    },
+                    "password": {
+                        "type": "string",
+                        "example": "JuanP34$"
                     }
                 },
                 "type": "object"
@@ -247,7 +1230,8 @@
                     "apellido",
                     "profesion",
                     "email",
-                    "telefono"
+                    "telefono",
+                    "password"
                 ],
                 "properties": {
                     "nombre": {
@@ -296,6 +1280,32 @@
                     "estado": {
                         "type": "string",
                         "example": "Confirmada"
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaConsultorio": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 24
+                    },
+                    "direccion": {
+                        "type": "string",
+                        "example": "Avenida Lovamba 234"
+                    },
+                    "ciudad": {
+                        "type": "string",
+                        "example": "Santa fe"
+                    },
+                    "horario": {
+                        "type": "string",
+                        "example": "08:00 - 17:00"
+                    },
+                    "idprofesional": {
+                        "type": "integer",
+                        "example": 12,
+                        "nullable": true
                     }
                 },
                 "type": "object"
@@ -386,6 +1396,22 @@
         }
     },
     "tags": [
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
+            "name": "Consultorios",
+            "description": "Consultorios"
+        },
+        {
+            "name": "Pacientes",
+            "description": "Pacientes"
+        },
+        {
+            "name": "Profesionales",
+            "description": "Profesionales"
+        },
         {
             "name": "Reservas",
             "description": "Reservas"
