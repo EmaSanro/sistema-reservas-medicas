@@ -24,7 +24,7 @@ CREATE TABLE profesional (
 
 -- Table: Reservas
 CREATE TABLE reservas (
-    id int  NOT NULL,
+    id int  NOT NULL AUTO_INCREMENT,
     idprofesional int  NOT NULL,
     idpaciente int  NOT NULL,
     fecha_reserva datetime  NOT NULL,
@@ -47,6 +47,9 @@ CREATE TABLE usuario (
     motivo_baja varchar(255) NULL,
     fecha_baja datetime NULL,
     password varchar(150)  NOT NULL,
+    activo bool  NOT NULL,
+    motivo_baja varchar(255)  NULL,
+    fecha_baja datetime  NULL,
     UNIQUE INDEX email_ak (email),
     UNIQUE INDEX telefono_ak (telefono),
     CONSTRAINT pk_usuario PRIMARY KEY (id)
