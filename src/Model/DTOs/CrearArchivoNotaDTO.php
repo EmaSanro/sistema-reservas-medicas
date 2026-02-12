@@ -1,8 +1,7 @@
 <?php
 namespace App\Model\DTOs;
 
-class CrearArchivoNota {
-    private int $id;
+class CrearArchivoNotaDTO {
     private string $nombre_original;
     private string $nombre_sistema;
     private string $ruta;
@@ -11,8 +10,7 @@ class CrearArchivoNota {
     private string $fecha_subida;
     private int $nota_id;
 
-    public function __construct(int $id, string $nombre_original, string $nombre_sistema, string $ruta, string $tipo_archivo, int $peso, string $fecha_subida, int $nota_id) {
-        $this->id = $id;
+    public function __construct(string $nombre_original, string $nombre_sistema, string $ruta, string $tipo_archivo, int $peso, string $fecha_subida, int $nota_id) {
         $this->nombre_original = $nombre_original;
         $this->nombre_sistema = $nombre_sistema;
         $this->ruta = $ruta;
@@ -20,10 +18,6 @@ class CrearArchivoNota {
         $this->peso = $peso;
         $this->fecha_subida = $fecha_subida;
         $this->nota_id = $nota_id;
-    }
-    
-    public function getId(): int {
-        return $this->id;
     }
 
     public function getNombreOriginal(): string {
@@ -56,7 +50,6 @@ class CrearArchivoNota {
 
     public static function fromArray(array $data): self {
         return new self(
-            $data['id'],
             $data['nombre_original'],
             $data['nombre_sistema'],
             $data['ruta'],

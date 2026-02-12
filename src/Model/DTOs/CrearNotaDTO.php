@@ -1,5 +1,5 @@
 <?php
-
+namespace App\Model\DTOs;
 use App\Exceptions\ValidationException;
 
 class CrearNotaDTO {
@@ -13,21 +13,24 @@ class CrearNotaDTO {
         $this->reserva_id = $reserva_id;
     }
 
-    public function getMotivoVisita() {
+    public function getMotivoVisita(): string {
         return $this->motivo_visita;
     }
 
-    public function getTextoNota() {
+    public function getTextoNota(): string {
         return $this->texto_nota;
     }
 
-    public function getReservaId() {
+    public function getReservaId(): int {
         return $this->reserva_id;
     }
 
     public static function fromArray($input) {
         if(!isset($input["motivo_visita"], $input["texto_nota"], $input["reserva_id"])) {
             throw new ValidationException("ERROR: Completa los campos requeridos(motivo_visita, texto_nota, reserva_id)");
+        }
+        if(empty(trim($input["motivo_visita"])) || empty(trim($input["texto_nota"])) || empty(trim($input["reserva_id"]))) {
+            throw new ValidationException("ERROR: Ninguno de los campos puede estar vacio!");
         }
 
         return new self(
