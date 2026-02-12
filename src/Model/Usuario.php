@@ -10,8 +10,8 @@ class Usuario {
     private string|null $email;
     private string|null $telefono;
     private bool $activo;
-    private string $motivo_baja;
-    private string $fecha_baja;
+    private string|null $motivo_baja;
+    private string|null $fecha_baja;
     private string $password;
 
     public function __construct(int $id, string $nombre, string $apellido, string $rol, string|null $email, string|null $telefono, bool $activo, string|null $motivo_baja, string|null $fecha_baja, string $password) {
@@ -55,12 +55,12 @@ class Usuario {
         return $this->activo;
     }
 
-    public function getMotivoBaja(): string {
-        return $this->motivo_baja;
+    public function getMotivoBaja(): string|null {
+        return $this->motivo_baja ?? null;
     }
 
-    public function getFechaBaja(): string {
-        return $this->fecha_baja;
+    public function getFechaBaja(): string|null {
+        return $this->fecha_baja ?? null;
     }
 
     public function getPassword() : string {

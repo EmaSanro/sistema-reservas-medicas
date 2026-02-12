@@ -54,7 +54,7 @@ class ReservasController extends BaseController {
     public function obtenerReservasPorUsuarioId() {
         $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
 
-        $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->getId(), $usuario->getRol());
+        $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
         
         return $this->jsonResponse(200, $reservas);
     }

@@ -16,9 +16,9 @@ class RespuestaPacienteDTO {
     #[OA\Property(example: "true")]
     public readonly bool $activo;
     #[OA\Property(example: "Cambio de pais")]
-    public readonly string $motivo_baja;
+    public readonly string|null $motivo_baja;
     #[OA\Property(example: "2026-06-15 14:32:34")]
-    public readonly string $fecha_baja;
+    public readonly string|null $fecha_baja;
 
     public function __construct(int $id, string $nombre, string|null $email, string|null $telefono, bool $activo, string|null $motivo_baja, string|null $fecha_baja) {
         $this->id = $id;

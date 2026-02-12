@@ -37,6 +37,9 @@ class AuthRepository {
                 $prof["profesion"],
                 $usuario["email"] ?? "",
                 $usuario["telefono"] ?? "",
+                $usuario["activo"],
+                $usuario["motivo_baja"],
+                $usuario["fecha_baja"],
                 $usuario["password"]
             );
         }
@@ -47,6 +50,9 @@ class AuthRepository {
             $usuario["rol"],
             $usuario["email"] ?? "",
             $usuario["telefono"] ?? "",
+            $usuario["activo"],
+            $usuario["motivo_baja"],
+            $usuario["fecha_baja"],
             $usuario["password"]
         );
     }

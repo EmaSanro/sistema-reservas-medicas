@@ -1,10 +1,12 @@
 <?php
 use App\Controller\PacientesController;
 use App\Repository\PacientesRepository;
+use App\Repository\ReservasRepository;
 use App\Service\PacientesService;
 
 $pacientesRepository = new PacientesRepository();
-$pacientesService = new PacientesService($pacientesRepository);
+$reservasRepository = new ReservasRepository();
+$pacientesService = new PacientesService($pacientesRepository, $reservasRepository);
 $pacientesController = new PacientesController($pacientesService);
 
 

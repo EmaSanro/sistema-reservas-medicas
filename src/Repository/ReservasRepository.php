@@ -60,7 +60,7 @@ class ReservasRepository {
 
     public function obtenerReserva($id) {
         $stmtReserva = $this->db->prepare("
-            SELECT * FROM reserva WHERE id = ?
+            SELECT * FROM reservas WHERE id = ?
         ");
         $stmtReserva->execute([$id]);
         $data = $stmtReserva->fetch(PDO::FETCH_ASSOC);
@@ -106,6 +106,7 @@ class ReservasRepository {
             );
         } catch (\Throwable $th) {
             $this->db->rollBack();
+            echo $th->getMessage();
             throw new DatabaseException("No se pudo realizar la reserva");
         }
         
