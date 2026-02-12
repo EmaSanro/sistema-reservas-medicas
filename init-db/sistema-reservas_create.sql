@@ -1,6 +1,6 @@
 -- Created by Redgate Data Modeler (https://datamodeler.redgate-platform.com)
--- Last modification date: 2026-01-29 15:37:00.089
--- schema: reservasmedicas;
+-- Last modification date: 2026-02-09 21:20:22.429
+
 CREATE DATABASE IF NOT EXISTS sistemareservas;
 -- tables
 -- Table: Consultorio
@@ -13,6 +13,15 @@ CREATE TABLE consultorio (
     id_profesional int  NULL,
     UNIQUE INDEX ak_id_profesional (id_profesional),
     CONSTRAINT pk_id PRIMARY KEY (id)
+);
+
+-- Table: Nota
+CREATE TABLE nota (
+    id int  NOT NULL AUTO_INCREMENT,
+    motivo_visita varchar(150)  NOT NULL,
+    texto_nota text  NOT NULL,
+    reserva_id int  NOT NULL,
+    CONSTRAINT pk_nota PRIMARY KEY (id)
 );
 
 -- Table: Profesional
@@ -28,8 +37,8 @@ CREATE TABLE reservas (
     idprofesional int  NOT NULL,
     idpaciente int  NOT NULL,
     fecha_reserva datetime  NOT NULL,
-    estado string NOT NULL,
-    fecha_cancelacion datetime NULL, 
+    estado varchar(15)  NOT NULL,
+    fecha_cancelacion datetime  NULL,
     UNIQUE INDEX reservas_ak_idprofesional (idprofesional),
     UNIQUE INDEX reservas_ak_idpaciente (idpaciente),
     CONSTRAINT pk_reservas PRIMARY KEY (id)
@@ -43,9 +52,6 @@ CREATE TABLE usuario (
     rol varchar(15)  NOT NULL,
     email varchar(150)  NULL,
     telefono varchar(45)  NULL,
-    estado boolean NOT NULL,
-    motivo_baja varchar(255) NULL,
-    fecha_baja datetime NULL,
     password varchar(150)  NOT NULL,
     activo bool  NOT NULL,
     motivo_baja varchar(255)  NULL,
@@ -55,9 +61,22 @@ CREATE TABLE usuario (
     CONSTRAINT pk_usuario PRIMARY KEY (id)
 );
 
+-- Table: archivo_nota
+CREATE TABLE archivo_nota (
+    id int  NOT NULL AUTO_INCREMENT,
+    nombre_original varchar(255)  NOT NULL,
+    nombre_sistema varchar(255)  NOT NULL,
+    ruta varchar(500)  NOT NULL,
+    tipo_archivo varchar(50)  NOT NULL,
+    peso int  NOT NULL,
+    fecha_subida datetime  NOT NULL,
+    nota_id int  NOT NULL,
+    CONSTRAINT pk_archivo_nota PRIMARY KEY (id)
+);
+
 -- foreign keys
 -- Reference: Reservas_Usuario (table: Reservas)
-ALTER TABLE reservas ADD CONSTRAINT fk_reservas_usuario FOREIGN KEY fk_reservas_usuario (idpaciente)
+ALTER TABLE reservas ADD CONSTRAINT reservas_usuario FOREIGN KEY reservas_usuario (idpaciente)
     REFERENCES usuario (id);
 
 -- Reference: fk_consultorio_profesional (table: Consultorio)
@@ -65,6 +84,16 @@ ALTER TABLE consultorio ADD CONSTRAINT fk_consultorio_profesional FOREIGN KEY fk
     REFERENCES profesional (idprofesional)
     ON DELETE CASCADE
     ON UPDATE CASCADE;
+
+-- Reference: fk_nota_archivo_nota (table: archivo_nota)
+ALTER TABLE archivo_nota ADD CONSTRAINT fk_nota_archivo_nota FOREIGN KEY fk_nota_archivo_nota (nota_id)
+    REFERENCES nota (id)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE;
+
+-- Reference: fk_nota_reservas (table: Nota)
+ALTER TABLE nota ADD CONSTRAINT fk_nota_reservas FOREIGN KEY fk_nota_reservas (reserva_id)
+    REFERENCES reservas (id);
 
 -- Reference: fk_profesional_usuario (table: Profesional)
 ALTER TABLE profesional ADD CONSTRAINT fk_profesional_usuario FOREIGN KEY fk_profesional_usuario (idprofesional)
