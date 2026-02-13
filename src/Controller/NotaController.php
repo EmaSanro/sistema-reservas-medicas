@@ -49,6 +49,28 @@ class NotaController extends BaseController {
         return $this->jsonResponse(200, $nota);
     }
 
+    public function obtenerArchivoNota(int $idNota, int $idArchivo) {
+        Validaciones::validarID($idNota);
+        Validaciones::validarID($idArchivo);
+
+        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]); 
+
+        $archivo = $this->archivoService->obtenerArchivoNota($idNota, $idArchivo, $usuario);
+
+        if(!file_exists($archivo->getRuta())) {
+            return $this->jsonResponse(404, ["ERROR" => "Archivo no encontrado"]);
+        }
+
+        $modo = isset($_GET["preview"]) ? "inline" : "attachment";
+
+        header("Content-Type: {$archivo->getTipoArchivo()}");
+        header("Content-Disposition: $modo; filename='{$archivo->getNombreOriginal()}'");
+        header("Content-Length: {$archivo->getPeso()}");
+        
+        readfile($archivo->getRuta());
+        exit;
+    }
+
     public function eliminarArchivoNota($idNota, $idArchivo) {
         Validaciones::validarID($idNota);
         Validaciones::validarID($idArchivo);
