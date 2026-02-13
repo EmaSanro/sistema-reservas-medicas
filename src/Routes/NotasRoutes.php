@@ -15,6 +15,7 @@ $notaService = new NotaService($notaRepository, $reservasRepository, $archivoSer
 $notaController = new NotaController($notaService, $archivoService);
 
 $router->get("/api/notas/:id", [$notaController, "obtenerNotaPorId"]);
+$router->get("/api/notas/:id/archivos/:idArchivo", [$notaController, "obtenerArchivoNota"]);
 $router->post("/api/notas", [$notaController, "crearNota"]);
 $router->put("/api/notas/:id", [$notaController, "actualizarNota"]);
 $router->delete("/api/notas/:idNota/archivos/:idArchivo", [$notaController, "eliminarArchivoNota"]);

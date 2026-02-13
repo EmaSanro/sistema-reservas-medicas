@@ -67,6 +67,25 @@ class ArchivoNotaService {
         return array_map(fn(ArchivoNota $archivo) => $archivo->toDTO(), $archivos);
     }
 
+    public function obtenerArchivoNota(int $idNota, int $idArchivo, $usuario) {
+        $archivo = $this->repo->obtenerPorId($idArchivo);
+        if(!$archivo) {
+            throw new ArchivoNotFoundException("No se encontro el archivo");
+        }
+        if($archivo->getNotaId() != $idNota) {
+            throw new NotaNotFoundException("El archivo no pertenece a esa nota");
+        }
+
+        $nota = $this->notaRepo->obtenerNotaPorId($idNota);
+
+        $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
+        if($reserva->getIdProfesional() != $usuario->id) {
+            throw new ForbiddenException("No tienes permisos para descargar archivos que no son tuyos!");
+        }
+
+        return $archivo;
+    }
+
     public function eliminarArchivoNota($id, $idNota, $usuario) {
         $archivo = $this->repo->obtenerPorId($id);
 
