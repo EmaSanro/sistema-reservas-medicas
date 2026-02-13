@@ -12,7 +12,9 @@ $reservasRepository = new ReservasRepository();
 $archivoNotaRepository = new ArchivoNotaRepository();
 $archivoService = new ArchivoNotaService($archivoNotaRepository, $reservasRepository, $notaRepository);
 $notaService = new NotaService($notaRepository, $reservasRepository, $archivoService);
-$notaController = new NotaController($notaService);
+$notaController = new NotaController($notaService, $archivoService);
 
 $router->get("/api/notas/:id", [$notaController, "obtenerNotaPorId"]);
 $router->post("/api/notas", [$notaController, "crearNota"]);
+$router->put("/api/notas/:id", [$notaController, "actualizarNota"]);
+$router->delete("/api/notas/:idNota/archivos/:idArchivo", [$notaController, "eliminarArchivoNota"]);

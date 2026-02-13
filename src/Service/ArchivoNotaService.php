@@ -4,6 +4,7 @@ namespace App\Service;
 use App\Exceptions\ArchivoNota\ArchivoNotFoundException;
 use App\Exceptions\ArchivoNota\SubidaArchivoException;
 use App\Exceptions\Auth\ForbiddenException;
+use App\Exceptions\DatabaseException;
 use App\Exceptions\Nota\NotaNotFoundException;
 use App\Model\ArchivoNota;
 use App\Model\DTOs\CrearArchivoNotaDTO;
@@ -58,7 +59,15 @@ class ArchivoNotaService {
         return $archivoGuardado->toDTO();
     }
 
-    public function eliminarArchivoNota($id, $usuario) {
+    public function obtenerPorNotaId(int $idNota) {
+        $archivos = $this->repo->obtenerPorNotaId($idNota);
+        if(!$archivos) {
+            return [];
+        }
+        return array_map(fn(ArchivoNota $archivo) => $archivo->toDTO(), $archivos);
+    }
+
+    public function eliminarArchivoNota($id, $idNota, $usuario) {
         $archivo = $this->repo->obtenerPorId($id);
 
         if(!$archivo) {
@@ -66,8 +75,8 @@ class ArchivoNotaService {
         }
 
         $nota = $this->notaRepo->obtenerNotaPorId($archivo->getNotaId());
-        if(!$nota) {
-            throw new NotaNotFoundException("No se encontro una nota");
+        if($nota->getId() != $idNota) {
+            throw new NotaNotFoundException("El archivo no pertenece a esta nota");
         }
         
         $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
@@ -80,6 +89,9 @@ class ArchivoNotaService {
             unlink($archivo->getRuta());
         }
 
-        $this->repo->eliminarArchivo($id);
+        $eliminado = $this->repo->eliminarArchivo($id);
+        if(!$eliminado) {
+            throw new DatabaseException("Error en la base de datos");
+        }
     }
 }

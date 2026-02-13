@@ -70,6 +70,29 @@ class ArchivoNotaRepository {
         );
     }
 
+    public function obtenerPorNotaId($idNota) {
+        $stmtArchivo = $this->db->prepare("
+            SELECT * FROM archivo_nota WHERE nota_id = ?
+        ");
+        $stmtArchivo->execute([$idNota]);
+        $obtenidos = $stmtArchivo->fetchAll(PDO::FETCH_ASSOC);
+        $archivos = [];
+        foreach($obtenidos as $archivo) {
+            $archivos[] = new ArchivoNota(
+                $archivo["id"],
+                $archivo["nombre_original"],
+                $archivo["nombre_sistema"],
+                $archivo["ruta"],
+                $archivo["tipo_archivo"],
+                $archivo["peso"],
+                $archivo["fecha_subida"],
+                $idNota
+                );
+        }
+
+        return $archivos;
+    }
+
     public function eliminarArchivo(int $id) {
         $stmtBorrar = $this->db->prepare("
             DELETE FROM archivo_nota WHERE id = ? 

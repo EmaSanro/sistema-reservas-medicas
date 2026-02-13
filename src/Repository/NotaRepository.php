@@ -2,6 +2,7 @@
 namespace App\Repository;
 
 use App\Exceptions\DatabaseException;
+use App\Model\DTOs\ActualizarNotaDTO;
 use App\Model\DTOs\CrearNotaDTO;
 use App\Model\Nota;
 use AppConfig\Database;
@@ -54,5 +55,27 @@ class NotaRepository {
             $data["texto_nota"],
             $data["reserva_id"]
         );
+    }
+
+    public function actualizarNota(int $id, ActualizarNotaDTO $nota) {
+        try {
+            $this->db->beginTransaction();
+            $stmtNota = $this->db->prepare("
+                UPDATE nota SET motivo_visita = ?, 
+                                texto_nota = ?
+                WHERE id = ?
+            ");
+            $stmtNota->execute([
+                $nota->getMotivoVisita(),
+                $nota->getTextoNota(),
+                $id
+            ]);
+            $this->db->commit();
+
+            return $this->obtenerNotaPorId($id);
+        } catch (\Throwable $th) {
+            $this->db->rollBack();
+            throw new DatabaseException("Hubo un error en la base de datos");
+        }
     }
 }
