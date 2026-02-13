@@ -2,13 +2,16 @@
 namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
+use App\Model\DTOs\ActualizarNotaDTO;
 use App\Model\DTOs\CrearNotaDTO;
 use App\Model\Roles;
+use App\Security\Validaciones;
+use App\Service\ArchivoNotaService;
 use App\Service\NotaService;
 
 class NotaController extends BaseController {
 
-    public function __construct(private NotaService $service) {}
+    public function __construct(private NotaService $service, private ArchivoNotaService $archivoService) {}
 
     public function crearNota() {
         $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
@@ -24,11 +27,37 @@ class NotaController extends BaseController {
     }
 
     public function obtenerNotaPorId($id) {
+        Validaciones::validarID($id);
         $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
 
         $nota = $this->service->obtenerNotaPorId($id, $usuario);
 
         return $this->jsonResponse(200, $nota);
+    }
+
+    public function actualizarNota($id) {
+        Validaciones::validarID($id);
+        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+        $input = $_POST;
+
+        $actualizarNota = ActualizarNotaDTO::fromArray($input);
+
+        $archivos = $this->procesarArchivos();
+        
+        $nota = $this->service->actualizarNota($id, $actualizarNota, $usuario, $archivos);
+
+        return $this->jsonResponse(200, $nota);
+    }
+
+    public function eliminarArchivoNota($idNota, $idArchivo) {
+        Validaciones::validarID($idNota);
+        Validaciones::validarID($idArchivo);
+
+        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+
+        $this->archivoService->eliminarArchivoNota($idArchivo, $idNota, $usuario);
+
+        return $this->jsonResponse(204, "");
     }
 
     private function procesarArchivos() {
