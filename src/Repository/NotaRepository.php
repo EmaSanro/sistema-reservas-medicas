@@ -1,81 +1,68 @@
 <?php
 namespace App\Repository;
 
-use App\Exceptions\DatabaseException;
-use App\Model\DTOs\ActualizarNotaDTO;
-use App\Model\DTOs\CrearNotaDTO;
 use App\Model\Nota;
-use AppConfig\Database;
-use PDO;
+use App\Shared\Repository;
 
-class NotaRepository {
-    private $db;
+class NotaRepository extends Repository {
 
-    public function __construct() {
-        $this->db = Database::getConnection();    
+    protected function getTableName(): string
+    {
+        return "nota";
     }
 
-    public function guardarNota(CrearNotaDTO $nota) {
+    protected function getEntityClass(): string
+    {
+        return Nota::class;
+    }
+
+    public function guardarNota(Nota $nota) {
         try {
             $this->db->beginTransaction();
             $stmtNota = $this->db->prepare("
-                INSERT INTO nota(motivo_visita, texto_nota, reserva_id) VALUES(?,?,?)
+                INSERT INTO nota(motivo_visita, texto_nota, reserva_id) VALUES(:motivo_visita,:texto_nota,:reserva_id)
             ");
-            $stmtNota->execute([$nota->getMotivoVisita(), $nota->getTextoNota(), $nota->getReservaId()]);
+            $stmtNota->execute([
+                "motivo_visita" => $nota->getMotivoVisita(), 
+                "texto_nota" => $nota->getTextoNota(), 
+                "reserva_id" => $nota->getReservaId()
+            ]);
             
             $id = $this->db->lastInsertId();
             
             $this->db->commit();
 
+            $nota->setId((int)$id);
             
-            return new Nota(
-                $id,
-                $nota->getMotivoVisita(),
-                $nota->getTextoNota(),
-                $nota->getReservaId()
-            );
-        } catch (\Throwable $th) {
+            return $nota;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos");
+            throw $e;
         }
     }
 
-    public function obtenerNotaPorId(int $id) {
-        $stmtNota = $this->db->prepare("
-            SELECT * FROM nota WHERE id = ?
-        ");
-        $stmtNota->execute([$id]);
-        $data = $stmtNota->fetch(PDO::FETCH_ASSOC);
-
-        if(!$data) return null;
-
-        return new Nota(
-            $data["id"],
-            $data["motivo_visita"],
-            $data["texto_nota"],
-            $data["reserva_id"]
-        );
-    }
-
-    public function actualizarNota(int $id, ActualizarNotaDTO $nota) {
+    public function actualizarNota(int $id, Nota $nota) {
         try {
             $this->db->beginTransaction();
             $stmtNota = $this->db->prepare("
-                UPDATE nota SET motivo_visita = ?, 
-                                texto_nota = ?
-                WHERE id = ?
+                UPDATE nota SET motivo_visita = :motivo_visita, 
+                                texto_nota = :texto_nota
+                WHERE id = :id
             ");
             $stmtNota->execute([
-                $nota->getMotivoVisita(),
-                $nota->getTextoNota(),
-                $id
+                "motivo_visita" => $nota->getMotivoVisita(),
+                "texto_nota" => $nota->getTextoNota(),
+                "id" => $id
             ]);
+
+            $nota->setId($id);
+
             $this->db->commit();
 
-            return $this->obtenerNotaPorId($id);
-        } catch (\Throwable $th) {
+            return $nota;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Hubo un error en la base de datos");
+            throw $e;
         }
     }
 }

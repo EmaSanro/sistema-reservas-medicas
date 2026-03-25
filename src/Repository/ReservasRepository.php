@@ -1,77 +1,33 @@
 <?php
+
 namespace App\Repository;
 
-use App\Exceptions\DatabaseException;
+use App\Exceptions\Reservas\ReservaAlreadyCancelledException;
 use App\Exceptions\Reservas\ReservaCompletedException;
-use App\Exceptions\Reservas\ReservaNotFoundException;
 use App\Model\EstadoReserva;
 use App\Model\Reserva;
 use App\Model\Roles;
-use AppConfig\Database;
-use PDO;
+use App\Shared\Repository;
 
-class ReservasRepository {
-    private $db;
+class ReservasRepository extends Repository
+{
 
-    public function __construct() {
-        $this->db = Database::getConnection();
+    protected function getTableName(): string
+    {
+        return "reservas";
     }
 
-    public function obtenerTodas(): array {
-        $query = $this->db->prepare("
-            SELECT * FROM reservas 
-        ");
-        $query->execute();
-        $data = $query->fetchAll(PDO::FETCH_ASSOC);
-
-        $reservas = [];
-        foreach($data as $reserva) {
-            $reservas[] = new Reserva(
-                $reserva["id"],
-                $reserva["idpaciente"],
-                $reserva["idprofesional"],
-                $reserva["fecha_reserva"],
-                $reserva["estado"]
-            );
-        }
-        return $reservas;
+    protected function getEntityClass(): string
+    {
+        return Reserva::class;
     }
 
-    public function obtenerReservasPorUsuarioId(int $id, string $rol): array {
+    public function obtenerReservasPorUsuarioId(int $id, string $rol): array
+    {
         $columna = ($rol == Roles::PACIENTE) ? "idpaciente" : "idprofesional";
-        $query = $this->db->prepare("
-            SELECT * FROM reservas WHERE $columna = ?
-        ");
-        $query->execute([$id]);
-        $data = $query->fetchAll();
-        $reservas = [];
-
-        foreach($data as $reserva) {
-            $reservas[] = new Reserva(
-                $reserva["id"],
-                $reserva["idpaciente"],
-                $reserva["idprofesional"],
-                $reserva["fecha_reserva"],
-                $reserva["estado"]
-            );
-        }
-        return $reservas;
-    }
-
-    public function obtenerReserva($id) {
-        $stmtReserva = $this->db->prepare("
-            SELECT * FROM reservas WHERE id = ?
-        ");
-        $stmtReserva->execute([$id]);
-        $data = $stmtReserva->fetch(PDO::FETCH_ASSOC);
-        if(!$data) return null;
-        return new Reserva(
-            $id,
-            $data["idpaciente"],
-            $data["idprofesional"],
-            $data["fecha_reserva"],
-            $data["estado"],
-        );
+        $sql = "SELECT * FROM reservas WHERE $columna = :id";
+        $data = $this->findByQuery($sql, ["id" => $id]);
+        return $data;
     }
 
     // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
@@ -86,107 +42,112 @@ class ReservasRepository {
     //     return $reserva->fetch();
     // }
 
-    public function reservar($dto, $idPaciente): Reserva {
+    public function reservar(Reserva $reserva, int $idPaciente): Reserva
+    {
         try {
             $this->db->beginTransaction();
             $reservar = $this->db->prepare("
-                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva, estado) VALUES(?,?,?,?)
+                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva, estado) VALUES(:idprofesional,:idpaciente,:fecha_reserva,:estado)
             ");
-            $reservaCreated = $reservar->execute([$dto->getIdProfesional(), $idPaciente, $dto->getFecha(), $dto->getEstadoReserva()]);
+            $reservar->execute([
+                "idprofesional" => $reserva->getIdProfesional(),
+                "idpaciente" => $idPaciente,
+                "fecha_reserva" => $reserva->getFechaReserva(),
+                "estado" => $reserva->getEstadoReserva()
+            ]);
+
+            $id = $this->db->lastInsertId();
+
             $this->db->commit();
-            if(!$reservaCreated) {
-                throw new DatabaseException("Error al crear la reserva");
-            }
-            return new Reserva(
-                $this->db->lastInsertId(),
-                $idPaciente,
-                $dto->getIdProfesional(),
-                $dto->getFecha(),
-                $dto->getEstadoReserva()
-            );
-        } catch (\Throwable $th) {
+            $reserva->setId((int) $id);
+
+            return $reserva;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            echo $th->getMessage();
-            throw new DatabaseException("No se pudo realizar la reserva");
+            throw $e;
         }
-        
     }
 
-    public function buscarCoincidencia($idPaciente, $idProfesional, $fecha): bool {
-        $profesional = $this->db->prepare("
-            SELECT 1 FROM profesional WHERE idprofesional = ?
-        ");
-        $profesional->execute([$idProfesional]);
-        if(!$profesional->fetch()) {
+    public function buscarCoincidencia(int $idPaciente, int $idProfesional, string $fecha): Reserva|null
+    {
+        $sqlProfesional = "SELECT 1 FROM profesional WHERE idprofesional = :idprofesional";
+        $profesional = $this->findOneByQuery($sqlProfesional, ["idprofesional" => $idProfesional]);
+        if (!$profesional) {
             throw new \DomainException();
         }
-        $coincidencia = $this->db->prepare("
-            SELECT 1 FROM reservas WHERE (idpaciente = ? OR idprofesional = ?) AND fecha_reserva = ? 
-        ");
-        $coincidencia->execute([$idPaciente, $idProfesional, $fecha]);
-        return $coincidencia->rowCount() > 0;
+        $sqlCoincidencia = "
+            SELECT 1 FROM reservas 
+            WHERE (idpaciente = :idpaciente OR idprofesional = :idprofesional) AND fecha_reserva = :fecha_reserva";
+        $coincidencia = $this->findOneByQuery($sqlCoincidencia, [
+            "idpaciente" => $idPaciente,
+            "idprofesional" => $idProfesional,
+            "fecha_reserva" => $fecha
+        ]);
+        return $coincidencia;
     }
 
-    public function perteneceAlPaciente($id, $idPaciente): mixed {
-        $reserva = $this->db->prepare("
-            SELECT 1 FROM reservas WHERE id = ? AND idPaciente = ?
-        ");
-        $reserva->execute([$id, $idPaciente]);
-        return $reserva->fetch();
+    public function perteneceAlPaciente(int $id, int $idPaciente): Reserva|null
+    {
+        $sql = "SELECT 1 FROM reservas WHERE id = :id AND idPaciente = :idpaciente";
+        $reserva = $this->findOneByQuery($sql, ["id" => $id, "idpaciente" => $idPaciente]);
+        return $reserva;
     }
 
-    public function cancelarReserva(Reserva $reserva): bool {
+    public function cancelarReserva(Reserva $reserva): bool
+    {
         switch ($reserva->getEstadoReserva()) {
-            case EstadoReserva::CANCELADA: return false;
-            case EstadoReserva::COMPLETADA: throw new ReservaCompletedException("No se puede cancelar una reserva ya completada");
+            case EstadoReserva::CANCELADA:
+                throw new ReservaAlreadyCancelledException("La reserva ya se encuentra cancelada");
+            case EstadoReserva::COMPLETADA:
+                throw new ReservaCompletedException("No se puede cancelar una reserva ya completada");
         }
 
         $update = $this->db->prepare("
-            UPDATE reserva SET estado = ? fecha_cancelacion = NOW() WHERE id = ? AND estado = ? AND fecha_reserva > NOW() + INTERVAL 24 HOUR
+            UPDATE reserva SET estado = :estado fecha_cancelacion = NOW() WHERE id = :id AND estado = :estado AND fecha_reserva > NOW() + INTERVAL 24 HOUR
         ");
-        $update->execute([EstadoReserva::CANCELADA, $reserva->getId(), EstadoReserva::CONFIRMADA]);
+        $update->execute(["estado" => EstadoReserva::CANCELADA, "id" => $reserva->getId(), "fecha_reserva" => EstadoReserva::CONFIRMADA]);
 
         return $update->rowCount() > 0;
     }
 
-    public function ReservasPendientesNotificacion(): array {
-        $reserva = $this->db->prepare("
+    public function ReservasPendientesNotificacion(): array
+    {
+        $sql = "
             SELECT r.*, pac.nombre as paciente, pac.email, pac.telefono, prof.nombre as profesional FROM reservas r
             JOIN usuario pac ON pac.id = r.idpaciente
             JOIN usuario prof ON prof.id = r.idprofesional
             WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND r.notificado = 0
-        ");
-        $reserva->execute();
-        return $reserva->fetchAll(PDO::FETCH_ASSOC);
+        ";
+        $reservas = $this->findByQuery($sql);
+        return $reservas;
     }
 
-    public function marcarComoNotificado($id): void {
+    public function marcarComoNotificado(int $id): void
+    {
         $reserva = $this->db->prepare("
-            UPDATE reservas SET notificado = 1 WHERE id = ?");
-        $reserva->execute([$id]);
+            UPDATE reservas SET notificado = 1 WHERE id = :id");
+        $reserva->execute(["id" => $id]);
     }
 
-    public function tieneFuturasReservasProfesional($id) {
-        $stmtReservas = $this->db->prepare("
-            SELECT 1 FROM reservas 
-            WHERE idprofesional = ?
-                AND estado = ?
+    public function tieneFuturasReservasProfesional(int $id): Reserva|null
+    {
+        $sql = "SELECT 1 FROM reservas 
+                WHERE idprofesional = :idprofesional
+                AND estado = :estado
                 AND fecha_reserva > NOW()
-            LIMIT 1
-        ");
-        $stmtReservas->execute([$id, EstadoReserva::CONFIRMADA]);
-        return $stmtReservas->fetch() !== false;
+                LIMIT 1";
+        $reservas = $this->findOneByQuery($sql, ["idprofesional" => $id, "estado" => EstadoReserva::CONFIRMADA]);
+        return $reservas;
     }
 
-    public function tieneFuturasReservasPaciente($id) {
-        $stmtReservas = $this->db->prepare("
-            SELECT 1 FROM reservas
-            WHERE idpaciente = ?
-                AND estado = ?
+    public function tieneFuturasReservasPaciente(int $id): Reserva|null
+    {
+        $sql = "SELECT 1 FROM reservas
+                WHERE idpaciente = :idpaciente
+                AND estado = :estado
                 AND fecha_reserva > NOW()
-            LIMIT 1
-        ");
-        $stmtReservas->execute([$id, EstadoReserva::CONFIRMADA]);
-        return $stmtReservas->fetch() !== false;
+                LIMIT 1";
+        $reservas = $this->findOneByQuery($sql, ["idpaciente" => $id, "estado" => EstadoReserva::CONFIRMADA]);
+        return $reservas;
     }
 }

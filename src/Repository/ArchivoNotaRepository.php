@@ -1,104 +1,59 @@
 <?php
 namespace App\Repository;
 
-use App\Exceptions\DatabaseException;
 use App\Model\ArchivoNota;
-use App\Model\DTOs\CrearArchivoNotaDTO;
-use AppConfig\Database;
-use PDO;
+use App\Shared\Repository;
 
-class ArchivoNotaRepository {
-    private $db;
-    public function __construct() {
-        $this->db = Database::getConnection();
+class ArchivoNotaRepository extends Repository {
+
+    protected function getTableName(): string {
+        return "archivo_nota";
     }
 
-    public function guardarArchivo(CrearArchivoNotaDTO $archivo): ArchivoNota {
+    protected function getEntityClass(): string {
+        return ArchivoNota::class;
+    }
+
+    public function guardarArchivo(ArchivoNota $archivo): ArchivoNota {
         try {
             $this->db->beginTransaction();
             $stmtGuardar = $this->db->prepare("
-                INSERT INTO archivo_nota(nombre_original, nombre_sistema, ruta, tipo_archivo, peso, fecha_subida, nota_id) VALUES(?,?,?,?,?,?,?)   
+                INSERT INTO archivo_nota(nombre_original, nombre_sistema, ruta, tipo_archivo, peso, fecha_subida, nota_id) 
+                VALUES(:nombre_original,:nombre_sistema,:ruta,:tipo_archivo,:peso,:fecha_subida,:nota_id)   
             ");
             $stmtGuardar->execute([
-                $archivo->getNombreOriginal(),
-                $archivo->getNombreSistema(),
-                $archivo->getRuta(),
-                $archivo->getTipoArchivo(),
-                $archivo->getPeso(),
-                $archivo->getFechaSubida(),
-                $archivo->getNotaId()
+                "nombre_original" => $archivo->getNombreOriginal(),
+                "nombre_sistema" => $archivo->getNombreSistema(),
+                "ruta" => $archivo->getRuta(),
+                "tipo_archivo" => $archivo->getTipoArchivo(),
+                "peso" => $archivo->getPeso(),
+                "fecha_subida" => $archivo->getFechaSubida(),
+                "nota_id" => $archivo->getNotaId()
             ]);
 
             $id = $this->db->lastInsertId();
             
             $this->db->commit();
 
-            return new ArchivoNota(
-                $id,
-                $archivo->getNombreOriginal(),
-                $archivo->getNombreSistema(),
-                $archivo->getRuta(),
-                $archivo->getTipoArchivo(),
-                $archivo->getPeso(),
-                $archivo->getFechaSubida(),
-                $archivo->getNotaId()
-            );
-        } catch (\Throwable $th) {
+            $archivo->setId((int)$id);
+
+            return $archivo;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos" . $th->getMessage());
+            throw $e;
         }
     }
 
-    public function obtenerPorId(int $id) {
-        $stmtArchivo = $this->db->prepare("
-            SELECT * FROM archivo_nota WHERE id = ?
-        ");
-        $stmtArchivo->execute([$id]);
-        $data = $stmtArchivo->fetch(PDO::FETCH_ASSOC);
-
-        if(!$data) return null;
-        
-        return new ArchivoNota(
-            $data["id"],
-            $data["nombre_original"],
-            $data["nombre_sistema"],
-            $data["ruta"],
-            $data["tipo_archivo"],
-            $data["peso"],
-            $data["fecha_subida"],
-            $data["nota_id"]
-        );
+    public function obtenerPorNotaId(int $idNota): array {
+        $sql = "SELECT * FROM archivo_nota WHERE nota_id = :idNota";
+        $archivosNota = $this->findByQuery($sql, ["idNota" => $idNota]);
+        return $archivosNota;
     }
 
-    public function obtenerPorNotaId($idNota) {
-        $stmtArchivo = $this->db->prepare("
-            SELECT * FROM archivo_nota WHERE nota_id = ?
-        ");
-        $stmtArchivo->execute([$idNota]);
-        $obtenidos = $stmtArchivo->fetchAll(PDO::FETCH_ASSOC);
-        $archivos = [];
-        foreach($obtenidos as $archivo) {
-            $archivos[] = new ArchivoNota(
-                $archivo["id"],
-                $archivo["nombre_original"],
-                $archivo["nombre_sistema"],
-                $archivo["ruta"],
-                $archivo["tipo_archivo"],
-                $archivo["peso"],
-                $archivo["fecha_subida"],
-                $idNota
-                );
-        }
-
-        return $archivos;
-    }
-
-    public function eliminarArchivo(int $id) {
+    public function eliminarArchivo(int $id): void {
         $stmtBorrar = $this->db->prepare("
-            DELETE FROM archivo_nota WHERE id = ? 
+            DELETE FROM archivo_nota WHERE id = :id
         ");
-        $stmtBorrar->execute([$id]);
-
-        return $stmtBorrar->rowCount() > 0;
+        $stmtBorrar->execute(["id" => $id]);
     }
 }

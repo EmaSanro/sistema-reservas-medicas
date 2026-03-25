@@ -1,59 +1,23 @@
 <?php
 namespace App\Repository;
 
-use App\Exceptions\DatabaseException;
-use App\Model\Profesional;
-use App\Model\Roles;
+use App\Shared\Repository;
 use App\Model\Usuario;
-use AppConfig\Database;
-use PDO;
 
-class AuthRepository {
-    private $db;
+class AuthRepository extends Repository {
 
-    public function __construct() {
-        $this->db = Database::getConnection();
+    protected function getTableName(): string {
+        return "usuario";
     }
 
-    public function buscarUsuario($data) {
-        $query = $this->db->prepare("
-            SELECT * FROM usuario WHERE email = ? OR telefono = ?
-        ");
-        $query->execute([$data, $data]);
-        $usuario = $query->fetch(PDO::FETCH_ASSOC);
+    protected function getEntityClass(): string {
+        return Usuario::class;
+    }
 
-        if(!$usuario) return null;
-        
-        if($usuario["rol"] == Roles::PROFESIONAL) {
-            $query = $this->db->prepare("
-            SELECT * FROM profesional WHERE idprofesional = ?
-            ");
-            $query->execute([$usuario["id"]]);
-            $prof = $query->fetch();
-            return new Profesional(
-                $usuario["id"],
-                $usuario["nombre"],
-                $usuario["apellido"],
-                $prof["profesion"],
-                $usuario["email"] ?? "",
-                $usuario["telefono"] ?? "",
-                $usuario["activo"],
-                $usuario["motivo_baja"],
-                $usuario["fecha_baja"],
-                $usuario["password"]
-            );
-        }
-        return new Usuario(
-            $usuario["id"],
-            $usuario["nombre"],
-            $usuario["apellido"],
-            $usuario["rol"],
-            $usuario["email"] ?? "",
-            $usuario["telefono"] ?? "",
-            $usuario["activo"],
-            $usuario["motivo_baja"],
-            $usuario["fecha_baja"],
-            $usuario["password"]
-        );
+    public function buscarUsuario(string $valor): Usuario|null {
+        $sql = sprintf("SELECT * FROM %s WHERE email = :email OR telefono = :telefono", $this->getTableName());
+        $usuario = $this->findOneByQuery($sql, ["email" => $valor, "telefono" => $valor]);
+
+        return $usuario;
     }
 }

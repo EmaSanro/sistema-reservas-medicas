@@ -1,140 +1,90 @@
 <?php
 namespace App\Repository;
 
-use App\Exceptions\DatabaseException;
 use App\Model\Consultorio;
-use App\Model\DTOs\ConsultorioDTO;
-use AppConfig\Database;
+use App\Shared\Repository;
 use PDO;
 
-class ConsultorioRepository {
-    private $db;
+class ConsultorioRepository extends Repository {
 
-    public function __construct() { 
-        $this->db = Database::getConnection();
+    protected function getTableName(): string {
+        return "consultorio";
     }
 
-    public function obtenerConsultorios(): array {
-        $consultorio = $this->db->prepare("
-            SELECT * FROM consultorio 
-        ");
-        $consultorio->execute();
-        $consultorios = [];
-        foreach($consultorios as $consultorio) {
-            $consultorios[] = new Consultorio(
-                $consultorio["id"],
-                $consultorio["ciudad"],
-                $consultorio["direccion"],
-                $consultorio["horario_apertura"],
-                $consultorio["horario_cierre"],
-                $consultorio["idprofesional"]
-            );
-        }
-        return $consultorios;
-    }
-
-    public function obtenerConsultorio($id): Consultorio|null {
-        $consultorio = $this->db->prepare("
-            SELECT * FROM consultorio WHERE id = ?
-        ");
-        $consultorio->execute([$id]);
-        $data = $consultorio->fetch(PDO::FETCH_ASSOC);
-
-        if(!$data) return null;
-        
-        return new Consultorio(
-            $data["id"],
-            $data["ciudad"],
-            $data["direccion"],
-            $data["horario_apertura"],
-            $data["horario_cierre"],
-            $data["idprofesional"]
-        );
+    protected function getEntityClass(): string {
+        return Consultorio::class;
     }
     
-    public function crearConsultorio($data, $idprofesional): Consultorio {
+    public function crearConsultorio(Consultorio $consultorio, int $idprofesional): Consultorio {
         try {
             $this->db->beginTransaction();
             $query = $this->db->prepare("
-                INSERT INTO consultorio(direccion, ciudad, horario_apertura, horario_cierre, idprofesional) VALUES(?,?,?,?,?)
+                INSERT INTO consultorio(direccion, ciudad, horario_apertura, horario_cierre, idprofesional) 
+                VALUES(:direccion,:ciudad,:horario_apertura,:horario_cierre,:idprofesional)
             ");
             $query->execute([
-                $data["direccion"],
-                $data["ciudad"],
-                $data["horario_apertura"],
-                $data["horario_cierre"],
-                $idprofesional
+                "direccion" => $consultorio["direccion"],
+                "ciudad" => $consultorio["ciudad"],
+                "horario_apertura" => $consultorio["horario_apertura"],
+                "horario_cierre" => $consultorio["horario_cierre"],
+                "idprofesional" => $idprofesional
             ]);
+
+            $id = $this->db->lastInsertId();
+            
             $this->db->commit();
-            return new Consultorio(
-                $data["id"],
-                $data["direccion"],
-                $data["ciudad"],
-                $data["horario_apertura"],
-                $data["horario_cierre"],
-                $idprofesional
-            );
-        } catch (\Throwable $th) {
+
+            $consultorio->setId((int) $id);
+            return $consultorio;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos");
+            throw $e;
         }
     }
 
-    public function actualizarConsultorio(ConsultorioDTO $data, int $id, int $idProfesional): Consultorio|null {
+    public function actualizarConsultorio(Consultorio $consultorio, int $id): Consultorio|null {
         try {
             $this->db->beginTransaction();
             $updateQuery = $this->db->prepare("
-                UPDATE consultorio set ciudad = ?, direccion = ?, horario_apertura = ?, horario_cierre = ?
-                WHERE id = ?
+                UPDATE consultorio set ciudad = :ciudad, direccion = :ciudad, horario_apertura = :ciudad, horario_cierre = :horario_cierre
+                WHERE id = :id
             ");
             $updateQuery->execute([
-                $data->getCiudad(),
-                $data->getDireccion(),
-                $data->getHorarioApertura(),
-                $data->getHorarioCierre()
+                "ciudad" => $consultorio->getCiudad(),
+                "direccion" => $consultorio->getDireccion(),
+                "horario_apertura" => $consultorio->getHorarioApertura(),
+                "horario_cierre" => $consultorio->getHorarioCierre()
             ]);
+
             $this->db->commit();
-            if($updateQuery->rowCount() > 0) {
-                return new Consultorio(
-                    $id,
-                    $data->getCiudad(),
-                    $data->getDireccion(),
-                    $data->getHorarioApertura(),
-                    $data->getHorarioCierre(),
-                    $idProfesional
-                );
-            }
-            return null;
-        } catch (\Throwable $th) {
+
+            $consultorio->setId($id);
+            
+            return $consultorio;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos");
+            throw $e;
         }
     }
 
-    public function borrarConsultorio($id): bool {
+    public function borrarConsultorio(int $id): void {
         $deleteQuery = $this->db->prepare("
             DELETE FROM consultorio WHERE id = ?
         ");
-        $deleteQuery->execute([$id]);
-        if($deleteQuery->rowCount() === 0) {
-            throw new DatabaseException("No se pudo eliminar el consultorio");
-        }
-        return $deleteQuery->rowCount() > 0;
+        $deleteQuery->execute(["id" => $id]);
     }
 
-    public function buscarPorCiudadDireccion(string $ciudad, string $direccion): mixed {
-        $consultorio = $this->db->prepare("
-            SELECT id FROM consultorio WHERE ciudad = ? AND direccion = ?
-        ");
-        $consultorio->execute([$ciudad, $direccion]);
-        return $consultorio->fetch(PDO::FETCH_ASSOC);
+    public function buscarPorCiudadDireccion(string $ciudad, string $direccion): array {
+        $sql = sprintf("SELECT * FROM %s WHERE ciudad = :ciudad AND direccion = :direccion", $this->getTableName());
+        $consultorios = $this->findByQuery($sql, ["ciudad" => $ciudad, "direccion" => $direccion]);
+        return $consultorios;
     }
 
     public function esAtendidoPor($idConsultorio): mixed {
         $query = $this->db->prepare("
-            SELECT idprofesional FROM consultorio WHERE id = ?
+            SELECT idprofesional FROM consultorio WHERE id = :id
         ");
-        $query->execute([$idConsultorio]);
+        $query->execute(["id" => $idConsultorio]);
         return $query->fetch(PDO::FETCH_ASSOC);
     }
 }

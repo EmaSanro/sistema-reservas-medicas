@@ -1,202 +1,141 @@
 <?php
+
 namespace App\Repository;
 
 use App\Exceptions\DatabaseException;
 use App\Exceptions\Pacientes\PacienteNotFoundException;
 use App\Exceptions\UserAlreadyInactiveException;
-use App\Model\DTOs\PacienteDTO;
 use App\Model\Roles;
+use App\Shared\Repository;
 use App\Model\Usuario;
-use AppConfig\Database;
 use PDO;
 
-class PacientesRepository {
+class PacientesRepository extends Repository
+{
 
-    private $db;
-    public function __construct() {
-        $this->db = Database::getConnection();
+    protected function getTableName(): string
+    {
+        return "usuario";
     }
 
-    public function obtenerTodos(): array {
-        $pacs = $this->db->prepare("SELECT * FROM usuario WHERE rol = ?");
-        $pacs->execute([Roles::PACIENTE]);
-        $data = $pacs->fetchAll(PDO::FETCH_ASSOC);
+    protected function getEntityClass(): string
+    {
+        return Usuario::class;
+    }
 
-        $pacientes = [];
-        foreach($data as $pac) {
-            $pacientes[] = new Usuario(
-                $pac["id"],
-                $pac["nombre"],
-                $pac["apellido"],
-                $pac["rol"],
-                $pac["email"],
-                $pac["telefono"],
-                $pac["activo"],
-                $pac["motivo_baja"],
-                $pac["fecha_baja"],
-                $pac["password"]
-            );
-        }
+    public function obtenerTodos(): array
+    {
+        $sql = "SELECT * FROM usuario WHERE rol = :rol";
+        $pacientes = $this->findByQuery($sql, ["rol" => Roles::PACIENTE]);
         return $pacientes;
     }
 
-    public function obtenerPorId($id): Usuario|null {
-        $pac = $this->db->prepare("SELECT * FROM usuario WHERE id = ? AND rol = ?");
-        $pac->execute([$id, Roles::PACIENTE]);
-        $data = $pac->fetch(PDO::FETCH_ASSOC);
-
-        if(!$data) {
-            return null;
-        }
-        return new Usuario(
-            $data["id"],
-            $data["nombre"],
-            $data["apellido"],
-            $data["rol"],
-            $data["email"],
-            $data["telefono"],
-            $data["activo"],
-            $data["motivo_baja"],
-            $data["fecha_baja"],
-            $data["password"]
-        );
+    public function obtenerPorId(int $id): Usuario|null
+    {
+        $sql = "SELECT * FROM usuario WHERE id = :id AND rol = :rol";
+        $paciente = $this->findOneByQuery($sql, ["id" => $id, "rol" => Roles::PACIENTE]);
+        return $paciente;
     }
 
-    public function buscarPor($filtro, $valor): array {
-        $pac = $this->db->prepare("SELECT * FROM usuario WHERE $filtro LIKE ? AND rol = ?");
-        $pac->execute(["%$valor%", Roles::PACIENTE]);
-        $data = $pac->fetchAll();
-        $pacientes = [];
-        foreach($data as $pac) {
-            $pacientes[] = new Usuario(
-                $pac["id"],
-                $pac["nombre"],
-                $pac["apellido"],
-                $pac["rol"],
-                $pac["email"],
-                $pac["telefono"],
-                $pac["activo"],
-                $pac["motivo_baja"],
-                $pac["fecha_baja"],
-                $pac["password"]
-            );
-        }
+    public function buscarPor(string $filtro, string $valor): array
+    {
+        $sql = "SELECT * FROM usuario WHERE $filtro LIKE :valor AND rol = :rol";
+        $pacientes = $this->findByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE]);
         return $pacientes;
     }
 
-    public function buscarCoincidencia(PacienteDTO $dto): Usuario|null {
-        $pac = $this->db->prepare("SELECT * FROM usuario WHERE telefono = ? OR email = ?");
-        $pac->execute([$dto->getTelefono(), $dto->getEmail()]);
-        $data = $pac->fetch();
-        if(!$data) {
-            return null;
-        }
-        return new Usuario(
-            $data["id"],
-            $data["nombre"],
-            $data["apellido"],
-            $data["rol"],
-            $data["email"],
-            $data["telefono"],
-            $data["activo"],
-            $data["motivo_baja"],
-            $data["fecha_baja"],
-            $data["password"]
-        );
+    public function buscarCoincidencia(Usuario $paciente): array
+    {
+        $sql = "SELECT * FROM usuario WHERE (telefono = :telefono OR email = :email) AND rol = :rol";
+        $pacientes = $this->findByQuery($sql, [
+            "telefono" => $paciente->getTelefono(),
+            "email" => $paciente->getEmail(),
+            "rol" => Roles::PACIENTE
+        ]);
+        return $pacientes;
     }
 
-    public function registrarPaciente(PacienteDTO $dto, string $passwordHash): Usuario {
+    public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario
+    {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(?,?,?,?,?,?,?)");
+            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(:nombre,:apellido,:rol,:email,:telefono,:activo,:password)");
             $stmtUsuario->execute([
-                $dto->getNombre(),
-                $dto->getApellido(),
-                Roles::PACIENTE,
-                $dto->getEmail(),
-                $dto->getTelefono(),
-                true,
-                $passwordHash
+                "nombre" => $usuario->getNombre(),
+                "apellido" => $usuario->getApellido(),
+                "rol" => Roles::PACIENTE,
+                "email" => $usuario->getEmail(),
+                "telefono" => $usuario->getTelefono(),
+                "activo" => $usuario->isActivo(),
+                "password" => $passwordHash
             ]);
-            $this->db->commit();
-            
+
             $id = $this->db->lastInsertId();
 
-            return new Usuario(
-                $id,
-                $dto->getNombre(),
-                $dto->getApellido(),
-                Roles::PACIENTE,
-                $dto->getEmail(),
-                $dto->getTelefono(),
-                true,
-                null,
-                null,
-                $passwordHash
-            );
-        } catch (\Throwable $th) {
+            $this->db->commit();
+
+            $usuario->setId((int) $id);
+
+            return $usuario;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos");
+            throw $e;
         }
-        
     }
 
-    public function actualizarPaciente(int $id, PacienteDTO $dto, ?string $passwordHash = null): Usuario {
+    public function actualizarPaciente(int $id, Usuario $usuario, ?string $passwordHash = null): Usuario
+    {
         try {
             $this->db->beginTransaction();
-            
-            $query = "UPDATE usuario SET nombre = ?, apellido = ?, email = ?, telefono = ?";
-            $params = [$dto->getNombre(), $dto->getApellido(), $dto->getEmail(), $dto->getTelefono()];
 
-            if($passwordHash != null) {
-                $query .= ", password = ?";
-                $params[] = $passwordHash;
+            $query = "UPDATE usuario SET nombre = :nombre, apellido = :apellido, email = :email, telefono = :telefono";
+            $params = [
+                "nombre" => $usuario->getNombre(), 
+                "apellido" => $usuario->getApellido(), 
+                "email" => $usuario->getEmail(), 
+                "telefono" => $usuario->getTelefono()
+            ];
+
+            if ($passwordHash != null) {
+                $query .= ", password = :password";
+                $params["password"] = $passwordHash;
             }
 
-            $query .= " WHERE id = ? AND rol = ?";
-            $params[] = $id;
-            $params[] = Roles::PACIENTE;
+            $query .= " WHERE id = :id AND rol = :rol";
+            $params["id"] = $id;
+            $params["rol"] = Roles::PACIENTE;
             $stmtUsuario = $this->db->prepare($query);
             $stmtUsuario->execute($params);
 
             $this->db->commit();
+            $usuario->setId($id);
 
-            return new Usuario(
-                $id,
-                $dto->getNombre(), 
-                $dto->getApellido(), 
-                Roles::PACIENTE,
-                $dto->getEmail(),
-                $dto->getTelefono(),
-                true,
-                null,
-                null,
-                $passwordHash
-                );
-        } catch (\Throwable $th) {
+            return $usuario;
+        } catch (\Throwable $e) {
             $this->db->rollBack();
-            throw new DatabaseException("Error en la base de datos");
+            throw $e;
         }
     }
 
-    public function darDeBajaPaciente(int $id, $motivo): bool {
+    public function darDeBajaPaciente(int $id, string $motivo): bool
+    {
         $pac = $this->db->prepare("
-            UPDATE usuario SET activo = false, motivo_baja = ?, fecha_baja = NOW()
-            WHERE id = ? AND rol = ? AND activo = true
+            UPDATE usuario SET activo = false, motivo_baja = :motivo, fecha_baja = NOW()
+            WHERE id = :id AND rol = :rol AND activo = true
         ");
-        $pac->execute([$motivo, $id, Roles::PACIENTE]);
-        if($pac->rowCount() === 0) {
+        $pac->execute(["motivo" => $motivo, "id" => $id, "rol" => Roles::PACIENTE]);
+        if ($pac->rowCount() === 0) {
             $stmtCheck = $this->db->prepare("
                 SELECT activo FROM usuario 
-                WHERE id = ? AND rol = ?
+                WHERE id = :id AND rol = :rol
             ");
-            $stmtCheck->execute([$id, Roles::PACIENTE]);
+            $stmtCheck->execute(["id" => $id, "rol" => Roles::PACIENTE]);
             $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
-            if(!$usuario) {
+            if (!$usuario) {
                 throw new PacienteNotFoundException("Paciente no encontrado");
             }
-            if(!$usuario["activo"]) {
+            if (!$usuario["activo"]) {
                 throw new UserAlreadyInactiveException("El paciente ya se encuentra inactivo!");
             }
 
