@@ -1,0 +1,11 @@
+<?php
+namespace App\Profesionales\Exceptions;
+
+use App\Shared\Exceptions\ConflictException;
+
+class ProfesionalWithReserveException extends ConflictException {
+    public function __construct(string $message = "El profesional tiene reservas asociadas y no puede ser eliminado")
+    {
+        parent::__construct($message);
+    }
+}
