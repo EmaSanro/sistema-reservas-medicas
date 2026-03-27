@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Auth;
+namespace App\Auth\Exceptions;
 
 use App\Shared\Exceptions\AlreadyExistsException;
 

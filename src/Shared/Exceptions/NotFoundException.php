@@ -5,7 +5,7 @@ class NotFoundException extends AppException {
 
     public function __construct(private string $entidad, private mixed $identificador)
     {
-        return parent::__construct(sprintf("%s con identificador '%s' no encontrado", $entidad, $identificador));
+        parent::__construct(sprintf("%s con identificador '%s' no encontrado", $entidad, $identificador));
     }
 
     public function getStatusCode(): int

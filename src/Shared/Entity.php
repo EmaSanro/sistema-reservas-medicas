@@ -36,7 +36,7 @@ abstract class Entity
     }
     protected function minLength(string $valor, string $min, string $campo)
     {
-        if (mb_strlen($valor) > $min) {
+        if (mb_strlen($valor) < $min) {
             throw BusinessValidationException::forField($campo, "El campo {$campo} debe contener al menos {$min} caracteres");
         }
     }

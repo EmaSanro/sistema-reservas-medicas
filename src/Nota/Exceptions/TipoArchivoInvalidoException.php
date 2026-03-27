@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\ArchivoNota;
+namespace App\Nota\Exceptions;
 
 use App\Shared\Exceptions\BusinessValidationException;
 

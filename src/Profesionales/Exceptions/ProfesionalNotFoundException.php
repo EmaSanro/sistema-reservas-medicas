@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Profesionales;
+namespace App\Profesionales\Exceptions;
 
 use App\Shared\Exceptions\NotFoundException;
 

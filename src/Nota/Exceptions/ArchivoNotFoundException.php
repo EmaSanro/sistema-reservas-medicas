@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Nota;
+namespace App\Nota\Exceptions;
 
 use App\Shared\Exceptions\NotFoundException;
 

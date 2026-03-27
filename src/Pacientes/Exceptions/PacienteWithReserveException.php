@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Pacientes;
+namespace App\Pacientes\Exceptions;
 
 use App\Shared\Exceptions\ConflictException;
 

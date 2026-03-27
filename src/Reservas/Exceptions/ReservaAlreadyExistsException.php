@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Reservas;
+namespace App\Reservas\Exceptions;
 
 use App\Shared\Exceptions\AlreadyExistsException;
 

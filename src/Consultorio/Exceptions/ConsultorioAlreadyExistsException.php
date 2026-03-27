@@ -1,5 +1,5 @@
 <?php
-namespace App\Exceptions\Consultorios;
+namespace App\Consultorio\Exceptions;
 
 use App\Shared\Exceptions\AlreadyExistsException;
 
