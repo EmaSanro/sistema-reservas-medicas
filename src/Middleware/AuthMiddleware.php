@@ -1,8 +1,7 @@
 <?php
 namespace App\Middleware;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Model\Usuario;
+use App\Auth\Exceptions\ForbiddenException;
 use App\Security\JWTHandler;
 
 class AuthMiddleware {

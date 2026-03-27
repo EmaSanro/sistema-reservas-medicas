@@ -1,6 +1,9 @@
 <?php
-namespace App\Exceptions;
+namespace App\Shared\Exceptions;
 
-class InvalidFilterException extends AppException {
-    protected int $statusCode = 400;
+class InvalidFilterException extends BusinessValidationException {
+    public function __construct(string $filtro)
+    {
+        parent::__construct("Filtro '$filtro' no válido", $filtro);
+    }
 }

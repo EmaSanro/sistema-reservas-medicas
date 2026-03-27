@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Reservas;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class ReservaNotFoundException extends AppException {
-    protected int $statusCode = 404;
+class ReservaNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Reserva", $identificador);
+    }
 }

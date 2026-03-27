@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Pacientes;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class PacienteNotFoundException extends AppException {
-    protected int $statusCode = 404;
+class PacienteNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Paciente", $identificador);
+    }
 }

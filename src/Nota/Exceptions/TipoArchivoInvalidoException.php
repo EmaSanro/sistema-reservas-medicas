@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\ArchivoNota;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\BusinessValidationException;
 
-class TipoArchivoInvalidoException extends AppException {
-    protected int $statusCode = 415;
+class TipoArchivoInvalidoException extends BusinessValidationException {
+    public function __construct(string $tipoArchivo)
+    {
+        parent::__construct("Tipo de archivo '$tipoArchivo' no permitido");
+    }
 }

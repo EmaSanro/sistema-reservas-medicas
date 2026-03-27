@@ -1,6 +1,11 @@
 <?php
-namespace App\Exceptions;
+namespace App\Exceptions\Auth;
 
-class UserAlreadyExistsException extends AppException {
-    protected int $statusCode = 409;
+use App\Shared\Exceptions\AlreadyExistsException;
+
+class UserAlreadyExistsException extends AlreadyExistsException {
+    public function __construct(string $campo, mixed $valor)
+    {
+        parent::__construct("Usuario", $campo, $valor);
+    }
 }

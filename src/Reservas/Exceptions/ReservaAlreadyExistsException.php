@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Reservas;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\AlreadyExistsException;
 
-class ReservaAlreadyExistsException extends AppException {
-    protected int $statusCode = 409;
+class ReservaAlreadyExistsException extends AlreadyExistsException {
+    public function __construct(string $campo, mixed $valor)
+    {
+        parent::__construct("Reserva", $campo, $valor);
+    }
 }

@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Profesionales;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class ProfesionalNotFoundException extends AppException {
-    protected int $statusCode = 404;
+class ProfesionalNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Profesional", $identificador);
+    }
 }

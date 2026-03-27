@@ -1,8 +1,11 @@
 <?php
-namespace App\Exceptions\ArchivoNota;
+namespace App\Exceptions\Nota;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class ArchivoNotFoundException extends AppException {
-    protected int $statusCode = 404;
+class ArchivoNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Archivo", $identificador);
+    }
 }

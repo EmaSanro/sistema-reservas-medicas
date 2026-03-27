@@ -22,7 +22,7 @@ class ConsultorioService {
     public function obtenerConsultorio($id): RespuestaConsultorioDTO {
         $consultorio = $this->repo->obtenerConsultorio($id);
         if(!$consultorio) {
-            throw new ConsultorioNotFoundException("No se ha encontrado un consultorio con ese id");
+            throw new ConsultorioNotFoundException($id);
         }
         return $consultorio->toDTO();
     }
@@ -30,7 +30,7 @@ class ConsultorioService {
     public function crearConsultorio($dto, $usuario): RespuestaConsultorioDTO {
 
         if($this->repo->buscarPorCiudadDireccion($dto->getCiudad(), $dto->getDireccion())) {
-            throw new ConsultorioAlreadyExistsException("Ya existe un consultorio en esa ciudad y direccion");
+            throw new ConsultorioAlreadyExistsException("direccion", $dto->getDireccion());
         }
         
         $idProfesional = $usuario->rol == Roles::PROFESIONAL ? $usuario->id : null;
@@ -42,7 +42,7 @@ class ConsultorioService {
 
     public function actualizarConsultorio(ConsultorioDTO $dto, int $id, $usuario): RespuestaConsultorioDTO|null {
         if(!$this->repo->obtenerConsultorio($id)) {
-            throw new ConsultorioNotFoundException("No existe un consultorio con ese id");
+            throw new ConsultorioNotFoundException($id);
         }
 
         $consultorio = $this->repo->esAtendidoPor($id);
@@ -52,7 +52,7 @@ class ConsultorioService {
         
         $coincidencia = $this->repo->buscarPorCiudadDireccion($dto->getCiudad(), $dto->getDireccion());
         if($coincidencia && $coincidencia["id"] != $id) {
-            throw new ConsultorioAlreadyExistsException("No puedes usar la misma direccion y ciudad que un consultorio que ya existe");
+            throw new ConsultorioAlreadyExistsException("direccion", $dto->getDireccion());
         }
 
         $consultorio = $this->repo->actualizarConsultorio($dto, $id, $consultorio["idprofesional"]);
@@ -66,7 +66,7 @@ class ConsultorioService {
         }
         $eliminado = $this->repo->borrarConsultorio($id);
         if(!$eliminado) {
-            throw new ConsultorioNotFoundException("No se encontro un consultorio para eliminar");
+            throw new ConsultorioNotFoundException($id);
         }
     }
 }

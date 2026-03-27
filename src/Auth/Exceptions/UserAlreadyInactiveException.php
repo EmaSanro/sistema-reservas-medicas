@@ -1,7 +1,11 @@
 <?php
+namespace App\Exceptions\Auth;
 
-namespace App\Exceptions;
+use App\Shared\Exceptions\ConflictException;
 
-class UserAlreadyInactiveException extends AppException {
-    protected int $statusCode = 409;
+class UserAlreadyInactiveException extends ConflictException {
+    public function __construct(string $message = "El usuario ya se encuentra inactivo")
+    {
+        parent::__construct($message);
+    }
 }

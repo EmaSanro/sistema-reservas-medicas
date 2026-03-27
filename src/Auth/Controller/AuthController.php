@@ -1,7 +1,8 @@
 <?php
 namespace App\Controller;
 
-use App\Exceptions\DatabaseException;
+use App\Middleware\ErrorMiddleware;
+use App\Shared\Exceptions\DatabaseException;
 use App\Security\Validaciones;
 use App\Service\AuthService;
 use OpenApi\Attributes as OA;
@@ -58,13 +59,8 @@ class AuthController extends BaseController {
                     ]
                 );
             }
-        } catch (DatabaseException $e) {
-            return $this->jsonResponse(
-                500,
-                [
-                    "ERROR" => "Ha ocurrido un error en la base de datos"
-                ]
-            );
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
     }
 }

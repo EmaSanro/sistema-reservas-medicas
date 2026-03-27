@@ -22,9 +22,4 @@ class BusinessValidationException extends AppException {
     {
         return $this->field;
     }
-
-    public static function forField(string $field, string $message): self
-    {
-        return new self($field, $message);
-    }
 }

@@ -1,7 +1,7 @@
 <?php
 namespace App\Middleware;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\AppException;
 
 class ErrorMiddleware {
     public static function handle(): void {
@@ -12,7 +12,7 @@ class ErrorMiddleware {
     public static function handleException(\Throwable $e): void {
         // Si es una excepción de la app
         if ($e instanceof AppException) {
-            self::jsonResponse($e->getStatusCode(), $e->getMessage());
+            self::jsonResponse($e->getStatusCode(), $e->getSafeMessage());
             return;
         }
 

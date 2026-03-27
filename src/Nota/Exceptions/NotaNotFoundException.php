@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Nota;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class NotaNotFoundException extends AppException{
-    protected int $statusCode = 404;
+class NotaNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Nota", $identificador);
+    }
 }

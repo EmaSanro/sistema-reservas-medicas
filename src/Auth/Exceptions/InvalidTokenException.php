@@ -1,8 +1,22 @@
 <?php
 namespace App\Exceptions\Auth;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\AppException;
 
 class InvalidTokenException extends AppException {
-    protected int $statusCode = 401; 
+
+    public function __construct(string $message = "Token de autenticación inválido")
+    {
+        parent::__construct($message);
+    }
+
+    public function getStatusCode(): int
+    {
+        return 401;
+    }
+
+    public function getSafeMessage(): string
+    {
+        return "$this->message";
+    }
 }

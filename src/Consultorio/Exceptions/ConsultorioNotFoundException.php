@@ -1,8 +1,11 @@
 <?php
 namespace App\Exceptions\Consultorios;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\NotFoundException;
 
-class ConsultorioNotFoundException extends AppException {
-    protected int $statusCode = 404;
+class ConsultorioNotFoundException extends NotFoundException {
+    public function __construct(mixed $identificador)
+    {
+        parent::__construct("Consultorio", $identificador);
+    }
 }

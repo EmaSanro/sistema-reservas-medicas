@@ -1,8 +1,21 @@
 <?php
-namespace App\Exceptions\ArchivoNota;
+namespace App\Exceptions\Nota;
 
-use App\Exceptions\AppException;
+use App\Shared\Exceptions\AppException;
 
 class TamanioArchivoException extends AppException {
-    protected int $statusCode = 413;
+    public function __construct(string $message = "El tamaño del archivo excede el límite permitido")
+    {
+        parent::__construct($message);
+    }
+
+    public function getStatusCode(): int
+    {
+        return 413;
+    }
+
+    public function getSafeMessage(): string
+    {
+        return $this->message;
+    }
 }
