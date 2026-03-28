@@ -2,7 +2,6 @@
 namespace App\Controller;
 
 use App\Middleware\ErrorMiddleware;
-use App\Shared\Exceptions\DatabaseException;
 use App\Security\Validaciones;
 use App\Service\AuthService;
 use OpenApi\Attributes as OA;
@@ -36,11 +35,11 @@ class AuthController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Credenciales incorrectas"])
     )]
     public function login() {
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
-        Validaciones::validarLogin($input);
-
         try {
+            $input = json_decode(file_get_contents("php://input"), true);
+            Validaciones::validarInput($input);
+            Validaciones::validarLogin($input);
+
             $token = $this->service->login($input);
             
             if($token) {

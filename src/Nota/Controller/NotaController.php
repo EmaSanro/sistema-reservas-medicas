@@ -2,6 +2,7 @@
 namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ErrorMiddleware;
 use App\Model\DTOs\ActualizarNotaDTO;
 use App\Model\DTOs\CrearNotaDTO;
 use App\Model\Roles;
@@ -14,72 +15,92 @@ class NotaController extends BaseController {
     public function __construct(private NotaService $service, private ArchivoNotaService $archivoService) {}
 
     public function crearNota() {
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-        $input = $_POST;
-
-        $nota = CrearNotaDTO::fromArray($input);
-
-        $archivos = $this->procesarArchivos();
-
-        $nota = $this->service->crearNota($nota, $archivos, $usuario);
-
-        return $this->jsonResponse(201, $nota);
+        try {
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+            $input = $_POST;
+    
+            $nota = CrearNotaDTO::fromArray($input);
+    
+            $archivos = $this->procesarArchivos();
+    
+            $nota = $this->service->crearNota($nota, $archivos, $usuario);
+    
+            return $this->jsonResponse(201, $nota);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     public function obtenerNotaPorId($id) {
-        Validaciones::validarID($id);
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-
-        $nota = $this->service->obtenerNotaPorId($id, $usuario);
-
-        return $this->jsonResponse(200, $nota);
+        try {
+            Validaciones::validarID($id);
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+    
+            $nota = $this->service->obtenerNotaPorId($id, $usuario);
+    
+            return $this->jsonResponse(200, $nota);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     public function actualizarNota($id) {
-        Validaciones::validarID($id);
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-        $input = $_POST;
-
-        $actualizarNota = ActualizarNotaDTO::fromArray($input);
-
-        $archivos = $this->procesarArchivos();
-        
-        $nota = $this->service->actualizarNota($id, $actualizarNota, $usuario, $archivos);
-
-        return $this->jsonResponse(200, $nota);
+        try {
+            Validaciones::validarID($id);
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+            $input = $_POST;
+    
+            $actualizarNota = ActualizarNotaDTO::fromArray($input);
+    
+            $archivos = $this->procesarArchivos();
+            
+            $nota = $this->service->actualizarNota($id, $actualizarNota, $usuario, $archivos);
+    
+            return $this->jsonResponse(200, $nota);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     public function obtenerArchivoNota(int $idNota, int $idArchivo) {
-        Validaciones::validarID($idNota);
-        Validaciones::validarID($idArchivo);
-
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]); 
-
-        $archivo = $this->archivoService->obtenerArchivoNota($idNota, $idArchivo, $usuario);
-
-        if(!file_exists($archivo->getRuta())) {
-            return $this->jsonResponse(404, ["ERROR" => "Archivo no encontrado"]);
+        try {
+            Validaciones::validarID($idNota);
+            Validaciones::validarID($idArchivo);
+    
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]); 
+    
+            $archivo = $this->archivoService->obtenerArchivoNota($idNota, $idArchivo, $usuario);
+    
+            if(!file_exists($archivo->getRuta())) {
+                return $this->jsonResponse(404, ["ERROR" => "Archivo no encontrado"]);
+            }
+    
+            $modo = isset($_GET["preview"]) ? "inline" : "attachment";
+    
+            header("Content-Type: {$archivo->getTipoArchivo()}");
+            header("Content-Disposition: $modo; filename='{$archivo->getNombreOriginal()}'");
+            header("Content-Length: {$archivo->getPeso()}");
+            
+            readfile($archivo->getRuta());
+            exit;
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $modo = isset($_GET["preview"]) ? "inline" : "attachment";
-
-        header("Content-Type: {$archivo->getTipoArchivo()}");
-        header("Content-Disposition: $modo; filename='{$archivo->getNombreOriginal()}'");
-        header("Content-Length: {$archivo->getPeso()}");
-        
-        readfile($archivo->getRuta());
-        exit;
     }
 
     public function eliminarArchivoNota($idNota, $idArchivo) {
-        Validaciones::validarID($idNota);
-        Validaciones::validarID($idArchivo);
-
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-
-        $this->archivoService->eliminarArchivoNota($idArchivo, $idNota, $usuario);
-
-        return $this->jsonResponse(204, "");
+        try {
+            Validaciones::validarID($idNota);
+            Validaciones::validarID($idArchivo);
+    
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+    
+            $this->archivoService->eliminarArchivoNota($idArchivo, $idNota, $usuario);
+    
+            return $this->jsonResponse(204, "");
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     private function procesarArchivos() {

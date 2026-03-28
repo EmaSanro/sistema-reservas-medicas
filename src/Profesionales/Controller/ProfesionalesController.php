@@ -2,11 +2,13 @@
 namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ErrorMiddleware;
 use App\Model\DTOs\ProfesionalDTO;
 use App\Model\Roles;
 use App\Security\Validaciones;
 use App\Service\ProfesionalesService;
 use OpenApi\Attributes as OA;
+
 class ProfesionalesController extends BaseController {
 
     public function __construct(private ProfesionalesService $service) { }
@@ -25,9 +27,13 @@ class ProfesionalesController extends BaseController {
         )
     )]
     public function obtenerTodos() {
-        $profesionales = $this->service->obtenerTodos();
+        try {
+            $profesionales = $this->service->obtenerTodos();
 
-        return $this->jsonResponse(200, $profesionales);
+            return $this->jsonResponse(200, $profesionales);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     
     #[OA\Get(
@@ -58,13 +64,17 @@ class ProfesionalesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un profesional con ese id"])
     )]
     public function obtenerPorId($id) {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-        
-        Validaciones::validarID($id);
-        
-        $prof = $this->service->obtenerPorId($id);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+            
+            Validaciones::validarID($id);
+            
+            $prof = $this->service->obtenerPorId($id);
 
-        return $this->jsonResponse(200, $prof);
+            return $this->jsonResponse(200, $prof);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Get(
@@ -98,16 +108,20 @@ class ProfesionalesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "El filtro ingresado no es valido para la busqueda"])
     )]
     public function obtenerPor() {
-        if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
-            return $this->jsonResponse(400, ["ERROR" => "Es necesario un filtro y un valor de busqueda"]);
-        }
+        try {
+            if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
+                return $this->jsonResponse(400, ["ERROR" => "Es necesario un filtro y un valor de busqueda"]);
+            }
+                
+            $filtro = $_GET["filtro"];
+            $valor = $_GET["valor"];
             
-        $filtro = $_GET["filtro"];
-        $valor = $_GET["valor"];
-        
-        $profs = $this->service->obtenerPor($filtro, $valor);
-        
-        return $this->jsonResponse(200, $profs);
+            $profs = $this->service->obtenerPor($filtro, $valor);
+            
+            return $this->jsonResponse(200, $profs);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Post(
@@ -136,16 +150,20 @@ class ProfesionalesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario registrado con ese email y/o telefono ingresado/s"])
     )]
     public function registrarProfesional() {
-        AuthMiddleware::handle([Roles::ADMIN]);
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        Validaciones::validarInput($input);
-        Validaciones::validarCriteriosPassword($input["password"]);
-        
-        $dto = ProfesionalDTO::fromArray($input);
-        $prof = $this->service->registrarProfesional($dto);
-
-        return $this->jsonResponse(201, $prof);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN]);
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            Validaciones::validarInput($input);
+            Validaciones::validarCriteriosPassword($input["password"]);
+            
+            $dto = ProfesionalDTO::fromArray($input);
+            $prof = $this->service->registrarProfesional($dto);
+    
+            return $this->jsonResponse(201, $prof);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Put(
@@ -185,20 +203,24 @@ class ProfesionalesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario con ese email y/o telefono ingresado/s"])
     )]
     public function actualizarProfesional($id) {
-        $usuario = AuthMiddleware::handle([Roles::PROFESIONAL, Roles::ADMIN]);
-        Validaciones::validarID($id);
-
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
-        if(isset($input["password"])) {
-            Validaciones::validarCriteriosPassword($input["password"]);
+        try {
+            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL, Roles::ADMIN]);
+            Validaciones::validarID($id);
+    
+            $input = json_decode(file_get_contents("php://input"), true);
+            Validaciones::validarInput($input);
+            if(isset($input["password"])) {
+                Validaciones::validarCriteriosPassword($input["password"]);
+            }
+            
+            $dto = ProfesionalDTO::fromArray($input);
+    
+            $profActualizado = $this->service->actualizarProfesional($id, $dto, $usuario);
+    
+            return $this->jsonResponse(200, $profActualizado);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-        
-        $dto = ProfesionalDTO::fromArray($input);
-
-        $profActualizado = $this->service->actualizarProfesional($id, $dto, $usuario);
-
-        return $this->jsonResponse(200, $profActualizado);
     }
 
     #[OA\Delete(
@@ -229,17 +251,21 @@ class ProfesionalesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un profesional a eliminar con ese id"])
     )]
     public function darDeBajaProfesional($id) {
-        AuthMiddleware::handle([Roles::ADMIN]);
-        Validaciones::validarID($id);
-        $data = json_decode(file_get_contents("php://input"), true);
-        $motivo = $data["motivo"] ?? "";
+        try {
+            AuthMiddleware::handle([Roles::ADMIN]);
+            Validaciones::validarID($id);
+            $data = json_decode(file_get_contents("php://input"), true);
+            $motivo = $data["motivo"] ?? "";
 
-        if(empty(trim($motivo))) {
-            return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+            if(empty(trim($motivo))) {
+                return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+            }
+
+            $this->service->darDeBajaProfesional($id, $motivo);
+
+            return $this->jsonResponse(204, "");
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $this->service->darDeBajaProfesional($id, $motivo);
-
-        return $this->jsonResponse(204, "");
     }
 }

@@ -2,6 +2,7 @@
 namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ErrorMiddleware;
 use App\Model\DTOs\ReservaDTO;
 use App\Model\Roles;
 use App\Security\Validaciones;
@@ -26,11 +27,15 @@ class ReservasController extends BaseController {
         )
     )]
     public function obtenerTodas() {
-        AuthMiddleware::handle([Roles::ADMIN]);
-
-        $reservas = $this->service->obtenerTodas();
-
-        return $this->jsonResponse(200, $reservas);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN]);
+    
+            $reservas = $this->service->obtenerTodas();
+    
+            return $this->jsonResponse(200, $reservas);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     #[OA\Get(
         path: "/reservas/mis-reservas",
@@ -52,11 +57,15 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "No tienes reservas realizadas"])
     )]
     public function obtenerReservasPorUsuarioId() {
-        $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
-
-        $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
-        
-        return $this->jsonResponse(200, $reservas);
+        try {
+            $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
+    
+            $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
+            
+            return $this->jsonResponse(200, $reservas);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     #[OA\Post(
         path: "/reservas/reservar",
@@ -84,16 +93,20 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Este usuario ya tiene una reserva para esa misma fecha"])
     )]
     public function reservar() {
-        $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
-
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
-
-        $dto = ReservaDTO::fromArray($input);
-
-        $reserva = $this->service->reservar($dto, $paciente);
-
-        return $this->jsonResponse(201, $reserva);
+        try {
+            $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+    
+            $input = json_decode(file_get_contents("php://input"), true);
+            Validaciones::validarInput($input);
+    
+            $dto = ReservaDTO::fromArray($input);
+    
+            $reserva = $this->service->reservar($dto, $paciente);
+    
+            return $this->jsonResponse(201, $reserva);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     #[OA\Put(
         path: "/reservas/cancelar/{id}",
@@ -128,10 +141,14 @@ class ReservasController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Error Interno del Servidor!"])
     )]
     public function cancelarReserva(int $id) {
-        $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
-
-        $this->service->cancelarReserva($id, $paciente);
-
-        return $this->jsonResponse(200, ["EXITO" => "Reserva cancelada!"]);
+        try {
+            $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+    
+            $this->service->cancelarReserva($id, $paciente);
+    
+            return $this->jsonResponse(200, ["EXITO" => "Reserva cancelada!"]);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 }

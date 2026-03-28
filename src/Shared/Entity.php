@@ -31,20 +31,20 @@ abstract class Entity
     protected function maxLength(string $valor, string $max, string $campo)
     {
         if (mb_strlen($valor) > $max) {
-            throw BusinessValidationException::forField($campo, "El campo {$campo} no puede contener mas de {$max} caracteres");
+            throw new BusinessValidationException("El campo {$campo} no puede contener mas de {$max} caracteres", $campo);
         }
     }
     protected function minLength(string $valor, string $min, string $campo)
     {
         if (mb_strlen($valor) < $min) {
-            throw BusinessValidationException::forField($campo, "El campo {$campo} debe contener al menos {$min} caracteres");
+            throw new BusinessValidationException("El campo {$campo} debe contener al menos {$min} caracteres", $campo);
         }
     }
 
     protected function matchPattern(string $valor, string $patron, string $campo, string $mensaje)
     {
         if (!preg_match($patron, $valor)) {
-            throw BusinessValidationException::forField($campo, $mensaje);
+            throw new BusinessValidationException($mensaje, $campo);
         }
     }
 

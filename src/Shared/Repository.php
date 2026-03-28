@@ -2,7 +2,6 @@
 
 namespace App\Shared;
 
-use App\Exceptions\DatabaseException;
 use AppConfig\Database;
 use PDO;
 use PDOStatement;
@@ -94,11 +93,11 @@ abstract class Repository {
             $result = $callback($this->db);
             $this->db->commit();
             return $result;
-        } catch (Throwable $th) {
+        } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            throw new DatabaseException("Error en la base de datos", 0, $th);
+            throw new \Exception("Error en la base de datos");
         }
     }
 }

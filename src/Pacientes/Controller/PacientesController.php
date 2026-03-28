@@ -2,14 +2,12 @@
 namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
+use App\Middleware\ErrorMiddleware;
 use App\Model\DTOs\PacienteDTO;
 use App\Model\Roles;
 use App\Security\Validaciones;
 use App\Service\PacientesService;
-use OpenApi\Annotations\Tag;
 use OpenApi\Attributes as OA;
-
-use function PHPSTORM_META\map;
 
 class PacientesController extends BaseController {
 
@@ -30,11 +28,15 @@ class PacientesController extends BaseController {
         )
     )]
     public function obtenerTodos() {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
-        $pacientes = $this->service->obtenerTodos();
+            $pacientes = $this->service->obtenerTodos();
 
-        return $this->jsonResponse(200, $pacientes);
+            return $this->jsonResponse(200, $pacientes);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Get(
@@ -65,12 +67,16 @@ class PacientesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "No hay un paciente con ese id"])
     )]
     public function obtenerPorId($id) {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-        Validaciones::validarID($id);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+            Validaciones::validarID($id);
 
-        $pac = $this->service->obtenerPorId($id);
-        
-        return $this->jsonResponse(200, $pac);
+            $pac = $this->service->obtenerPorId($id);
+            
+            return $this->jsonResponse(200, $pac);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Get(
@@ -107,17 +113,21 @@ class PacientesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "El filtro ingresado es un filtro invalido"])
     )]
     public function buscarPor() {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+        try {
+            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
-        if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
-            return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
+            if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
+                return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
+            }
+            $filtro = $_GET["filtro"];
+            $valor = $_GET["valor"];
+            
+            $pacientes = $this->service->buscarPor($filtro, $valor);
+    
+            return $this->jsonResponse(200, $pacientes);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-        $filtro = $_GET["filtro"];
-        $valor = $_GET["valor"];
-        
-        $pacientes = $this->service->buscarPor($filtro, $valor);
-
-        return $this->jsonResponse(200, $pacientes);
     }
 
     #[OA\Post(
@@ -145,16 +155,20 @@ class PacientesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Ya se registro un usuario con ese email y/o telefono"])
     )]
     public function registrarPaciente() {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        Validaciones::validarInput($input);
-        Validaciones::validarCriteriosPassword($input["password"]);
-        
-        $dto = PacienteDTO::fromArray($input);
-
-        $pac = $this->service->registrarPaciente($dto);
-        
-        return $this->jsonResponse(201, $pac);
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            
+            Validaciones::validarInput($input);
+            Validaciones::validarCriteriosPassword($input["password"]);
+            
+            $dto = PacienteDTO::fromArray($input);
+    
+            $pac = $this->service->registrarPaciente($dto);
+            
+            return $this->jsonResponse(201, $pac);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     
     #[OA\Put(
@@ -189,21 +203,25 @@ class PacientesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario registrado con ese email y/o telefono"])
     )]
     public function actualizarPaciente($id) {
-        $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
-        Validaciones::validarID($id);
+        try {
+            $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
+            Validaciones::validarID($id);
 
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true);
+            Validaciones::validarInput($input);
 
-        if(isset($input["password"])) {
-            Validaciones::validarCriteriosPassword($input["password"]);
+            if(isset($input["password"])) {
+                Validaciones::validarCriteriosPassword($input["password"]);
+            }
+
+            $dto = PacienteDTO::fromArray($input);
+
+            $pac = $this->service->actualizarPaciente($id, $dto, $usuario);
+            
+            return $this->jsonResponse(200, $pac);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $dto = PacienteDTO::fromArray($input);
-
-        $pac = $this->service->actualizarPaciente($id, $dto, $usuario);
-        
-        return $this->jsonResponse(200, $pac);
     }
     
     #[OA\Delete(
@@ -234,17 +252,21 @@ class PacientesController extends BaseController {
         content: new OA\JsonContent(example:["ERROR" => "No existe un paciente con el id especificado"])
     )]
     public function eliminarPaciente($id) {
-        AuthMiddleware::handle([Roles::ADMIN]);
-        Validaciones::validarID($id);
-        $data = json_decode(file_get_contents("php://input"), true);
-        $motivo = $data["motivo"] ?? "";
+        try {
+            AuthMiddleware::handle([Roles::ADMIN]);
+            Validaciones::validarID($id);
+            $data = json_decode(file_get_contents("php://input"), true);
+            $motivo = $data["motivo"] ?? "";
 
-        if(empty(trim($motivo))) {
-            return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+            if(empty(trim($motivo))) {
+                return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+            }
+
+            $this->service->darDeBajaPaciente($id, $motivo);
+
+            return $this->jsonResponse(204, "");
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $this->service->darDeBajaPaciente($id, $motivo);
-
-        return $this->jsonResponse(204, "");
     }
 }

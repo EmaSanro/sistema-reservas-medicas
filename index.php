@@ -1,6 +1,5 @@
 <?php
 
-use App\Exceptions\AppException;
 use App\Middleware\ErrorMiddleware;
 
 require_once __DIR__ . '/vendor/autoload.php';
