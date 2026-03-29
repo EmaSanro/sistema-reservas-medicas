@@ -1,8 +1,8 @@
 <?php
 namespace App\Repository;
 
+use App\Auth\Model\Usuario;
 use App\Shared\Repository;
-use App\Model\Usuario;
 
 class AuthRepository extends Repository {
 

@@ -1,7 +1,10 @@
 <?php
 namespace App\Middleware;
 
+use App\Controller\BaseController;
 use App\Shared\Exceptions\AppException;
+use App\Shared\Exceptions\BusinessValidationException;
+use App\Shared\Exceptions\ValidationException;
 
 class ErrorMiddleware {
     public static function handle(): void {
@@ -12,7 +15,18 @@ class ErrorMiddleware {
     public static function handleException(\Throwable $e): void {
         // Si es una excepción de la app
         if ($e instanceof AppException) {
-            self::jsonResponse($e->getStatusCode(), $e->getSafeMessage());
+            $body = [
+                'error' => $e->getSafeMessage()
+            ];
+            
+            if($e instanceof ValidationException) {
+                $body["error"]["campos"] = $e->getErrors();
+            }
+
+            if($e instanceof BusinessValidationException && $e->getField() !== null) {
+                $body["error"]["campos"] = $e->getField();
+            }
+            self::jsonResponse($e->getStatusCode(), $body);
             return;
         }
 
@@ -28,7 +42,7 @@ class ErrorMiddleware {
         throw new \ErrorException($message, 0, $severity, $file, $line);
     }
 
-    private static function jsonResponse(int $statusCode, string $message): void {
+    private static function jsonResponse(int $statusCode, mixed $message): void {
         http_response_code($statusCode);
         header('Content-Type: application/json');
 

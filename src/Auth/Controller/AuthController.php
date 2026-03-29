@@ -1,6 +1,7 @@
 <?php
 namespace App\Controller;
 
+use App\Auth\Validators\AuthValidator;
 use App\Middleware\ErrorMiddleware;
 use App\Security\Validaciones;
 use App\Service\AuthService;
@@ -36,14 +37,13 @@ class AuthController extends BaseController {
     )]
     public function login() {
         try {
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
-            Validaciones::validarLogin($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            AuthValidator::validateInputLogin($input);
 
             $token = $this->service->login($input);
             
             if($token) {
-                return $this->jsonResponse(
+                $this->jsonResponse(
                     200,
                     [
                         "OK" => "logueado correctamente",
@@ -51,7 +51,7 @@ class AuthController extends BaseController {
                     ]
                 );
             } else {
-                return $this->jsonResponse(
+                $this->jsonResponse(
                     401,
                     [
                         "ERROR" => "Credenciales incorrectas!"
