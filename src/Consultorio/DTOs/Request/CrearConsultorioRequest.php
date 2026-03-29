@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Model\DTOs;
+namespace App\Consultorio\DTOs\Request;
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(schema: "Consultorio", required: ["direccion", "ciudad", "horario_apertura", "horario_cierre"])]
+#[OA\Schema(schema: "CrearConsultorioRequest", required: ["direccion", "ciudad", "horario_apertura", "horario_cierre"])]
 class CrearConsultorioRequest {
     #[OA\Property(example: "Avenida Valve 200")]
     private string $direccion;
@@ -16,9 +16,9 @@ class CrearConsultorioRequest {
     #[OA\Property(example: "12")]
     private int|null $idProfesional;
 
-    public function __construct(string $direccion, string $ciudad, string $horario_apertura, string $horario_cierre, int|null $idProfesional) {
-        $this->direccion = $direccion;
+    public function __construct(string $ciudad, string $direccion, string $horario_apertura, string $horario_cierre, int|null $idProfesional) {
         $this->ciudad = $ciudad;
+        $this->direccion = $direccion;
         $this->horario_apertura = $horario_apertura;
         $this->horario_cierre = $horario_cierre;
         $this->idProfesional = $idProfesional ?? null;
@@ -41,26 +41,5 @@ class CrearConsultorioRequest {
 
     public function getIdProfesional() : int {
         return $this->idProfesional;
-    }
-
-    public static function fromArray(array $input) {
-        if(!isset($input['direccion'], $input['ciudad'], $input['horario_apertura'], $input['horario_cierre'])) {
-            throw new \InvalidArgumentException("Datos incompletos para crear Consultorio(direccion, ciudad, horario_apertura, horario_cierre)");
-        }
-        if(!\DateTime::createFromFormat('H:i', $input['horario_apertura']) || !\DateTime::createFromFormat('H:i', $input['horario_cierre'])) {
-            throw new \InvalidArgumentException('ERROR: el horario de apertura y cierre debe ser un formato válido (HH:MM)');
-        }
-
-        if(\DateTime::createFromFormat("H:i", $input['horario_apertura']) >= \DateTime::createFromFormat('H:i', $input['horario_cierre'])) {
-            throw new \InvalidArgumentException('ERROR: el horario de apertura debe ser antes que el horario de cierre');
-        }
-
-        return new self(
-            $input["direccion"],
-            $input["ciudad"],
-            $input["horario_apertura"],
-            $input["horario_cierre"],
-            $input["idProfesional"] ?? null
-        );
     }
 }

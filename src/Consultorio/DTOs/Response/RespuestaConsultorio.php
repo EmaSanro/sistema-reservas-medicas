@@ -1,6 +1,6 @@
 <?php 
 
-namespace App\Model\DTOs;
+namespace App\Consultorio\DTOs\Response;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: "RespuestaConsultorio")]

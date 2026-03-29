@@ -1,47 +1,56 @@
 <?php
-namespace App\Service;
+namespace App\Consultorio\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\Consultorios\ConsultorioAlreadyExistsException;
-use App\Exceptions\Consultorios\ConsultorioNotFoundException;
-use App\Model\DTOs\ConsultorioDTO;
-use App\Model\DTOs\RespuestaConsultorioDTO;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Consultorio\DTOs\Request\ActualizarConsultorioRequest;
+use App\Consultorio\DTOs\Request\CrearConsultorioRequest;
+use App\Consultorio\DTOs\Response\RespuestaConsultorio;
+use App\Consultorio\Exceptions\ConsultorioAlreadyExistsException;
+use App\Consultorio\Exceptions\ConsultorioNotFoundException;
+use App\Consultorio\Mapper\ConsultorioMapper;
+use App\Consultorio\Model\Consultorio;
+use App\Consultorio\Repository\ConsultorioRepository;
 use App\Model\Roles;
-use App\Repository\ConsultorioRepository;
 
 class ConsultorioService {
 
     public function __construct(private ConsultorioRepository $repo) { }
 
     public function obtenerConsultorios(): array {
-        $consultorios = $this->repo->obtenerConsultorios();
+        $consultorios = $this->repo->findAll();
+        $response = array_map(fn($consultorio) => ConsultorioMapper::toResponse($consultorio), $consultorios);
 
-        return array_map(fn($consultorio) => $consultorio->toDTO(), $consultorios ?? []);
+        return $response;
     }
 
-    public function obtenerConsultorio($id): RespuestaConsultorioDTO {
-        $consultorio = $this->repo->obtenerConsultorio($id);
+    public function obtenerConsultorio(int $id): RespuestaConsultorio {
+        $consultorio = $this->repo->findById($id);
         if(!$consultorio) {
             throw new ConsultorioNotFoundException($id);
         }
-        return $consultorio->toDTO();
+        return ConsultorioMapper::toResponse($consultorio);
     }
 
-    public function crearConsultorio($dto, $usuario): RespuestaConsultorioDTO {
+    public function crearConsultorio(CrearConsultorioRequest $request, mixed $usuario): RespuestaConsultorio {
+        $consultorio = ConsultorioMapper::fromRequest($request);
 
-        if($this->repo->buscarPorCiudadDireccion($dto->getCiudad(), $dto->getDireccion())) {
-            throw new ConsultorioAlreadyExistsException("direccion", $dto->getDireccion());
+        if($this->repo->buscarPorCiudadDireccion($consultorio->getCiudad(), $consultorio->getDireccion())) {
+            throw new ConsultorioAlreadyExistsException("direccion", $consultorio->getDireccion());
         }
         
         $idProfesional = $usuario->rol == Roles::PROFESIONAL ? $usuario->id : null;
 
-        $consultorio = $this->repo->crearConsultorio($dto, $idProfesional);
+        $consultorio->setIdprofesional($idProfesional);
 
-        return $consultorio->toDTO();
+        $consultorioCreado = $this->repo->crearConsultorio($consultorio);
+
+        return ConsultorioMapper::toResponse($consultorioCreado);
     }
 
-    public function actualizarConsultorio(ConsultorioDTO $dto, int $id, $usuario): RespuestaConsultorioDTO|null {
-        if(!$this->repo->obtenerConsultorio($id)) {
+    public function actualizarConsultorio(ActualizarConsultorioRequest $request, int $id, mixed $usuario): RespuestaConsultorio {
+        /** @var Consultorio $consultorioExistente */
+        $consultorioExistente = $this->repo->findById($id);
+        if(!$consultorioExistente) {
             throw new ConsultorioNotFoundException($id);
         }
 
@@ -49,24 +58,38 @@ class ConsultorioService {
         if($usuario->rol != Roles::ADMIN && $consultorio["idprofesional"] != $usuario->id) {
             throw new ForbiddenException("No tienes permisos para actualizar un consultorio que no es tuyo!");
         }
-        
-        $coincidencia = $this->repo->buscarPorCiudadDireccion($dto->getCiudad(), $dto->getDireccion());
-        if($coincidencia && $coincidencia["id"] != $id) {
-            throw new ConsultorioAlreadyExistsException("direccion", $dto->getDireccion());
+
+        if($request->getCiudad() === null) {
+            $request->setCiudad($consultorioExistente->getCiudad());
+        }
+        if($request->getDireccion() === null) {
+            $request->setDireccion($consultorioExistente->getDireccion());
+        }
+        if($request->getHorarioApertura() === null) {
+            $request->setHorarioApertura($consultorioExistente->getHorarioApertura());
+        }
+        if($request->getHorarioCierre() === null) {
+            $request->setHorarioCierre($consultorioExistente->getHorarioCierre());
         }
 
-        $consultorio = $this->repo->actualizarConsultorio($dto, $id, $consultorio["idprofesional"]);
+        $consultorio = ConsultorioMapper::fromRequest($request);
+        
+        /** @var Consultorio $coincidencia */
+        $coincidencia = $this->repo->buscarPorCiudadDireccion($request->getCiudad(), $request->getDireccion());
+        if($coincidencia && $coincidencia->getId() != $id) {
+            throw new ConsultorioAlreadyExistsException("direccion", $request->getDireccion());
+        }
 
-        return $consultorio?->toDTO() ?? null;
+        $consultorio = $this->repo->actualizarConsultorio($consultorio, $id);
+
+        return ConsultorioMapper::toResponse($consultorio);
     }
 
-    public function borrarConsultorio($id, $usuario): void {
-        if($usuario->rol == Roles::PROFESIONAL && $this->repo->esAtendidoPor($id) != $usuario->id) {
+    public function borrarConsultorio(int $id, mixed $usuario): void {
+        $consultorio = $this->repo->esAtendidoPor($id);
+        if($usuario->rol == Roles::PROFESIONAL && $consultorio["idprofesional"] != $usuario->id) {
             throw new ForbiddenException("No puedes eliminar un consultorio ajeno!");
         }
-        $eliminado = $this->repo->borrarConsultorio($id);
-        if(!$eliminado) {
-            throw new ConsultorioNotFoundException($id);
-        }
+        $this->repo->borrarConsultorio($id);
     }
 }

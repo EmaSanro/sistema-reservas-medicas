@@ -1,12 +1,13 @@
 <?php
-namespace App\Controller;
+namespace App\Consultorio\Controller;
 
+use App\Consultorio\Mapper\ConsultorioMapper;
+use App\Consultorio\Service\ConsultorioService;
+use App\Consultorio\Validators\ConsultorioValidator;
+use App\Controller\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\DTOs\ConsultorioDTO;
 use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\ConsultorioService;
 use OpenApi\Attributes as OA;
 
 class ConsultorioController extends BaseController {
@@ -29,8 +30,6 @@ class ConsultorioController extends BaseController {
     )]
     public function obtenerConsultorios() {
         try {
-            AuthMiddleware::handle([Roles::ADMIN]);
-            
             $consultorios = $this->service->obtenerConsultorios();
             
             return $this->jsonResponse(200, $consultorios);
@@ -61,12 +60,11 @@ class ConsultorioController extends BaseController {
         description: "Consultorio no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No se ha encontrado un consultorio con ese id"])
     )]
-    public function obtenerConsultorioPorId($id) {
+    public function obtenerConsultorioPorId(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-            Validaciones::validarID($id);
+            ConsultorioValidator::validarID($id);
             
-            $consultorio = $this->service->obtenerConsultorio($id);
+            $consultorio = $this->service->obtenerConsultorio((int) $id);
     
             return $this->jsonResponse(200, $consultorio);
         } catch (\Throwable $e) {
@@ -82,7 +80,7 @@ class ConsultorioController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example:"#/components/schemas/Consultorio")
+        content: new OA\JsonContent(example:"#/components/schemas/CrearConsultorioRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -103,12 +101,12 @@ class ConsultorioController extends BaseController {
         try {
             $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
     
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ConsultorioValidator::validarRequestCrear($input);
     
-            $dto = ConsultorioDTO::fromArray($input);
+            $request = ConsultorioMapper::toRequestCrear($input);
             
-            $consultorio = $this->service->crearConsultorio($dto, $usuario);
+            $consultorio = $this->service->crearConsultorio($request, $usuario);
             
             return $this->jsonResponse(201, $consultorio);
         } catch (\Throwable $e) {
@@ -130,7 +128,7 @@ class ConsultorioController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example:"#/components/schemas/Consultorio")
+        content: new OA\JsonContent(example:"#/components/schemas/ActualizarConsultorioRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -152,17 +150,17 @@ class ConsultorioController extends BaseController {
         description: "Conflicto: consultorio existente",
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un consultorio con la direccion y ciudad ingresadas"])
     )]
-    public function actualizarConsultorio($id) {
+    public function actualizarConsultorio(string $id) {
         try {
             $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
     
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarID($id);
-            Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ConsultorioValidator::validarID($id);
+            ConsultorioValidator::validarRequestActualizar($input);
     
-            $dto = ConsultorioDTO::fromArray($input);
+            $request = ConsultorioMapper::toRequestActualizar($input);
     
-            $consultorio = $this->service->actualizarConsultorio($dto, $id, $usuario);
+            $consultorio = $this->service->actualizarConsultorio($request, (int) $id, $usuario);
             
             return $this->jsonResponse(200, $consultorio);
         } catch (\Throwable $e) {
@@ -197,12 +195,12 @@ class ConsultorioController extends BaseController {
         description: "Consultorio no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un consultorio para eliminar"])
     )]
-    public function borrarConsultorio($id) {
+    public function borrarConsultorio(string $id) {
         try {
             $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-            Validaciones::validarID($id);
+            ConsultorioValidator::validarID($id);
     
-            $this->service->borrarConsultorio($id, $usuario);
+            $this->service->borrarConsultorio((int) $id, $usuario);
     
             return $this->jsonResponse(204, "");
         } catch (\Throwable $e) {

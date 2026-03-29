@@ -1,7 +1,6 @@
 <?php
-namespace App\Model;
+namespace App\Consultorio\Model;
 
-use App\Model\DTOs\RespuestaConsultorioDTO;
 use App\Shared\Entity;
 
 class Consultorio extends Entity

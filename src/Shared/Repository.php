@@ -18,7 +18,7 @@ abstract class Repository {
 
     abstract protected function getEntityClass(): string;
 
-    protected function findAll(): array {
+    public function findAll(): array {
         $sql = sprintf("SELECT * FROM %s", $this->getTableName());
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -33,7 +33,7 @@ abstract class Repository {
         return $entities;
     }
 
-    protected function findById(int $id): ?object {
+    public function findById(int $id): ?Entity {
         $sql = sprintf("SELECT * FROM %s WHERE id = ?", $this->getTableName());
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
