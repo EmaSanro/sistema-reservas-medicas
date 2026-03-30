@@ -1,5 +1,5 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Nota\DTOs\Response;
 class RespuestaArchivoNota {
     public readonly int $id;
     public readonly string $nombre_original;

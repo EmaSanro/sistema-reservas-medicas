@@ -1,13 +1,17 @@
 <?php
-namespace App\Service;
+namespace App\Nota\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\Nota\NotaNotFoundException;
-use App\Exceptions\Reservas\ReservaNotFoundException;
-use App\Model\DTOs\ActualizarNotaDTO;
-use App\Model\DTOs\CrearNotaDTO;
-use App\Repository\NotaRepository;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Model\Reserva;
+use App\Nota\DTOs\Request\ActualizarNotaRequest;
+use App\Nota\DTOs\Request\CrearNotaRequest;
+use App\Nota\DTOs\Response\RespuestaNota;
+use App\Nota\Exceptions\NotaNotFoundException;
+use App\Nota\Mapper\NotaMapper;
+use App\Nota\Model\Nota;
+use App\Nota\Repository\NotaRepository;
 use App\Repository\ReservasRepository;
+use App\Reservas\Exceptions\ReservaNotFoundException;
 
 class NotaService {
     
@@ -17,41 +21,53 @@ class NotaService {
         private ArchivoNotaService $archivoService
         ) {}
 
-    public function crearNota(CrearNotaDTO $nota, $archivos, $usuario) {
-        $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
+    public function obtenerNotaPorId(int $id, mixed $usuario): RespuestaNota {
+        $nota = $this->validarPermisoNota($id, $usuario);
+        $archivos = $this->archivoService->obtenerPorNotaId($id);
+        $nota->setAdjuntos($archivos);
+        return NotaMapper::toResponse($nota);
+    }
+
+    public function crearNota(CrearNotaRequest $request, array $archivos, mixed $usuario): RespuestaNota {
+        $nota = NotaMapper::fromRequest($request);
+        
+        /** @var Reserva $reserva */
+        $reserva = $this->reservaRepo->findById($nota->getReservaId());
         if(!$reserva) {
-            throw new ReservaNotFoundException("No existe la reserva!");
+            throw new ReservaNotFoundException($reserva->getId());
         }
         if($usuario->id != $reserva->getIdProfesional()) {
             throw new ForbiddenException("No tienes permisos de crear notas en una reserva ajena!");
         }
 
-        $nota = $this->repo->guardarNota($nota);
+        $notaCreada = $this->repo->guardarNota($nota);
         $adjuntosGuardados = [];
         if(!empty($archivos)) {
             foreach($archivos as $archivo) {
                 if($archivo["error"] === UPLOAD_ERR_OK) {
-                    $adjunto = $this->archivoService->guardarArchivo($nota->getId(), $archivo);
+                    $adjunto = $this->archivoService->guardarArchivo($notaCreada->getId(), $archivo);
                     $adjuntosGuardados[] = $adjunto;
                 }
             }
         }
         $nota->setAdjuntos($adjuntosGuardados);
 
-        return $nota->toDTO();
+        return NotaMapper::toResponse($notaCreada);
     }
 
-    public function obtenerNotaPorId(int $id, $usuario) {
+    public function actualizarNota(int $id, ActualizarNotaRequest $request, mixed $usuario, array $archivos): RespuestaNota {
         $nota = $this->validarPermisoNota($id, $usuario);
-        $archivos = $this->archivoService->obtenerPorNotaId($id);
-        $nota->setAdjuntos($archivos);
-        return $nota->toDTO();
-    }
 
-    public function actualizarNota(int $id, ActualizarNotaDTO $input, $usuario, $archivos) {
-        $this->validarPermisoNota($id, $usuario);
+        if($request->getMotivoVisita() === null) {
+            $request->setMotivoVisita($nota->getMotivoVisita());
+        }
+        if($request->getTextoNota() === null) {
+            $request->setTextoNota($nota->getTextoNota());
+        }
 
-        $notaActualizada = $this->repo->actualizarNota($id, $input);
+        $nota = NotaMapper::fromRequest($request);
+
+        $notaActualizada = $this->repo->actualizarNota($id, $nota);
 
         if(!empty($archivos)) {
             foreach($archivos as $archivo) {
@@ -64,18 +80,19 @@ class NotaService {
         $archivosAdjuntos = $this->archivoService->obtenerPorNotaId($id);
         $notaActualizada->setAdjuntos($archivosAdjuntos);
 
-        return $notaActualizada->toDTO();
+        return NotaMapper::toResponse($notaActualizada);
     }
 
-    private function validarPermisoNota(int $notaId, $usuario) {
-        $nota = $this->repo->obtenerNotaPorId($notaId);
+    private function validarPermisoNota(int $notaId, mixed $usuario): Nota {
+        /** @var Nota $nota */
+        $nota = $this->repo->findById($notaId);
         if(!$nota) {
-            throw new NotaNotFoundException("No existe la nota");
+            throw new NotaNotFoundException($notaId);
         }
-
-        $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
+        /** @var Reserva $reserva */
+        $reserva = $this->reservaRepo->findById($nota->getReservaId());
         if(!$reserva) {
-            throw new ReservaNotFoundException("La reserva no existe");
+            throw new ReservaNotFoundException($reserva->getId());
         }
 
         if($reserva->getIdProfesional() != $usuario->id) {

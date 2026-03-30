@@ -1,7 +1,7 @@
 <?php
-namespace App\Repository;
+namespace App\Nota\Repository;
 
-use App\Model\Nota;
+use App\Nota\Model\Nota;
 use App\Shared\Repository;
 
 class NotaRepository extends Repository {
@@ -20,7 +20,8 @@ class NotaRepository extends Repository {
         try {
             $this->db->beginTransaction();
             $stmtNota = $this->db->prepare("
-                INSERT INTO nota(motivo_visita, texto_nota, reserva_id) VALUES(:motivo_visita,:texto_nota,:reserva_id)
+                INSERT INTO nota(motivo_visita, texto_nota, reserva_id) 
+                VALUES(:motivo_visita, :texto_nota, :reserva_id)
             ");
             $stmtNota->execute([
                 "motivo_visita" => $nota->getMotivoVisita(), 

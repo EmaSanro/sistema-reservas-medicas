@@ -1,17 +1,19 @@
 <?php
-namespace App\Service;
+namespace App\Nota\Service;
 
-use App\Exceptions\ArchivoNota\ArchivoNotFoundException;
-use App\Exceptions\ArchivoNota\SubidaArchivoException;
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\DatabaseException;
-use App\Exceptions\Nota\NotaNotFoundException;
-use App\Model\ArchivoNota;
-use App\Model\DTOs\CrearArchivoNotaDTO;
-use App\Repository\ArchivoNotaRepository;
-use App\Repository\NotaRepository;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Model\Reserva;
+use App\Nota\DTOs\Response\RespuestaArchivoNota;
+use App\Nota\Exceptions\ArchivoNotFoundException;
+use App\Nota\Exceptions\NotaNotFoundException;
+use App\Nota\Exceptions\SubidaArchivoException;
+use App\Nota\Mapper\ArchivoNotaMapper;
+use App\Nota\Model\ArchivoNota;
+use App\Nota\Model\Nota;
+use App\Nota\Repository\ArchivoNotaRepository;
+use App\Nota\Repository\NotaRepository;
+use App\Nota\Validators\ArchivoNotaValidator;
 use App\Repository\ReservasRepository;
-use App\Security\Validaciones;
 
 class ArchivoNotaService {
     private const RUTA_BASE = __DIR__ . '/../../storage/notas_adjuntos/';
@@ -19,10 +21,11 @@ class ArchivoNotaService {
     public function __construct(
         private ArchivoNotaRepository $repo,
         private ReservasRepository $reservaRepo,
-        private NotaRepository $notaRepo) {}
+        private NotaRepository $notaRepo
+    ) {}
 
-    public function guardarArchivo(int $idNota, array $archivo) {
-        Validaciones::ValidarArchivo($archivo);
+    public function guardarArchivo(int $idNota, array $archivo): RespuestaArchivoNota {
+        ArchivoNotaValidator::validarArchivo($archivo);
 
         // Generar nombre único
         $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
@@ -44,41 +47,43 @@ class ArchivoNotaService {
             throw new SubidaArchivoException("Error al subir el archivo");
         }
 
-        $adjunto = new CrearArchivoNotaDTO(
-            $archivo["name"],
-            $nombreSistema,
-            $rutaCompleta,
-            $archivo["type"],
-            $archivo["size"],
-            date("Y-m-d H:i:s"),
-            $idNota
-        );
+        $adjunto = ArchivoNotaMapper::toArchivoNota([
+            "nombreOriginal" => $archivo["name"],
+            "nombreSistema" => $nombreSistema,
+            "ruta" => $rutaCompleta,
+            "tipo" => $archivo["type"],
+            "tamanio" => $archivo["size"],
+            "fechaSubida" => date("Y-m-d H:i:s"),
+            "idNota" => $idNota
+        ]);
 
         $archivoGuardado = $this->repo->guardarArchivo($adjunto);
 
-        return $archivoGuardado->toDTO();
+        return ArchivoNotaMapper::toResponse($archivoGuardado);
     }
 
-    public function obtenerPorNotaId(int $idNota) {
+    public function obtenerPorNotaId(int $idNota): array {
         $archivos = $this->repo->obtenerPorNotaId($idNota);
         if(!$archivos) {
             return [];
         }
-        return array_map(fn(ArchivoNota $archivo) => $archivo->toDTO(), $archivos);
+        return array_map(fn($archivo): RespuestaArchivoNota => ArchivoNotaMapper::toResponse($archivo), $archivos);
     }
 
-    public function obtenerArchivoNota(int $idNota, int $idArchivo, $usuario) {
-        $archivo = $this->repo->obtenerPorId($idArchivo);
+    public function obtenerArchivoNota(int $idNota, int $idArchivo, mixed $usuario): ArchivoNota {
+        /** @var ArchivoNota $archivo */
+        $archivo = $this->repo->findById($idArchivo);
         if(!$archivo) {
-            throw new ArchivoNotFoundException("No se encontro el archivo");
+            throw new ArchivoNotFoundException($idArchivo);
         }
         if($archivo->getNotaId() != $idNota) {
-            throw new NotaNotFoundException("El archivo no pertenece a esa nota");
+            throw new NotaNotFoundException($idNota);
         }
 
-        $nota = $this->notaRepo->obtenerNotaPorId($idNota);
-
-        $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
+        /** @var Nota $nota */
+        $nota = $this->notaRepo->findById($idNota);
+        /** @var Reserva $reserva */
+        $reserva = $this->reservaRepo->findById($nota->getReservaId());
         if($reserva->getIdProfesional() != $usuario->id) {
             throw new ForbiddenException("No tienes permisos para descargar archivos que no son tuyos!");
         }
@@ -86,19 +91,22 @@ class ArchivoNotaService {
         return $archivo;
     }
 
-    public function eliminarArchivoNota($id, $idNota, $usuario) {
-        $archivo = $this->repo->obtenerPorId($id);
+    public function eliminarArchivoNota(int $id, int $idNota, mixed $usuario): void {
+        /** @var ArchivoNota $archivo */
+        $archivo = $this->repo->findById($id);
 
         if(!$archivo) {
-            throw new ArchivoNotFoundException("No hay ningun archivo");
+            throw new ArchivoNotFoundException($id);
         }
+        /** @var Nota $nota */
+        $nota = $this->notaRepo->findById($archivo->getNotaId());
 
-        $nota = $this->notaRepo->obtenerNotaPorId($archivo->getNotaId());
         if($nota->getId() != $idNota) {
-            throw new NotaNotFoundException("El archivo no pertenece a esta nota");
+            throw new NotaNotFoundException($idNota);
         }
-        
-        $reserva = $this->reservaRepo->obtenerReserva($nota->getReservaId());
+            
+        /** @var Reserva $reserva */
+        $reserva = $this->reservaRepo->findById($nota->getReservaId());
 
         if($reserva->getIdProfesional() != $usuario->id) {
             throw new ForbiddenException("No puedes eliminar archivos ajenos!");
@@ -108,9 +116,6 @@ class ArchivoNotaService {
             unlink($archivo->getRuta());
         }
 
-        $eliminado = $this->repo->eliminarArchivo($id);
-        if(!$eliminado) {
-            throw new DatabaseException("Error en la base de datos");
-        }
+        $this->repo->eliminarArchivo($id);
     }
 }

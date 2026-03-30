@@ -1,13 +1,26 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Nota\DTOs\Request;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(
+    schema: "CrearArchivoNotaRequest",
+    required: ["nombreOriginal", "nombreSistema", "ruta", "tipoArchivo", "tamanio", "fechaSubida", "idNota"]
+)]
 class CrearArchivoNotaRequest {
+    #[OA\Property(example: "nombre_original.jpg")]
     private string $nombre_original;
+    #[OA\Property(example: "nombre_sistema_12345.jpg")]
     private string $nombre_sistema;
+    #[OA\Property(example: "/ruta/completa/nombre_sistema_12345.jpg")]
     private string $ruta;
+    #[OA\Property(example: "image/jpeg")]
     private string $tipo_archivo;
+    #[OA\Property(example: "204800KB")]
     private int $peso;
+    #[OA\Property(example: "2024-06-01 15:00:00")]
     private string $fecha_subida;
+    #[OA\Property(example: 1)]
     private int $nota_id;
 
     public function __construct(string $nombre_original, string $nombre_sistema, string $ruta, string $tipo_archivo, int $peso, string $fecha_subida, int $nota_id) {
@@ -46,17 +59,5 @@ class CrearArchivoNotaRequest {
 
     public function getNotaId(): int {
         return $this->nota_id;
-    }
-
-    public static function fromArray(array $data): self {
-        return new self(
-            $data['nombre_original'],
-            $data['nombre_sistema'],
-            $data['ruta'],
-            $data['tipo_archivo'],
-            $data['peso'],
-            $data['fecha_subida'],
-            $data['nota_id']
-        );
     }
 }

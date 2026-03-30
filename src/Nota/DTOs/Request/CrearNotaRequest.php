@@ -1,10 +1,15 @@
 <?php
-namespace App\Model\DTOs;
-use App\Exceptions\ValidationException;
+namespace App\Nota\DTOs\Request;
 
+use OpenApi\Attributes as OA;
+
+#[OA\Schema(schema: "CrearNotaRequest", required: ["motivo_visita", "texto_nota", "reserva_id"])]
 class CrearNotaRequest {
+    #[OA\Property(example: "Consulta general")]
     private string $motivo_visita;
+    #[OA\Property(example: "El paciente refiere dolor de cabeza desde hace 3 días...")]
     private string $texto_nota;
+    #[OA\Property(example: 123)]
     private int $reserva_id;
     
     public function __construct(string $motivo_visita, string $texto_nota, int $reserva_id) {
@@ -23,20 +28,5 @@ class CrearNotaRequest {
 
     public function getReservaId(): int {
         return $this->reserva_id;
-    }
-
-    public static function fromArray($input) {
-        if(!isset($input["motivo_visita"], $input["texto_nota"], $input["reserva_id"])) {
-            throw new ValidationException("ERROR: Completa los campos requeridos(motivo_visita, texto_nota, reserva_id)");
-        }
-        if(empty(trim($input["motivo_visita"])) || empty(trim($input["texto_nota"])) || empty(trim($input["reserva_id"]))) {
-            throw new ValidationException("ERROR: Ninguno de los campos puede estar vacio!");
-        }
-
-        return new self(
-            $input["motivo_visita"],
-            $input["texto_nota"],
-            (int)$input["reserva_id"]
-        );
     }
 }

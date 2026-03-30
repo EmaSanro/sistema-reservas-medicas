@@ -1,7 +1,6 @@
 <?php
-namespace App\Model;
+namespace App\Nota\Model;
 
-use App\Model\DTOs\RespuestaNotaDTO;
 use App\Shared\Entity;
 
 class Nota extends Entity

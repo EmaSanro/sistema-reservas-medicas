@@ -1,14 +1,14 @@
 <?php
-namespace App\Controller;
+namespace App\Nota\Controller;
 
+use App\Controller\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\DTOs\ActualizarNotaDTO;
-use App\Model\DTOs\CrearNotaDTO;
 use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\ArchivoNotaService;
-use App\Service\NotaService;
+use App\Nota\Mapper\NotaMapper;
+use App\Nota\Service\ArchivoNotaService;
+use App\Nota\Service\NotaService;
+use App\Nota\Validators\NotaValidator;
 
 class NotaController extends BaseController {
 
@@ -17,13 +17,11 @@ class NotaController extends BaseController {
     public function crearNota() {
         try {
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-            $input = $_POST;
-    
-            $nota = CrearNotaDTO::fromArray($input);
-    
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            NotaValidator::validarRequestCrear($input);
             $archivos = $this->procesarArchivos();
     
-            $nota = $this->service->crearNota($nota, $archivos, $usuario);
+            $nota = $this->service->crearNota(NotaMapper::toRequestCrear($input), $archivos, $usuario);
     
             return $this->jsonResponse(201, $nota);
         } catch (\Throwable $e) {
@@ -31,12 +29,13 @@ class NotaController extends BaseController {
         }
     }
 
-    public function obtenerNotaPorId($id) {
+    public function obtenerNotaPorId(string $id) {
         try {
-            Validaciones::validarID($id);
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-    
-            $nota = $this->service->obtenerNotaPorId($id, $usuario);
+
+            NotaValidator::validarID($id);
+
+            $nota = $this->service->obtenerNotaPorId((int) $id, $usuario);
     
             return $this->jsonResponse(200, $nota);
         } catch (\Throwable $e) {
@@ -44,32 +43,31 @@ class NotaController extends BaseController {
         }
     }
 
-    public function actualizarNota($id) {
+    public function actualizarNota(string $id) {
         try {
-            Validaciones::validarID($id);
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-            $input = $_POST;
-    
-            $actualizarNota = ActualizarNotaDTO::fromArray($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            NotaValidator::validarID($id);
+            NotaValidator::validarRequestActualizar($input);
     
             $archivos = $this->procesarArchivos();
             
-            $nota = $this->service->actualizarNota($id, $actualizarNota, $usuario, $archivos);
+            $notaActualizada = $this->service->actualizarNota((int) $id, NotaMapper::toRequestActualizar($input), $usuario, $archivos);
     
-            return $this->jsonResponse(200, $nota);
+            return $this->jsonResponse(200, $notaActualizada);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
     }
 
-    public function obtenerArchivoNota(int $idNota, int $idArchivo) {
+    public function obtenerArchivoNota(string $idNota, string $idArchivo) {
         try {
-            Validaciones::validarID($idNota);
-            Validaciones::validarID($idArchivo);
+            NotaValidator::validarID($idNota);
+            NotaValidator::validarID($idArchivo);
     
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]); 
     
-            $archivo = $this->archivoService->obtenerArchivoNota($idNota, $idArchivo, $usuario);
+            $archivo = $this->archivoService->obtenerArchivoNota((int) $idNota, (int) $idArchivo, $usuario);
     
             if(!file_exists($archivo->getRuta())) {
                 return $this->jsonResponse(404, ["ERROR" => "Archivo no encontrado"]);
@@ -88,10 +86,10 @@ class NotaController extends BaseController {
         }
     }
 
-    public function eliminarArchivoNota($idNota, $idArchivo) {
+    public function eliminarArchivoNota(string $idNota, string $idArchivo) {
         try {
-            Validaciones::validarID($idNota);
-            Validaciones::validarID($idArchivo);
+            NotaValidator::validarID($idNota);
+            NotaValidator::validarID($idArchivo);
     
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
     

@@ -1,16 +1,17 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Nota\DTOs\Request;
 
-use App\Exceptions\ValidationException;
+use OpenApi\Attributes as OA;
 
+#[OA\Schema(schema: "ActualizarNotaRequest")]
 class ActualizarNotaRequest {
-    private string $motivo_visita;
-    private string $texto_nota;
 
-    public function __construct(string $motivo_visita, string $texto_nota) {
-        $this->motivo_visita = $motivo_visita;
-        $this->texto_nota = $texto_nota;
-    }
+    public function __construct(
+        #[OA\Property(example: "Consulta general", nullable: true)]
+        private ?string $motivo_visita = null,
+        #[OA\Property(example: "Un cuerpo de ejemplo", nullable: true)]
+        private ?string $texto_nota = null
+    ) {}
 
     public function getMotivoVisita(): string {
         return $this->motivo_visita;
@@ -20,14 +21,11 @@ class ActualizarNotaRequest {
         return $this->texto_nota;
     }
 
-    public static function fromArray(array $data): self {
-        if(empty($data["motivo_visita"]) || empty($data["texto_nota"])) {
-            throw new ValidationException("Todos los campos deben estar completados!");
-        }
-        
-        return new self(
-            $data['motivo_visita'],
-            $data['texto_nota']
-        );
+    public function setMotivoVisita(string $motivo_visita): void {
+        $this->motivo_visita = $motivo_visita;
+    }
+
+    public function setTextoNota(string $texto_nota): void {
+        $this->texto_nota = $texto_nota;
     }
 }
