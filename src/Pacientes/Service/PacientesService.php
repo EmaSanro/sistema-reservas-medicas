@@ -1,15 +1,16 @@
 <?php
-namespace App\Service;
+namespace App\Pacientes\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\InvalidFilterException;
-use App\Exceptions\Pacientes\PacienteNotFoundException;
-use App\Exceptions\Pacientes\PacienteWithReserveException;
-use App\Exceptions\UserAlreadyExistsException;
-use App\Exceptions\ValidationException;
-use App\Model\DTOs\RespuestaPacienteDTO;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Auth\Exceptions\UserAlreadyExistsException;
 use App\Model\Roles;
-use App\Repository\PacientesRepository;
+use App\Pacientes\DTOs\Request\ActualizarPacienteRequest;
+use App\Pacientes\DTOs\Request\CrearPacienteRequest;
+use App\Pacientes\DTOs\Response\RespuestaPaciente;
+use App\Pacientes\Exceptions\PacienteNotFoundException;
+use App\Pacientes\Exceptions\PacienteWithReserveException;
+use App\Pacientes\Mapper\PacienteMapper;
+use App\Pacientes\Repository\PacientesRepository;
 use App\Repository\ReservasRepository;
 
 class PacientesService {
@@ -18,67 +19,71 @@ class PacientesService {
 
     public function obtenerTodos(): array {
         $pacientes = $this->repo->obtenerTodos();
-
-        return array_map(fn($paciente) => $paciente->toDTO(), $pacientes ?? []);
+        $response = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $pacientes);
+        return $response;
     }
 
-    public function obtenerPorId($id): RespuestaPacienteDTO {
+    public function obtenerPorId(int $id): RespuestaPaciente {
         $paciente = $this->repo->obtenerPorId($id);
         if(!$paciente) {
-            throw new PacienteNotFoundException("No se ha encontrado un paciente con ese id");
+            throw new PacienteNotFoundException($id);
         }
-        return $paciente->toDTO();
+        return PacienteMapper::toResponse($paciente);
     }
 
-    public function buscarPor($filtro, $valor): array {
-        $filtrosPermitidos = ["nombre", "apellido", "email", "telefono"];
-        if(!in_array($filtro, $filtrosPermitidos)) {
-            throw new InvalidFilterException("El filtro no esta entre los permitidos(nombre, apellido, email, telefono)");
-        }
-
+    public function buscarPor(string $filtro, string $valor): array {
         $pacientesFiltrados = $this->repo->buscarPor($filtro, $valor);
 
-        return array_map(fn($paciente) => $paciente->toDTO(), $pacientesFiltrados ?? []);
+        $response = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $pacientesFiltrados);
+        return $response;
     }
 
-    public function registrarPaciente($dto): RespuestaPacienteDTO {
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
+    public function registrarPaciente(CrearPacienteRequest $request): RespuestaPaciente {
+        $paciente = PacienteMapper::fromRequestCrear($request);
+        $coincidencia = $this->repo->buscarCoincidencia($paciente);
         if($coincidencia) {
-            throw new UserAlreadyExistsException("Ya hay un usuario con ese telefono/email");
+            if($coincidencia->getEmail() === $paciente->getEmail()) {
+                throw new UserAlreadyExistsException("email", $paciente->getEmail());
+            }
+            throw new UserAlreadyExistsException("telefono", $paciente->getTelefono());
         }
 
-        $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
+        $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
         
-        $pac = $this->repo->registrarPaciente($dto, $passwordHash);
+        $pacienteCreado = $this->repo->registrarPaciente($paciente, $passwordHash);
 
-        return $pac->toDTO();
+        return PacienteMapper::toResponse($pacienteCreado);
     }
 
-    public function actualizarPaciente($id, $dto, $usuario): RespuestaPacienteDTO|null {
+    public function actualizarPaciente(int $id, ActualizarPacienteRequest $request, mixed $usuario): RespuestaPaciente {
         if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
             throw new ForbiddenException("No tienes permiso para actualizar datos de otra persona!");
         }
-        
-        $paciente = $this->repo->buscarCoincidencia($dto);
-        if($paciente && $paciente->getId() != $id) {
-            throw new UserAlreadyExistsException("Ya hay un usuario con ese email/telefono");
-        }
-        $passwordHash = null;
-        if($dto->getPassword()) {
-            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
+
+        $pacienteExistente = $this->repo->obtenerPorId($id);
+        if(!$pacienteExistente) {
+            throw new PacienteNotFoundException($id);
         }
 
-        $pac = $this->repo->actualizarPaciente($id, $dto, $passwordHash);
+        PacienteMapper::fromRequestActualizar($pacienteExistente, $request);
 
-        return $pac?->toDTO() ?: null;
+        $pacienteDuplicado = $this->repo->buscarCoincidencia($pacienteExistente);
+
+        if($pacienteDuplicado && $pacienteDuplicado->getId() != $id) {
+            if($pacienteDuplicado->getEmail() === $pacienteExistente->getEmail()) {
+                throw new UserAlreadyExistsException("email", $pacienteExistente->getEmail());
+            }
+            throw new UserAlreadyExistsException("telefono", $pacienteExistente->getTelefono());
+        }
+
+        $pacienteActualizado = $this->repo->actualizarPaciente($id, $pacienteExistente);
+
+        return PacienteMapper::toResponse($pacienteActualizado);
     }
 
-    public function darDeBajaPaciente($id, $motivo): void {
-        if(strlen($motivo) > 255) {
-            throw new ValidationException("El motivo no puede contener mas de 255 caracteres!");
-        }
+    public function darDeBajaPaciente(int $id, string $motivo): void {
         if($this->reservasRepo->tieneFuturasReservasPaciente($id)) {
-            throw new PacienteWithReserveException("El paciente tiene futuras reservas!");
+            throw new PacienteWithReserveException("No se puede dar de baja un paciente con futuras reservas!");
         }
         $this->repo->darDeBajaPaciente($id, $motivo);
     }

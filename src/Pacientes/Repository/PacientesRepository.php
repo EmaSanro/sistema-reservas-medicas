@@ -1,13 +1,12 @@
 <?php
 
-namespace App\Repository;
+namespace App\Pacientes\Repository;
 
-use App\Exceptions\DatabaseException;
-use App\Exceptions\Pacientes\PacienteNotFoundException;
-use App\Exceptions\UserAlreadyInactiveException;
+use App\Auth\Exceptions\UserAlreadyInactiveException;
+use App\Auth\Model\Usuario;
 use App\Model\Roles;
+use App\Pacientes\Exceptions\PacienteNotFoundException;
 use App\Shared\Repository;
-use App\Model\Usuario;
 use PDO;
 
 class PacientesRepository extends Repository
@@ -44,22 +43,24 @@ class PacientesRepository extends Repository
         return $pacientes;
     }
 
-    public function buscarCoincidencia(Usuario $paciente): array
+    public function buscarCoincidencia(Usuario $paciente): Usuario|null
     {
         $sql = "SELECT * FROM usuario WHERE (telefono = :telefono OR email = :email) AND rol = :rol";
-        $pacientes = $this->findByQuery($sql, [
+        $paciente = $this->findOneByQuery($sql, [
             "telefono" => $paciente->getTelefono(),
             "email" => $paciente->getEmail(),
             "rol" => Roles::PACIENTE
         ]);
-        return $pacientes;
+        return $paciente;
     }
 
     public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario
     {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(:nombre,:apellido,:rol,:email,:telefono,:activo,:password)");
+            $stmtUsuario = $this->db->prepare(
+                        "INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) 
+                        VALUES(:nombre,:apellido,:rol,:email,:telefono,:activo,:password)");
             $stmtUsuario->execute([
                 "nombre" => $usuario->getNombre(),
                 "apellido" => $usuario->getApellido(),
@@ -83,7 +84,7 @@ class PacientesRepository extends Repository
         }
     }
 
-    public function actualizarPaciente(int $id, Usuario $usuario, ?string $passwordHash = null): Usuario
+    public function actualizarPaciente(int $id, Usuario $usuario): Usuario
     {
         try {
             $this->db->beginTransaction();
@@ -95,11 +96,6 @@ class PacientesRepository extends Repository
                 "email" => $usuario->getEmail(), 
                 "telefono" => $usuario->getTelefono()
             ];
-
-            if ($passwordHash != null) {
-                $query .= ", password = :password";
-                $params["password"] = $passwordHash;
-            }
 
             $query .= " WHERE id = :id AND rol = :rol";
             $params["id"] = $id;
@@ -117,7 +113,7 @@ class PacientesRepository extends Repository
         }
     }
 
-    public function darDeBajaPaciente(int $id, string $motivo): bool
+    public function darDeBajaPaciente(int $id, string $motivo): void
     {
         $pac = $this->db->prepare("
             UPDATE usuario SET activo = false, motivo_baja = :motivo, fecha_baja = NOW()
@@ -133,14 +129,13 @@ class PacientesRepository extends Repository
             $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
             if (!$usuario) {
-                throw new PacienteNotFoundException("Paciente no encontrado");
+                throw new PacienteNotFoundException($id);
             }
             if (!$usuario["activo"]) {
                 throw new UserAlreadyInactiveException("El paciente ya se encuentra inactivo!");
             }
 
-            throw new DatabaseException("No se pudo dar de baja el paciente");
+            throw new \Exception("No se pudo dar de baja el paciente");
         }
-        return true;
     }
 }

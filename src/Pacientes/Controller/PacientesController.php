@@ -3,11 +3,11 @@ namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\DTOs\PacienteDTO;
 use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\PacientesService;
+use App\Pacientes\Mapper\PacienteMapper;
+use App\Pacientes\Service\PacientesService;
 use OpenApi\Attributes as OA;
+use PacienteValidator;
 
 class PacientesController extends BaseController {
 
@@ -66,14 +66,14 @@ class PacientesController extends BaseController {
         description: "Paciente no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No hay un paciente con ese id"])
     )]
-    public function obtenerPorId($id) {
+    public function obtenerPorId(string $id) {
         try {
             AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-            Validaciones::validarID($id);
+            PacienteValidator::validarID($id);
 
-            $pac = $this->service->obtenerPorId($id);
+            $paciente = $this->service->obtenerPorId((int) $id);
             
-            return $this->jsonResponse(200, $pac);
+            return $this->jsonResponse(200, $paciente);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -116,9 +116,7 @@ class PacientesController extends BaseController {
         try {
             AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
-            if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
-                return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
-            }
+            PacienteValidator::validarParametrosBusqueda($_GET["filtro"] ?? "", $_GET["valor"] ?? "");
             $filtro = $_GET["filtro"];
             $valor = $_GET["valor"];
             
@@ -137,7 +135,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(example: "#/components/schemas/CrearPacienteRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -156,16 +154,13 @@ class PacientesController extends BaseController {
     )]
     public function registrarPaciente() {
         try {
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
             
-            Validaciones::validarInput($input);
-            Validaciones::validarCriteriosPassword($input["password"]);
+            PacienteValidator::validarRequestCrear($input);
             
-            $dto = PacienteDTO::fromArray($input);
-    
-            $pac = $this->service->registrarPaciente($dto);
+            $pacienteCreado = $this->service->registrarPaciente(PacienteMapper::toRequestCrear($input));
             
-            return $this->jsonResponse(201, $pac);
+            return $this->jsonResponse(201, $pacienteCreado);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -185,7 +180,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(example: "#/components/schemas/ActualizarPacienteRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -194,7 +189,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\Response(
         response: 400,
-        description: "id o json invalido o criterios de contraseña no respetados",
+        description: "id o campo/s invalido/s",
         content: new OA\JsonContent(example:["ERROR" => "JSON invalido"])
     )]
     #[OA\Response(
@@ -202,23 +197,17 @@ class PacientesController extends BaseController {
         description: "Usuario existente",
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario registrado con ese email y/o telefono"])
     )]
-    public function actualizarPaciente($id) {
+    public function actualizarPaciente(string $id) {
         try {
             $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
-            Validaciones::validarID($id);
+            PacienteValidator::validarID($id);
 
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            PacienteValidator::validarRequestActualizar($input);
 
-            if(isset($input["password"])) {
-                Validaciones::validarCriteriosPassword($input["password"]);
-            }
-
-            $dto = PacienteDTO::fromArray($input);
-
-            $pac = $this->service->actualizarPaciente($id, $dto, $usuario);
+            $pacienteActualizado = $this->service->actualizarPaciente((int) $id, PacienteMapper::toRequestActualizar($input), $usuario);
             
-            return $this->jsonResponse(200, $pac);
+            return $this->jsonResponse(200, $pacienteActualizado);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -226,7 +215,7 @@ class PacientesController extends BaseController {
     
     #[OA\Delete(
         path: "/pacientes/{id}",
-        summary: "Eliminar paciente",
+        summary: "Dar de baja paciente",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]
     )]
@@ -238,7 +227,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\Response(
         response: 204,
-        description: "Paciente eliminado",
+        description: "Paciente dado de baja correctamente",
         content: new OA\JsonContent()
     )]
     #[OA\Response(
@@ -251,18 +240,15 @@ class PacientesController extends BaseController {
         description: "Paciente no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No existe un paciente con el id especificado"])
     )]
-    public function eliminarPaciente($id) {
+    public function eliminarPaciente(string $id) {
         try {
             AuthMiddleware::handle([Roles::ADMIN]);
-            Validaciones::validarID($id);
-            $data = json_decode(file_get_contents("php://input"), true);
-            $motivo = $data["motivo"] ?? "";
 
-            if(empty(trim($motivo))) {
-                return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
-            }
-
-            $this->service->darDeBajaPaciente($id, $motivo);
+            PacienteValidator::validarID($id);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            PacienteValidator::validarInputBajaPaciente($input);
+            
+            $this->service->darDeBajaPaciente((int) $id, $input);
 
             return $this->jsonResponse(204, "");
         } catch (\Throwable $e) {
