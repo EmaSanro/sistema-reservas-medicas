@@ -1,12 +1,13 @@
 <?php
-namespace App\Controller;
+namespace App\Reservas\Controller;
 
+use App\Controller\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\DTOs\ReservaDTO;
 use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\ReservasService;
+use App\Reservas\Mapper\ReservaMapper;
+use App\Reservas\Service\ReservasService;
+use App\Reservas\Validators\ReservaValidator;
 use OpenApi\Attributes as OA;
 
 class ReservasController extends BaseController {
@@ -75,7 +76,7 @@ class ReservasController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Reserva")
+        content: new OA\JsonContent(example: "#/components/schemas/CrearReservaRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -96,20 +97,63 @@ class ReservasController extends BaseController {
         try {
             $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
     
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ReservaValidator::validarRequestCrear($input);
     
-            $dto = ReservaDTO::fromArray($input);
-    
-            $reserva = $this->service->reservar($dto, $paciente);
+            $reserva = $this->service->reservar(ReservaMapper::toRequestCrear($input, $paciente->id));
     
             return $this->jsonResponse(201, $reserva);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
     }
+    #[OA\Patch(
+        path: "/reservas/{id}",
+        summary: "Actualizar una reserva",
+        tags: ["Reservas"],
+        security: [ ["bearerAuth" => []] ]
+    )]
+    #[OA\Parameter(
+        name: "id",
+        in: "path",
+        required: true,
+        schema: new OA\Schema(type:"integer")
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(example: "#/components/schemas/ActualizarReservaRequest")
+    )]
+    #[OA\Response(
+        response: 200,
+        description: "Reserva actualizada",
+        content: new OA\JsonContent(ref: "#/components/schemas/RespuestaReserva")
+    )]
+    #[OA\Response(
+        response: 400,
+        description: "Campos erroneos",
+        content: new OA\JsonContent(example:["ERROR" => "La fecha no puede ser en el pasado"])
+    )]
+    #[OA\Response(
+        response: 404,
+        description: "No hay resultado",
+        content: new OA\JsonContent(example:["ERROR" => "No se encontro una reserva con ese id"])
+    )]
+    public function actualizarReserva(string $id) {
+        try {
+            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+            ReservaValidator::validarId($id);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ReservaValidator::validarRequestActualizar($input);
+
+            $reservaActualizada = $this->service->actualizarReserva((int) $id, ReservaMapper::toRequestActualizar($input));
+
+            return $this->jsonResponse(200, $reservaActualizada);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
+    }
     #[OA\Put(
-        path: "/reservas/cancelar/{id}",
+        path: "/reservas/{id}/cancelar",
         summary: "Cancelar una reserva",
         tags: ["Reservas"],
         security: [ ["bearerAuth" => []] ]
@@ -140,11 +184,12 @@ class ReservasController extends BaseController {
         description: "Error del servidor",
         content: new OA\JsonContent(example:["ERROR" => "Error Interno del Servidor!"])
     )]
-    public function cancelarReserva(int $id) {
+    public function cancelarReserva(string $id) {
         try {
             $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+            ReservaValidator::validarId($id);
     
-            $this->service->cancelarReserva($id, $paciente);
+            $this->service->cancelarReserva((int) $id, $paciente);
     
             return $this->jsonResponse(200, ["EXITO" => "Reserva cancelada!"]);
         } catch (\Throwable $e) {

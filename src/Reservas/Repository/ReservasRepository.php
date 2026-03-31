@@ -1,12 +1,13 @@
 <?php
 
-namespace App\Repository;
+namespace App\Reservas\Repository;
 
-use App\Exceptions\Reservas\ReservaAlreadyCancelledException;
-use App\Exceptions\Reservas\ReservaCompletedException;
-use App\Model\EstadoReserva;
-use App\Model\Reserva;
 use App\Model\Roles;
+use App\Profesionales\Exceptions\ProfesionalNotFoundException;
+use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
+use App\Reservas\Exceptions\ReservaCompletedException;
+use App\Reservas\Model\EstadoReserva;
+use App\Reservas\Model\Reserva;
 use App\Shared\Repository;
 
 class ReservasRepository extends Repository
@@ -42,16 +43,17 @@ class ReservasRepository extends Repository
     //     return $reserva->fetch();
     // }
 
-    public function reservar(Reserva $reserva, int $idPaciente): Reserva
+    public function reservar(Reserva $reserva): Reserva
     {
         try {
             $this->db->beginTransaction();
             $reservar = $this->db->prepare("
-                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva, estado) VALUES(:idprofesional,:idpaciente,:fecha_reserva,:estado)
+                INSERT INTO reservas(idprofesional, idpaciente, fecha_reserva, estado) 
+                VALUES(:idprofesional,:idpaciente,:fecha_reserva,:estado)
             ");
             $reservar->execute([
                 "idprofesional" => $reserva->getIdProfesional(),
-                "idpaciente" => $idPaciente,
+                "idpaciente" => $reserva->getIdPaciente(),
                 "fecha_reserva" => $reserva->getFechaReserva(),
                 "estado" => $reserva->getEstadoReserva()
             ]);
@@ -68,15 +70,44 @@ class ReservasRepository extends Repository
         }
     }
 
-    public function buscarCoincidencia(int $idPaciente, int $idProfesional, string $fecha): Reserva|null
+    public function actualizarReserva(int $id, Reserva $reserva): Reserva {
+        try {
+            $this->db->beginTransaction();
+            $update = $this->db->prepare("
+                UPDATE reservas SET fecha_reserva = :fecha_reserva, estado = :estado
+                WHERE id = :id
+            ");
+            $update->execute([
+                "fecha_reserva" => $reserva->getFechaReserva(),
+                "estado" => $reserva->getEstadoReserva(),
+                "id" => $id
+            ]);
+
+            if($update->rowCount() === 0) {
+                throw new \Exception("No se pudo actualizar la reserva");
+            }
+            $id = $this->db->lastInsertId();
+
+            $reserva->setId($id);
+
+            $this->db->commit();
+
+            return $reserva;
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    public function buscarCoincidencia(int $idPaciente, int $idProfesional, string $fecha): Reserva
     {
-        $sqlProfesional = "SELECT 1 FROM profesional WHERE idprofesional = :idprofesional";
+        $sqlProfesional = "SELECT * FROM profesional WHERE idprofesional = :idprofesional";
         $profesional = $this->findOneByQuery($sqlProfesional, ["idprofesional" => $idProfesional]);
         if (!$profesional) {
-            throw new \DomainException();
+            throw new ProfesionalNotFoundException($idProfesional);
         }
         $sqlCoincidencia = "
-            SELECT 1 FROM reservas 
+            SELECT * FROM reservas 
             WHERE (idpaciente = :idpaciente OR idprofesional = :idprofesional) AND fecha_reserva = :fecha_reserva";
         $coincidencia = $this->findOneByQuery($sqlCoincidencia, [
             "idpaciente" => $idPaciente,
@@ -88,12 +119,12 @@ class ReservasRepository extends Repository
 
     public function perteneceAlPaciente(int $id, int $idPaciente): Reserva|null
     {
-        $sql = "SELECT 1 FROM reservas WHERE id = :id AND idPaciente = :idpaciente";
+        $sql = "SELECT * FROM reservas WHERE id = :id AND idPaciente = :idpaciente";
         $reserva = $this->findOneByQuery($sql, ["id" => $id, "idpaciente" => $idPaciente]);
         return $reserva;
     }
 
-    public function cancelarReserva(Reserva $reserva): bool
+    public function cancelarReserva(Reserva $reserva): void
     {
         switch ($reserva->getEstadoReserva()) {
             case EstadoReserva::CANCELADA:
@@ -103,22 +134,24 @@ class ReservasRepository extends Repository
         }
 
         $update = $this->db->prepare("
-            UPDATE reserva SET estado = :estado fecha_cancelacion = NOW() WHERE id = :id AND estado = :estado AND fecha_reserva > NOW() + INTERVAL 24 HOUR
+            UPDATE reserva SET estado = :estado fecha_cancelacion = NOW() WHERE id = :id AND estado = :estadoActual AND fecha_reserva > NOW() + INTERVAL 24 HOUR
         ");
-        $update->execute(["estado" => EstadoReserva::CANCELADA, "id" => $reserva->getId(), "fecha_reserva" => EstadoReserva::CONFIRMADA]);
+        $update->execute(["estado" => EstadoReserva::CANCELADA, "id" => $reserva->getId(), "estadoActual" => EstadoReserva::CONFIRMADA]);
 
-        return $update->rowCount() > 0;
+        if($update->rowCount() === 0) {
+            throw new \Exception("No se pudo cancelar la reserva");
+        }
     }
 
     public function ReservasPendientesNotificacion(): array
     {
         $sql = "
-            SELECT r.*, pac.nombre as paciente, pac.email, pac.telefono, prof.nombre as profesional FROM reservas r
+            SELECT r.*, CONCAT(pac.nombre, ' ', pac.apellido) as paciente, pac.email, pac.telefono, CONCAT(prof.nombre, ' ', prof.apellido) as profesional FROM reservas r
             JOIN usuario pac ON pac.id = r.idpaciente
             JOIN usuario prof ON prof.id = r.idprofesional
             WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND r.notificado = 0
         ";
-        $reservas = $this->findByQuery($sql);
+        $reservas = $this->prepareAndExecute($sql)->fetchAll();
         return $reservas;
     }
 
@@ -131,7 +164,7 @@ class ReservasRepository extends Repository
 
     public function tieneFuturasReservasProfesional(int $id): Reserva|null
     {
-        $sql = "SELECT 1 FROM reservas 
+        $sql = "SELECT * FROM reservas 
                 WHERE idprofesional = :idprofesional
                 AND estado = :estado
                 AND fecha_reserva > NOW()
@@ -142,7 +175,7 @@ class ReservasRepository extends Repository
 
     public function tieneFuturasReservasPaciente(int $id): Reserva|null
     {
-        $sql = "SELECT 1 FROM reservas
+        $sql = "SELECT * FROM reservas
                 WHERE idpaciente = :idpaciente
                 AND estado = :estado
                 AND fecha_reserva > NOW()

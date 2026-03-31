@@ -57,7 +57,7 @@ abstract class Repository {
         return $entities;
     }
 
-    protected function findOneByQuery(string $sql, array $params = []): ?array {
+    protected function findOneByQuery(string $sql, array $params = []): ?Entity {
         $stmt = $this->prepareAndExecute($sql, $params);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         if($data === false) return null;

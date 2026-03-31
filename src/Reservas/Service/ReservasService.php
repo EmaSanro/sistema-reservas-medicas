@@ -1,48 +1,80 @@
 <?php
-namespace App\Service;
+namespace App\Reservas\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\Reservas\CancelacionTardiaException;
-use App\Exceptions\Reservas\ReservaAlreadyCancelledException;
-use App\Exceptions\Reservas\ReservaAlreadyExistsException;
-use App\Repository\ReservasRepository;
+use App\Auth\Exceptions\ForbiddenException;
 use App\Helper\GeneradorIcs;
-use App\Model\DTOs\RespuestaReservaDTO;
+use App\Reservas\DTOs\Request\ActualizarReservaRequest;
+use App\Reservas\DTOs\Request\CrearReservaRequest;
+use App\Reservas\DTOs\Response\RespuestaReserva;
+use App\Reservas\Exceptions\CancelacionTardiaException;
+use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
+use App\Reservas\Exceptions\ReservaNotFoundException;
+use App\Reservas\Exceptions\UsuarioConReservaException;
+use App\Reservas\Mapper\ReservaMapper;
+use App\Reservas\Model\EstadoReserva;
+use App\Reservas\Model\Reserva;
+use App\Reservas\Repository\ReservasRepository;
+use App\Service\MailService;
+use App\Service\WhatsappService;
 use DateInterval;
 use DateTime;
-use PHPMailer\PHPMailer\Exception;
 
 class ReservasService {
     public function __construct(private ReservasRepository $repo) {}
 
     public function obtenerTodas(): array {
-        $reservas = $this->repo->obtenerTodas();
-
-        return array_map(fn($reserva) => $reserva->toDTO(), $reservas ?? []);
+        $reservas = $this->repo->findAll();
+        $response = array_map(fn($reserva) => ReservaMapper::toResponse($reserva), $reservas);
+        return $response;
     }
 
-    public function obtenerReservasPorUsuarioId($id, $rol): array {
+    public function obtenerReservasPorUsuarioId(int $id, string $rol): array {
         $reservas = $this->repo->obtenerReservasPorUsuarioId($id, $rol);
+        $response = array_map(fn($reserva) => $reserva->toDTO(), $reservas);
 
-        return array_map(fn($reserva) => $reserva->toDTO(), $reservas ?? []);
+        return $response;
     }
 
-    public function reservar($dto, $paciente): RespuestaReservaDTO {
-        if($this->repo->buscarCoincidencia($paciente->id, $dto->getIdProfesional(), $dto->getFecha())) {
-            throw new ReservaAlreadyExistsException("Lo siento este paciente/profesional ya tiene una reserva para esa misma fecha");
+    public function reservar(CrearReservaRequest $request): RespuestaReserva {
+        $reserva = ReservaMapper::fromRequestCrear($request);
+        $reservaExistente = $this->repo->buscarCoincidencia($reserva->getIdPaciente(), $reserva->getIdProfesional(), $reserva->getFechaReserva());
+        if($reservaExistente) {
+            if($reservaExistente->getIdPaciente() === $reserva->getIdPaciente() && $reservaExistente->getFechaReserva() == $reserva->getFechaReserva()) {
+                throw new UsuarioConReservaException("Ya tienes una reserva para esa misma fecha y hora");
+            }
+            throw new UsuarioConReservaException("El profesional ya tiene una reserva para esa misma fecha y hora");
         }
 
-        $reserva = $this->repo->reservar($dto, $paciente->id);
+        $reservaCreada = $this->repo->reservar($reserva);
 
-        return $reserva->toDTO();
+        return ReservaMapper::toResponse($reservaCreada);
     }
 
-    public function cancelarReserva($idReserva, $paciente): void {
+    public function actualizarReserva(int $id, ActualizarReservaRequest $request): RespuestaReserva {
+        /** @var Reserva $reservaExistente */
+        $reservaExistente = $this->repo->findById($id);
+        if(!$reservaExistente) {
+            throw new ReservaNotFoundException($id);
+        }
+        ReservaMapper::fromRequestActualizar($reservaExistente, $request);
+
+        $coincidencia = $this->repo->buscarCoincidencia($reservaExistente->getIdPaciente(), $reservaExistente->getIdProfesional(), $reservaExistente->getFechaReserva());
+
+        if($coincidencia && $coincidencia->getId() !== $reservaExistente->getId() && $coincidencia->getEstadoReserva() !== EstadoReserva::CANCELADA) {
+            throw new UsuarioConReservaException("Ya existe una reserva para esa misma fecha y hora");
+        }
+
+        $reservaActualizada = $this->repo->actualizarReserva($id, $reservaExistente);
+
+        return ReservaMapper::toResponse($reservaActualizada);
+    }
+
+    public function cancelarReserva(int $idReserva, mixed $paciente): void {
         if(!$this->repo->perteneceAlPaciente($idReserva, $paciente->id)) {
             throw new ForbiddenException("No puedes cancelar una reserva que no es tuya!");
         }
-
-        $reserva = $this->repo->obtenerReserva($idReserva);
+        /** @var Reserva $reserva */
+        $reserva = $this->repo->findById($idReserva);
         $horasMinimas = 24;
         $fechaLimite = new DateTime();
         $fechaLimite->add(new DateInterval("PT{$horasMinimas}H"));
@@ -61,7 +93,7 @@ class ReservasService {
             $ics = new GeneradorIcs();
             foreach($reservas as $reserva) {
                 $contenidoIcs = $ics->generarIcs(
-                    $reserva["fecha_reserva"],
+                    $reserva->getfechaReserva(),
                     date('Y-m-d H:i:s', strtotime($reserva["fecha_reserva"] . ' +30 minutes')),
                     "Reserva con " . $reserva["profesional"],
                     "Recuerda llegar 10 minutos antes. No olvidar estudios previos si fueron solicitados."
@@ -82,7 +114,7 @@ class ReservasService {
                     $urlPublica = "https://sistema-reservas.loca.lt/public/temp_ics/" . $nombreArchivo;
                     $enviado = $whatsappService->enviarRecordatorio($reserva["telefono"], $reserva["paciente"], date("d/m/Y", strtotime($reserva["fecha_reserva"])), date("H:i", strtotime($reserva["fecha_reserva"])), $urlPublica);
                 } else {
-                    throw new Exception("No hay datos de contacto para la reserva {$reserva["id"]}");
+                    throw new \Exception("No hay datos de contacto para la reserva {$reserva["id"]}");
                 }
                 if($enviado) {
                     $this->repo->marcarComoNotificado($reserva["id"]);
@@ -92,7 +124,7 @@ class ReservasService {
                 }
             }
         } catch (\Exception $e) {
-            throw new Exception($e->getMessage());
+            throw new \Exception($e->getMessage());
         }
     }
 }

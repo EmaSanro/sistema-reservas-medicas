@@ -1,48 +1,42 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Reservas\DTOs\Request;
 
-use App\Model\EstadoReserva;
+use App\Reservas\Model\EstadoReserva;
 use OpenApi\Attributes as OA;
-#[OA\Schema(schema: "Reserva", required: ["idProfesional", "fecha"])]
+
+#[OA\Schema(schema: "CrearReservaRequest", required: ["idProfesional", "idPaciente", "fecha"])]
 class CrearReservaRequest {
 
-    #[OA\Property(example: 1)]
+    #[OA\Property(example: 100)]
     private int $idProfesional;
+
+    #[OA\Property(example: 123)]
+    private int $idPaciente;
     #[OA\Property(example: "2026-03-15 18:45:00")]
     private string $fecha;
     #[OA\Property(example: "Confirmada")]
     private string $estado;
 
-    public function __construct(int $idProfesional, string $fecha) {
+    public function __construct(int $idProfesional, int $idPaciente, string $fecha) {
         $this->idProfesional = $idProfesional;
+        $this->idPaciente = $idPaciente;
         $this->fecha = $fecha;
         $this->estado = EstadoReserva::CONFIRMADA;
     }
 
-    public function getIdProfesional() {
+    public function getIdProfesional(): int {
         return $this->idProfesional;
     }
 
-    public function getFecha() {
+    public function getIdPaciente(): int {
+        return $this->idPaciente;
+    }
+
+    public function getFecha(): string {
         return $this->fecha;
     }
 
-    public function getEstadoReserva() {
+    public function getEstadoReserva(): string {
         return $this->estado;
-    }
-
-    public static function fromArray($input) {
-        if (!isset($input['idprofesional'], $input['fecha'])) {
-            throw new \InvalidArgumentException('ERROR: Los campos de idprofesional y fecha son requeridos');
-        }
-        if (!is_numeric($input['idprofesional'])) {
-            throw new \InvalidArgumentException('ERROR: idProfesional debe ser un numero valido');
-        }
-
-        if (!\DateTime::createFromFormat('Y-m-d H:i:s', $input['fecha'])) {
-            throw new \InvalidArgumentException('ERROR: La fecha debe ser un formato válido (YYYY-MM-DD HH:MM:SS)');
-        }
-
-        return new self($input['idprofesional'], $input['fecha']);
     }
 }

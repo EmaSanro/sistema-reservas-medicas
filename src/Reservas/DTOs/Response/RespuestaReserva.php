@@ -1,5 +1,6 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Reservas\DTOs\Response;
+
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(schema: "RespuestaReserva")]
@@ -15,7 +16,7 @@ class RespuestaReserva {
     #[OA\Property(example:"Confirmada")]
     public readonly string $estado;
 
-    public function __construct($id, $idPaciente, $idProfesional, $fecha, $estado) {
+    public function __construct(int $id, int $idPaciente, int $idProfesional, string $fecha, string $estado) {
         $this->idReserva = $id;
         $this->idPaciente = $idPaciente;
         $this->idProfesional = $idProfesional;
