@@ -3,10 +3,10 @@ namespace App\Controller;
 
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\DTOs\ProfesionalDTO;
 use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\ProfesionalesService;
+use App\Profesionales\Mapper\ProfesionalMapper;
+use App\Profesionales\Service\ProfesionalesService;
+use App\Profesionales\Validators\ProfesionalesValidator;
 use OpenApi\Attributes as OA;
 
 class ProfesionalesController extends BaseController {
@@ -63,15 +63,14 @@ class ProfesionalesController extends BaseController {
         description: "No se hallo un profesional con ese id",
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un profesional con ese id"])
     )]
-    public function obtenerPorId($id) {
+    public function obtenerPorId(string $id) {
         try {
             AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-            
-            Validaciones::validarID($id);
-            
-            $prof = $this->service->obtenerPorId($id);
+            ProfesionalesValidator::validarID($id);
 
-            return $this->jsonResponse(200, $prof);
+            $profesional = $this->service->obtenerPorId((int) $id);
+
+            return $this->jsonResponse(200, $profesional);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -109,9 +108,7 @@ class ProfesionalesController extends BaseController {
     )]
     public function obtenerPor() {
         try {
-            if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
-                return $this->jsonResponse(400, ["ERROR" => "Es necesario un filtro y un valor de busqueda"]);
-            }
+            ProfesionalesValidator::validarParametrosBusqueda($_GET["filtro"] ?? '', $_GET["valor"] ?? '');
                 
             $filtro = $_GET["filtro"];
             $valor = $_GET["valor"];
@@ -132,7 +129,7 @@ class ProfesionalesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Profesional")
+        content: new OA\JsonContent(ref: "#/components/schemas/CrearProfesionalRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -141,7 +138,7 @@ class ProfesionalesController extends BaseController {
     )]
     #[OA\Response(
         response: 400,
-        description: "Solicitud erronea: JSON invalido | formato de contraseña incorrecto",
+        description: "Solicitud erronea: Campos invalidos | formato de contraseña incorrecto",
         content: new OA\JsonContent(example:["ERROR" => "La contraseña debe tener un caracter especial!"])
     )]
     #[OA\Response(
@@ -152,15 +149,12 @@ class ProfesionalesController extends BaseController {
     public function registrarProfesional() {
         try {
             AuthMiddleware::handle([Roles::ADMIN]);
-            $input = json_decode(file_get_contents('php://input'), true);
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
             
-            Validaciones::validarInput($input);
-            Validaciones::validarCriteriosPassword($input["password"]);
-            
-            $dto = ProfesionalDTO::fromArray($input);
-            $prof = $this->service->registrarProfesional($dto);
+            ProfesionalesValidator::validarRequestCrear($input);
+            $profesionalCreado = $this->service->registrarProfesional(ProfesionalMapper::toRequestCrear($input));
     
-            return $this->jsonResponse(201, $prof);
+            return $this->jsonResponse(201, $profesionalCreado);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -180,7 +174,7 @@ class ProfesionalesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(ref: "#/components/schemas/Profesional")
+        content: new OA\JsonContent(ref: "#/components/schemas/ActualizarProfesionalRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -189,7 +183,7 @@ class ProfesionalesController extends BaseController {
     )]
     #[OA\Response(
         response: 400,
-        description: "Solicitud erronea: JSON Invalido | ID invalido",
+        description: "Solicitud erronea: Campos invalidos | ID invalido",
         content: new OA\JsonContent(example:["ERROR" => "JSON invalido"])
     )]
     #[OA\Response(
@@ -202,22 +196,17 @@ class ProfesionalesController extends BaseController {
         description: "Conflicto: Usuario ya existente con esos datos!",
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario con ese email y/o telefono ingresado/s"])
     )]
-    public function actualizarProfesional($id) {
+    public function actualizarProfesional(string $id) {
         try {
             $usuario = AuthMiddleware::handle([Roles::PROFESIONAL, Roles::ADMIN]);
-            Validaciones::validarID($id);
+            ProfesionalesValidator::validarID($id);
     
-            $input = json_decode(file_get_contents("php://input"), true);
-            Validaciones::validarInput($input);
-            if(isset($input["password"])) {
-                Validaciones::validarCriteriosPassword($input["password"]);
-            }
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ProfesionalesValidator::validarRequestActualizar($input);
             
-            $dto = ProfesionalDTO::fromArray($input);
+            $profesionalActualizado = $this->service->actualizarProfesional((int) $id, ProfesionalMapper::toRequestActualizar($input), $usuario);
     
-            $profActualizado = $this->service->actualizarProfesional($id, $dto, $usuario);
-    
-            return $this->jsonResponse(200, $profActualizado);
+            return $this->jsonResponse(200, $profesionalActualizado);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -250,18 +239,14 @@ class ProfesionalesController extends BaseController {
         description: "Profesional no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No se encontro un profesional a eliminar con ese id"])
     )]
-    public function darDeBajaProfesional($id) {
+    public function darDeBajaProfesional(string $id) {
         try {
             AuthMiddleware::handle([Roles::ADMIN]);
-            Validaciones::validarID($id);
-            $data = json_decode(file_get_contents("php://input"), true);
-            $motivo = $data["motivo"] ?? "";
+            ProfesionalesValidator::validarID($id);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            ProfesionalesValidator::validarInputBajaPaciente($input);
 
-            if(empty(trim($motivo))) {
-                return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
-            }
-
-            $this->service->darDeBajaProfesional($id, $motivo);
+            $this->service->darDeBajaProfesional($id, $input["motivo"]);
 
             return $this->jsonResponse(204, "");
         } catch (\Throwable $e) {

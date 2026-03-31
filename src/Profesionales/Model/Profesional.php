@@ -1,7 +1,8 @@
 <?php
-namespace App\Model;
+namespace App\Profesionales\Model;
 
-use App\Model\DTOs\RespuestaProfesionalDTO;
+use App\Auth\Model\Usuario;
+use App\Model\Roles;
 
 class Profesional extends Usuario
 {
@@ -9,7 +10,6 @@ class Profesional extends Usuario
 
     private function __construct()
     {
-
     }
 
     public static function create(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null, string $password): self

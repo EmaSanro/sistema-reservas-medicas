@@ -1,12 +1,11 @@
 <?php
 
-namespace App\Repository;
+namespace App\Profesionales\Repository;
 
-use App\Exceptions\DatabaseException;
-use App\Exceptions\Profesionales\ProfesionalNotFoundException;
-use App\Exceptions\UserAlreadyInactiveException;
-use App\Model\Profesional;
+use App\Auth\Exceptions\UserAlreadyInactiveException;
 use App\Model\Roles;
+use App\Profesionales\Exceptions\ProfesionalNotFoundException;
+use App\Profesionales\Model\Profesional;
 use App\Shared\Repository;
 use PDO;
 
@@ -23,14 +22,14 @@ class ProfesionalesRepository extends Repository
         return Profesional::class;
     }
 
-    public function obtenerTodos()
+    public function obtenerTodos(): array
     {
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE rol = :rol";
         $data = $this->findByQuery($sql, ["rol" => Roles::PROFESIONAL]);
         return $data;
     }
 
-    public function obtenerPorId(int $id)
+    public function obtenerPorId(int $id): Profesional|null
     {
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE id = :id";
         $data = $this->findOneByQuery($sql, ["id" => $id]);
@@ -75,9 +74,9 @@ class ProfesionalesRepository extends Repository
         return $data;
     }
 
-    public function buscarCoincidencia(Profesional $prof): int|null //REFACTOR
+    public function buscarCoincidencia(Profesional $prof): Profesional|null //REFACTOR
     {
-        $sql = "SELECT id FROM usuario WHERE telefono = ? OR email = ?";
+        $sql = "SELECT * FROM usuario WHERE telefono = ? OR email = ?";
         $data = $this->findOneByQuery($sql, [$prof->getTelefono(), $prof->getEmail()]);
         return $data;
     }
@@ -86,21 +85,30 @@ class ProfesionalesRepository extends Repository
     {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(?,?,?,?,?,?,?)");
+            $stmtUsuario = $this->db->prepare(
+                "INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) 
+                VALUES(:nombre, :apellido, :rol, :email, :telefono, :activo, :password)
+            ");
             $stmtUsuario->execute([
-                $profesional->getNombre(),
-                $profesional->getApellido(),
-                Roles::PROFESIONAL,
-                $profesional->getEmail(),
-                $profesional->getTelefono(),
-                true,
-                $passwordHash
+                "nombre" => $profesional->getNombre(),
+                "apellido" =>$profesional->getApellido(),
+                "rol" => Roles::PROFESIONAL,
+                "email" => $profesional->getEmail(),
+                "telefono" => $profesional->getTelefono(),
+                "activo" => true,
+                "password" => $passwordHash
             ]);
 
             $id = $this->db->lastInsertId();
 
-            $stmtProfesional = $this->db->prepare("INSERT INTO profesional(idprofesional, profesion) VALUES(?,?)");
-            $stmtProfesional->execute([$id, $profesional->getProfesion()]);
+            $stmtProfesional = $this->db->prepare(
+                "INSERT INTO profesional(idprofesional, profesion) 
+                VALUES(:idprofesional, :profesion)
+            ");
+            $stmtProfesional->execute([
+                "idprofesional" => $id, 
+                "profesion" => $profesional->getProfesion()
+            ]);
 
             $this->db->commit();
 
@@ -113,24 +121,29 @@ class ProfesionalesRepository extends Repository
         }
     }
 
-    public function actualizarProfesional(int $id, Profesional $profesional, ?string $passwordHash = null): Profesional
+    public function actualizarProfesional(int $id, Profesional $profesional): Profesional
     {
         try {
             $this->db->beginTransaction();
-            $query = "UPDATE usuario SET nombre = ?, apellido = ?, email = ?, telefono = ?";
-            $params = [$profesional->getNombre(), $profesional->getApellido(), $profesional->getEmail(), $profesional->getTelefono()];
-            if ($passwordHash != null) {
-                $query .= ", password = ?";
-                $params[] = $passwordHash;
-            }
-            $query .= " WHERE id = ? AND rol = ?";
-            $params[] = $id;
-            $params[] = Roles::PROFESIONAL;
+            $query = "UPDATE usuario SET nombre = :nombre, apellido = :apellido, email = :email, telefono = :telefono";
+            $params = [
+                "nombre" => $profesional->getNombre(), 
+                "apellido" => $profesional->getApellido(), 
+                "email" => $profesional->getEmail(), 
+                "telefono" => $profesional->getTelefono()
+            ];
+
+            $query .= " WHERE id = :id AND rol = :rol";
+            $params["id"] = $id;
+            $params["rol"] = Roles::PROFESIONAL;
             $stmtUsuario = $this->db->prepare($query);
             $stmtUsuario->execute($params);
 
-            $stmtProfesional = $this->db->prepare("UPDATE profesional SET profesion = ? WHERE idprofesional = ?");
-            $stmtProfesional->execute([$profesional->getProfesion(), $id]);
+            $stmtProfesional = $this->db->prepare("UPDATE profesional SET profesion = :profesion WHERE idprofesional = :idprofesional");
+            $stmtProfesional->execute([
+                "profesion" => $profesional->getProfesion(), 
+                "idprofesional" => $id
+            ]);
 
             $id = $this->db->lastInsertId();
             $this->db->commit();
@@ -144,30 +157,36 @@ class ProfesionalesRepository extends Repository
         }
     }
 
-    public function darDeBajaProfesional($id, $motivo): bool
+    public function darDeBajaProfesional(int $id, string $motivo): void
     {
         $stmtUsuario = $this->db->prepare("
-            UPDATE usuario SET activo = false, fecha_baja = NOW(), motivo_baja = ? 
-            WHERE id = ? AND rol = ? AND activo = true
+            UPDATE usuario SET activo = false, fecha_baja = NOW(), motivo_baja = :motivo_baja
+            WHERE id = :id AND rol = :rol AND activo = true
         ");
-        $stmtUsuario->execute([$motivo, $id, Roles::PROFESIONAL]);
+        $stmtUsuario->execute([
+            "motivo_baja" => $motivo, 
+            "id" => $id, 
+            "rol" => Roles::PROFESIONAL
+        ]);
         if ($stmtUsuario->rowCount() === 0) {
             $stmtCheck = $this->db->prepare("
                 SELECT activo FROM usuario
-                WHERE id = ? AND rol = ?
+                WHERE id = :id AND rol = :rol
             ");
-            $stmtCheck->execute([$id, Roles::PROFESIONAL]);
+            $stmtCheck->execute([
+                "id" => $id, 
+                "rol" => Roles::PROFESIONAL
+            ]);
             $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
             if (!$usuario) {
-                throw new ProfesionalNotFoundException("Profesional no encontrado");
+                throw new ProfesionalNotFoundException($id);
             }
             if (!$usuario["activo"]) {
                 throw new UserAlreadyInactiveException("El profesional ya se encuentra inactivo");
             }
 
-            throw new DatabaseException("No se pudo dar de baja el profesional");
+            throw new \Exception("No se pudo dar de baja el profesional");
         }
-        return true;
     }
 }

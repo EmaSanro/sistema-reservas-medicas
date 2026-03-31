@@ -21,6 +21,7 @@ CREATE TABLE nota (
     motivo_visita varchar(150)  NOT NULL,
     texto_nota text  NOT NULL,
     reserva_id int  NOT NULL,
+    created_at date NOT NULL DEFAULT (CURRENT_DATE),
     CONSTRAINT pk_nota PRIMARY KEY (id)
 );
 

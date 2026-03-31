@@ -1,15 +1,16 @@
 <?php
-namespace App\Service;
+namespace App\Profesionales\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\InvalidFilterException;
-use App\Exceptions\Profesionales\ProfesionalNotFoundException;
-use App\Exceptions\Profesionales\ProfesionalWithReserveException;
-use App\Exceptions\UserAlreadyExistsException;
-use App\Exceptions\ValidationException;
-use App\Model\DTOs\RespuestaProfesionalDTO;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Auth\Exceptions\UserAlreadyExistsException;
 use App\Model\Roles;
-use App\Repository\ProfesionalesRepository;
+use App\Profesionales\DTOs\Request\ActualizarProfesionalRequest;
+use App\Profesionales\DTOs\Request\CrearProfesionalRequest;
+use App\Profesionales\DTOs\Response\RespuestaProfesional;
+use App\Profesionales\Exceptions\ProfesionalNotFoundException;
+use App\Profesionales\Exceptions\ProfesionalWithReserveException;
+use App\Profesionales\Mapper\ProfesionalMapper;
+use App\Profesionales\Repository\ProfesionalesRepository;
 use App\Repository\ReservasRepository;
 
 class ProfesionalesService {
@@ -18,73 +19,72 @@ class ProfesionalesService {
 
     public function obtenerTodos(): array {
         $profesionales = $this->repo->obtenerTodos();
-
-        return array_map(fn($profesional) => $profesional->toDTO(), $profesionales ?? []);
+        $response = array_map(fn($profesional) => ProfesionalMapper::toResponse($profesional), $profesionales);
+        return $response;
     }
 
-    public function obtenerPorId($id): RespuestaProfesionalDTO {
+    public function obtenerPorId(int $id): RespuestaProfesional {
         $profesional = $this->repo->obtenerPorId($id);
         if(!$profesional) {
-            throw new ProfesionalNotFoundException("No se encontro un profesional con ese id");
+            throw new ProfesionalNotFoundException($id);
         }
-        return $profesional->toDTO();
+        return ProfesionalMapper::toResponse($profesional);
     }
 
-    public function obtenerPor($filtro, $valor): array {
-        $columnasPermitidas = ["nombre", "apellido", "profesion", "email", "telefono", "consultorio"];
-            
-        if(!in_array($filtro, $columnasPermitidas)) {
-            throw new InvalidFilterException("El filtro ingresado no es valido para la busqueda(nombre, apellido, profesion, email, telefono, consultorio)");
-        }
-
-        $profs = match($filtro) {
+    public function obtenerPor(string $filtro, string $valor): array {
+        $profesionales = match($filtro) {
             'profesion' => $this->repo->obtenerPorProfesion($valor),
             'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor),
             default => $this->repo->buscarPor($filtro, $valor)
         };
 
-        return array_map(fn($prof) => $prof->toDTO(), $profs ?? []);
+        $response = array_map(fn($prof) => ProfesionalMapper::toResponse($prof), $profesionales);
+
+        return $response;
     }
 
-    public function registrarProfesional($dto): RespuestaProfesionalDTO {
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
-        if($coincidencia) {
-            throw new UserAlreadyExistsException("Asegurate de que no haya ningun usuario con ese email y/o telefono ya registrado");
+    public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {
+        $profesional = ProfesionalMapper::fromRequestCrear($request);
+
+        $profesionalExistente = $this->repo->buscarCoincidencia($profesional);
+        if($profesionalExistente) {
+            if($profesionalExistente->getEmail() == $profesional->getEmail()) {
+                throw new UserAlreadyExistsException("email", $profesional->getEmail());
+            }
+            throw new UserAlreadyExistsException("telefono", $profesional->getTelefono());
         }
 
-        $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
+        $passwordHash = password_hash($profesional->getPassword(), PASSWORD_BCRYPT);
 
-        $prof = $this->repo->registrarProfesional($dto, $passwordHash);
+        $profesionalCreado = $this->repo->registrarProfesional($profesional, $passwordHash);
 
-        return $prof->toDTO();
+        return ProfesionalMapper::toResponse($profesionalCreado);
     }
 
-    public function actualizarProfesional($id, $dto, $usuario): RespuestaProfesionalDTO|null {
-        if(!$this->repo->obtenerPorId($id)) {
-            throw new ProfesionalNotFoundException("No se encontro un profesional con ese id");
+    public function actualizarProfesional(int $id, ActualizarProfesionalRequest $request, mixed $usuario): RespuestaProfesional {
+        $profesionalExistente = $this->repo->obtenerPorId($id);
+        if(!$profesionalExistente) {
+            throw new ProfesionalNotFoundException($id);
         }
         if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
            throw new ForbiddenException("No tienes permisos para actualizar un perfil que no sea el tuyo!");
         }
+        ProfesionalMapper::fromRequestActualizar($profesionalExistente, $request);
 
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
-        if($coincidencia && $coincidencia["id"] != $id) {
-            throw new UserAlreadyExistsException("Ya hay un usuario con ese email/telefono");
+        $coincidencia = $this->repo->buscarCoincidencia($profesionalExistente);
+        if($coincidencia && $coincidencia->getId() != $id) {
+            if($coincidencia->getEmail() == $profesionalExistente->getEmail()) {
+                throw new UserAlreadyExistsException("email", $profesionalExistente->getEmail());
+            }
+            throw new UserAlreadyExistsException("telefono", $profesionalExistente->getTelefono());
         }
-        $passwordHash = null;
-        if($dto->getPassword()) {
-            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
-        }
-        $profActualizado = $this->repo->actualizarProfesional($id, $dto, $passwordHash);
-        return $profActualizado->toDTO();
+        $profActualizado = $this->repo->actualizarProfesional($id, $profesionalExistente);
+        return ProfesionalMapper::toResponse($profActualizado);
     }
 
-    public function darDeBajaProfesional($id, $motivo) {
-        if(strlen($motivo) > 255) {
-            throw new ValidationException("El motivo no puede superar los 255 caracteres");
-        }
+    public function darDeBajaProfesional(int $id, string $motivo) {
         if($this->reservaRepo->tieneFuturasReservasProfesional($id)) {
-            throw new ProfesionalWithReserveException("El profesional tiene futuras reservas");
+            throw new ProfesionalWithReserveException("El profesional tiene reservas pendientes");
         }
         $this->repo->darDeBajaProfesional($id, $motivo);
     }

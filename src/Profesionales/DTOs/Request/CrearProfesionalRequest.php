@@ -1,9 +1,9 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Profesionales\DTOs\Request;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(schema: "Profesional", required: ["nombre", "apellido", "profesion", "email", "telefono", "password"])]
+#[OA\Schema(schema: "CrearProfesionalRequest", required: ["nombre", "apellido", "profesion", "email", "telefono", "password"])]
 class CrearProfesionalRequest {
     #[Oa\Property(example: "Roberto")]
     private string $nombre;
@@ -27,26 +27,26 @@ class CrearProfesionalRequest {
         $this->password = $password;
     }
 
-    public function getNombre() {
+    public function getNombre(): string {
         return $this->nombre;
     }
-    public function getApellido() {
+    public function getApellido(): string {
         return $this->apellido;
     }
 
-    public function getProfesion() {
+    public function getProfesion(): string {
         return $this->profesion;
     }
 
-    public function getEmail() {
+    public function getEmail(): string|null {
         return $this->email;
     }
 
-    public function getTelefono() {
+    public function getTelefono(): string|null {
         return $this->telefono;
     }
 
-    public function getPassword() {
+    public function getPassword(): string {
         return $this->password;
     }
 
