@@ -1,13 +1,13 @@
 <?php
 namespace App\Reservas\Controller;
 
-use App\Controller\BaseController;
+use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\Roles;
 use App\Reservas\Mapper\ReservaMapper;
 use App\Reservas\Service\ReservasService;
 use App\Reservas\Validators\ReservaValidator;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
 class ReservasController extends BaseController {

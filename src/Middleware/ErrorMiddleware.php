@@ -1,7 +1,6 @@
 <?php
 namespace App\Middleware;
 
-use App\Controller\BaseController;
 use App\Shared\Exceptions\AppException;
 use App\Shared\Exceptions\BusinessValidationException;
 use App\Shared\Exceptions\ValidationException;

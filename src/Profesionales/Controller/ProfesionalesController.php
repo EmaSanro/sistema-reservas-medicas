@@ -1,12 +1,13 @@
 <?php
 namespace App\Controller;
 
+use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\Roles;
 use App\Profesionales\Mapper\ProfesionalMapper;
 use App\Profesionales\Service\ProfesionalesService;
 use App\Profesionales\Validators\ProfesionalesValidator;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
 class ProfesionalesController extends BaseController {

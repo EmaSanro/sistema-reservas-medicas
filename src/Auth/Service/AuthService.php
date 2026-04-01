@@ -1,7 +1,7 @@
 <?php
-namespace App\Service;
+namespace App\Auth\Service;
 
-use App\Repository\AuthRepository;
+use App\Auth\Repository\AuthRepository;
 use App\Security\JWTHandler;
 
 class AuthService {

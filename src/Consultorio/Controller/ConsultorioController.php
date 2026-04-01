@@ -1,13 +1,13 @@
 <?php
 namespace App\Consultorio\Controller;
 
+use App\Auth\Model\Roles;
 use App\Consultorio\Mapper\ConsultorioMapper;
 use App\Consultorio\Service\ConsultorioService;
 use App\Consultorio\Validators\ConsultorioValidator;
-use App\Controller\BaseController;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\Roles;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
 class ConsultorioController extends BaseController {

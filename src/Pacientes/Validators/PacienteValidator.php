@@ -1,4 +1,5 @@
 <?php
+namespace App\Pacientes\Validators;
 
 use App\Shared\Exceptions\ValidationException;
 

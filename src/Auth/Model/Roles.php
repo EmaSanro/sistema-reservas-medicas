@@ -1,5 +1,5 @@
 <?php
-namespace App\Model;
+namespace App\Auth\Model;
 class Roles {
     public const PACIENTE = "Paciente";
     public const PROFESIONAL = "Profesional";

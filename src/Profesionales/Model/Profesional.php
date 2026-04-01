@@ -1,8 +1,8 @@
 <?php
 namespace App\Profesionales\Model;
 
+use App\Auth\Model\Roles;
 use App\Auth\Model\Usuario;
-use App\Model\Roles;
 
 class Profesional extends Usuario
 {

@@ -1,8 +1,9 @@
 <?php
+
 use App\Controller\PacientesController;
-use App\Repository\PacientesRepository;
-use App\Repository\ReservasRepository;
-use App\Service\PacientesService;
+use App\Pacientes\Repository\PacientesRepository;
+use App\Pacientes\Service\PacientesService;
+use App\Reservas\Repository\ReservasRepository;
 
 $pacientesRepository = new PacientesRepository();
 $reservasRepository = new ReservasRepository();

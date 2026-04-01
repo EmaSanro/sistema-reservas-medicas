@@ -10,8 +10,8 @@ use App\Nota\Exceptions\NotaNotFoundException;
 use App\Nota\Mapper\NotaMapper;
 use App\Nota\Model\Nota;
 use App\Nota\Repository\NotaRepository;
-use App\Repository\ReservasRepository;
 use App\Reservas\Exceptions\ReservaNotFoundException;
+use App\Reservas\Repository\ReservasRepository;
 
 class NotaService {
     

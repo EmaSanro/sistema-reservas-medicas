@@ -1,7 +1,7 @@
 <?php
 namespace App\Cron;
 
-use App\Service\ReservasService;
+use App\Reservas\Service\ReservasService;
 
 class Recordatorios {
     private $service;

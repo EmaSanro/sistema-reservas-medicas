@@ -1,8 +1,8 @@
 <?php
 namespace App\Pacientes\Mapper;
 
+use App\Auth\Model\Roles;
 use App\Auth\Model\Usuario;
-use App\Model\Roles;
 use App\Pacientes\DTOs\Request\ActualizarPacienteRequest;
 use App\Pacientes\DTOs\Request\CrearPacienteRequest;
 use App\Pacientes\DTOs\Response\RespuestaPaciente;

@@ -1,8 +1,9 @@
 <?php
+
 use App\Controller\ProfesionalesController;
-use App\Repository\ProfesionalesRepository;
-use App\Repository\ReservasRepository;
-use App\Service\ProfesionalesService;
+use App\Profesionales\Repository\ProfesionalesRepository;
+use App\Profesionales\Service\ProfesionalesService;
+use App\Reservas\Repository\ReservasRepository;
 
 $profesionalesRepository = new ProfesionalesRepository();
 $reservasRepository = new ReservasRepository();

@@ -14,8 +14,6 @@ use App\Reservas\Mapper\ReservaMapper;
 use App\Reservas\Model\EstadoReserva;
 use App\Reservas\Model\Reserva;
 use App\Reservas\Repository\ReservasRepository;
-use App\Service\MailService;
-use App\Service\WhatsappService;
 use DateInterval;
 use DateTime;
 

@@ -76,7 +76,7 @@ class ConsultorioRepository extends Repository {
         } 
     }
 
-    public function buscarPorCiudadDireccion(string $ciudad, string $direccion): array {
+    public function buscarPorCiudadDireccion(string $ciudad, string $direccion): Consultorio|null {
         $sql = sprintf("SELECT * FROM %s WHERE ciudad = :ciudad AND direccion = :direccion", $this->getTableName());
         $consultorios = $this->findOneByQuery($sql, ["ciudad" => $ciudad, "direccion" => $direccion]);
         return $consultorios;

@@ -1,8 +1,8 @@
 <?php
 
 use App\Cron\Recordatorios;
-use App\Repository\ReservasRepository;
-use App\Service\ReservasService;
+use App\Reservas\Repository\ReservasRepository;
+use App\Reservas\Service\ReservasService;
 
 require_once "vendor/autoload.php";
 

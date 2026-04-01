@@ -1,5 +1,5 @@
 <?php
-namespace App\Controller;
+namespace App\Shared; // CORREGIR NAMESPACE ACA Y EN LOS DEMAS CONTROLADORES
 
 use OpenApi\Attributes as OA;
 #[OA\Info(version: "1.0.0", title: "API Reservas medicas", description: "API para gestionar las reservas medicas")]

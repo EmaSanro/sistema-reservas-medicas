@@ -1,8 +1,8 @@
 <?php
 
-use App\Controller\ReservasController;
-use App\Repository\ReservasRepository;
-use App\Service\ReservasService;
+use App\Reservas\Controller\ReservasController;
+use App\Reservas\Repository\ReservasRepository;
+use App\Reservas\Service\ReservasService;
 
 $reservasRepository = new ReservasRepository();
 $reservasService = new ReservasService($reservasRepository);

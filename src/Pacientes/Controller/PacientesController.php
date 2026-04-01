@@ -1,13 +1,14 @@
 <?php
 namespace App\Controller;
 
+use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\Roles;
 use App\Pacientes\Mapper\PacienteMapper;
 use App\Pacientes\Service\PacientesService;
+use App\Pacientes\Validators\PacienteValidator;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
-use PacienteValidator;
 
 class PacientesController extends BaseController {
 

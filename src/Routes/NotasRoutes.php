@@ -1,11 +1,11 @@
 <?php
 
-use App\Controller\NotaController;
-use App\Repository\ArchivoNotaRepository;
-use App\Repository\NotaRepository;
-use App\Repository\ReservasRepository;
-use App\Service\ArchivoNotaService;
-use App\Service\NotaService;
+use App\Nota\Controller\NotaController;
+use App\Nota\Repository\ArchivoNotaRepository;
+use App\Nota\Repository\NotaRepository;
+use App\Nota\Service\ArchivoNotaService;
+use App\Nota\Service\NotaService;
+use App\Reservas\Repository\ReservasRepository;
 
 $notaRepository = new NotaRepository();
 $reservasRepository = new ReservasRepository();

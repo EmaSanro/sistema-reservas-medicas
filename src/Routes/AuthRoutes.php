@@ -1,8 +1,8 @@
 <?php
 
-use App\Controller\AuthController;
-use App\Repository\AuthRepository;
-use App\Service\AuthService;
+use App\Auth\Controller\AuthController;
+use App\Auth\Repository\AuthRepository;
+use App\Auth\Service\AuthService;
 
 $authRepository = new AuthRepository();
 $authService = new AuthService($authRepository);

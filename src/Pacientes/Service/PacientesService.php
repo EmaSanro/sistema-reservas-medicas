@@ -3,7 +3,7 @@ namespace App\Pacientes\Service;
 
 use App\Auth\Exceptions\ForbiddenException;
 use App\Auth\Exceptions\UserAlreadyExistsException;
-use App\Model\Roles;
+use App\Auth\Model\Roles;
 use App\Pacientes\DTOs\Request\ActualizarPacienteRequest;
 use App\Pacientes\DTOs\Request\CrearPacienteRequest;
 use App\Pacientes\DTOs\Response\RespuestaPaciente;
@@ -11,7 +11,7 @@ use App\Pacientes\Exceptions\PacienteNotFoundException;
 use App\Pacientes\Exceptions\PacienteWithReserveException;
 use App\Pacientes\Mapper\PacienteMapper;
 use App\Pacientes\Repository\PacientesRepository;
-use App\Repository\ReservasRepository;
+use App\Reservas\Repository\ReservasRepository;
 
 class PacientesService {
 

@@ -3,7 +3,7 @@
 namespace App\Profesionales\Repository;
 
 use App\Auth\Exceptions\UserAlreadyInactiveException;
-use App\Model\Roles;
+use App\Auth\Model\Roles;
 use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Profesionales\Model\Profesional;
 use App\Shared\Repository;

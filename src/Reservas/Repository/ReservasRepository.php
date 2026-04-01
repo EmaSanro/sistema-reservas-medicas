@@ -2,7 +2,7 @@
 
 namespace App\Reservas\Repository;
 
-use App\Model\Roles;
+use App\Auth\Model\Roles;
 use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
 use App\Reservas\Exceptions\ReservaCompletedException;

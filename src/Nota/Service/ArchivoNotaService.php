@@ -13,7 +13,7 @@ use App\Nota\Model\Nota;
 use App\Nota\Repository\ArchivoNotaRepository;
 use App\Nota\Repository\NotaRepository;
 use App\Nota\Validators\ArchivoNotaValidator;
-use App\Repository\ReservasRepository;
+use App\Reservas\Repository\ReservasRepository;
 
 class ArchivoNotaService {
     private const RUTA_BASE = __DIR__ . '/../../storage/notas_adjuntos/';

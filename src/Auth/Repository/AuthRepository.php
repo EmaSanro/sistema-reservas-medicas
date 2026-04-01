@@ -1,5 +1,5 @@
 <?php
-namespace App\Repository;
+namespace App\Auth\Repository;
 
 use App\Auth\Model\Usuario;
 use App\Shared\Repository;

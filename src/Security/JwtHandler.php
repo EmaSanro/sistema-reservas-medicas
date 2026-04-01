@@ -1,7 +1,7 @@
 <?php
 namespace App\Security;
 
-use App\Exceptions\Auth\InvalidTokenException;
+use App\Auth\Exceptions\InvalidTokenException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 

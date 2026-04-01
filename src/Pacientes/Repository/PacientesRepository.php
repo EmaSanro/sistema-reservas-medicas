@@ -3,8 +3,8 @@
 namespace App\Pacientes\Repository;
 
 use App\Auth\Exceptions\UserAlreadyInactiveException;
+use App\Auth\Model\Roles;
 use App\Auth\Model\Usuario;
-use App\Model\Roles;
 use App\Pacientes\Exceptions\PacienteNotFoundException;
 use App\Shared\Repository;
 use PDO;

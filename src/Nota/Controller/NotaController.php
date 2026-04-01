@@ -1,14 +1,14 @@
 <?php
 namespace App\Nota\Controller;
 
-use App\Controller\BaseController;
+use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
-use App\Model\Roles;
 use App\Nota\Mapper\NotaMapper;
 use App\Nota\Service\ArchivoNotaService;
 use App\Nota\Service\NotaService;
 use App\Nota\Validators\NotaValidator;
+use App\Shared\BaseController;
 
 class NotaController extends BaseController {
 

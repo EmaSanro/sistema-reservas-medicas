@@ -2,6 +2,7 @@
 namespace App\Consultorio\Service;
 
 use App\Auth\Exceptions\ForbiddenException;
+use App\Auth\Model\Roles;
 use App\Consultorio\DTOs\Request\ActualizarConsultorioRequest;
 use App\Consultorio\DTOs\Request\CrearConsultorioRequest;
 use App\Consultorio\DTOs\Response\RespuestaConsultorio;
@@ -10,7 +11,6 @@ use App\Consultorio\Exceptions\ConsultorioNotFoundException;
 use App\Consultorio\Mapper\ConsultorioMapper;
 use App\Consultorio\Model\Consultorio;
 use App\Consultorio\Repository\ConsultorioRepository;
-use App\Model\Roles;
 
 class ConsultorioService {
 

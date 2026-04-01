@@ -1,10 +1,10 @@
 <?php
-namespace App\Controller;
+namespace App\Auth\Controller;
 
+use App\Auth\Service\AuthService;
 use App\Auth\Validators\AuthValidator;
 use App\Middleware\ErrorMiddleware;
-use App\Security\Validaciones;
-use App\Service\AuthService;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
 class AuthController extends BaseController {

@@ -3,7 +3,7 @@ namespace App\Profesionales\Service;
 
 use App\Auth\Exceptions\ForbiddenException;
 use App\Auth\Exceptions\UserAlreadyExistsException;
-use App\Model\Roles;
+use App\Auth\Model\Roles;
 use App\Profesionales\DTOs\Request\ActualizarProfesionalRequest;
 use App\Profesionales\DTOs\Request\CrearProfesionalRequest;
 use App\Profesionales\DTOs\Response\RespuestaProfesional;
@@ -11,7 +11,7 @@ use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Profesionales\Exceptions\ProfesionalWithReserveException;
 use App\Profesionales\Mapper\ProfesionalMapper;
 use App\Profesionales\Repository\ProfesionalesRepository;
-use App\Repository\ReservasRepository;
+use App\Reservas\Repository\ReservasRepository;
 
 class ProfesionalesService {
 
