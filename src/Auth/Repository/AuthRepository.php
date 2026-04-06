@@ -20,4 +20,20 @@ class AuthRepository extends Repository {
 
         return $usuario;
     }
+
+    public function buscarCoincidencia(Usuario $usuario): Usuario|null {
+        $sql = sprintf("SELECT * FROM %s", $this->getTableName());
+        if($usuario->getEmail() && $usuario->getTelefono()) {
+            $sql .= " WHERE (email = :email OR telefono = :telefono)";
+            $usuarioExistente = $this->findOneByQuery($sql, ["email" => $usuario->getEmail(), "telefono" => $usuario->getTelefono()]);
+        } elseif ($usuario->getEmail()) {
+            $sql .= " WHERE email = :email";
+            $usuarioExistente = $this->findOneByQuery($sql, ["email" => $usuario->getEmail()]);
+        } elseif ($usuario->getTelefono()) {
+            $sql .= " WHERE telefono = :telefono";
+            $usuarioExistente = $this->findOneByQuery($sql, ["telefono" => $usuario->getTelefono()]);
+        }
+
+        return $usuarioExistente;
+    }
 }

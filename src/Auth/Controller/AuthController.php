@@ -1,6 +1,7 @@
 <?php
 namespace App\Auth\Controller;
 
+use App\Auth\Mapper\AuthMapper;
 use App\Auth\Service\AuthService;
 use App\Auth\Validators\AuthValidator;
 use App\Middleware\ErrorMiddleware;
@@ -18,7 +19,7 @@ class AuthController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(ref: "#/components/schemas/LoginRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -40,24 +41,9 @@ class AuthController extends BaseController {
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             AuthValidator::validateInputLogin($input);
 
-            $token = $this->service->login($input);
+            $response = $this->service->login(AuthMapper::toLoginRequest($input));
             
-            if($token) {
-                $this->jsonResponse(
-                    200,
-                    [
-                        "OK" => "logueado correctamente",
-                        "TOKEN" => $token
-                    ]
-                );
-            } else {
-                $this->jsonResponse(
-                    401,
-                    [
-                        "ERROR" => "Credenciales incorrectas!"
-                    ]
-                );
-            }
+            $this->jsonResponse(200, $response);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

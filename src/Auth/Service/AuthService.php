@@ -1,15 +1,19 @@
 <?php
 namespace App\Auth\Service;
 
+use App\Auth\DTOs\Request\LoginRequest;
+use App\Auth\DTOs\Response\LoginResponse;
+use App\Auth\Exceptions\WrongCredentialsException;
+use App\Auth\Mapper\AuthMapper;
 use App\Auth\Repository\AuthRepository;
 use App\Security\JWTHandler;
 
 class AuthService {
     public function __construct(private AuthRepository $repo){ }
 
-    public function login($loginRequest) {
-        $usuario = $this->repo->buscarUsuario(($loginRequest["email"] ?? $loginRequest["telefono"]));
-        if($usuario && password_verify($loginRequest["password"], $usuario->getPassword())) {
+    public function login(LoginRequest $loginRequest): LoginResponse {
+        $usuario = $this->repo->buscarUsuario(($loginRequest->getEmail() ?? $loginRequest->getTelefono()));
+        if($usuario && password_verify($loginRequest->getPassword(), $usuario->getPassword())) {
             $payload = [
                 "id" => $usuario->getId(),
                 "nombre" => $usuario->getNombre() . " ". $usuario->getApellido(),
@@ -18,7 +22,9 @@ class AuthService {
                 "telefono" => $usuario->getTelefono()
             ];
             $token = JWTHandler::generateToken($payload);
-            return $token;
+            return AuthMapper::toLoginResponse($token);
+        } else {
+            throw new WrongCredentialsException();
         }
     }
 }
