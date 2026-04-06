@@ -15,15 +15,15 @@ class ErrorMiddleware {
         // Si es una excepción de la app
         if ($e instanceof AppException) {
             $body = [
-                'error' => $e->getSafeMessage()
+                'message' => $e->getSafeMessage()
             ];
             
             if($e instanceof ValidationException) {
-                $body["error"]["campos"] = $e->getErrors();
+                $body["errors"] = $e->getErrors();
             }
 
             if($e instanceof BusinessValidationException && $e->getField() !== null) {
-                $body["error"]["campos"] = $e->getField();
+                $body["errors"] = $e->getField();
             }
             self::jsonResponse($e->getStatusCode(), $body);
             return;
@@ -45,8 +45,6 @@ class ErrorMiddleware {
         http_response_code($statusCode);
         header('Content-Type: application/json');
 
-        echo json_encode([
-            "error" => $message
-        ]);
+        echo json_encode($message);
     }
 }
