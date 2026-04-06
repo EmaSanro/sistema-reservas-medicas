@@ -40,8 +40,8 @@ CREATE TABLE reservas (
     fecha_reserva datetime  NOT NULL,
     estado varchar(15)  NOT NULL,
     fecha_cancelacion datetime  NULL,
-    UNIQUE INDEX reservas_ak_idprofesional (idprofesional),
-    UNIQUE INDEX reservas_ak_idpaciente (idpaciente),
+    INDEX reservas_ak_idprofesional (idprofesional),
+    INDEX reservas_ak_idpaciente (idpaciente),
     CONSTRAINT pk_reservas PRIMARY KEY (id)
 );
 
