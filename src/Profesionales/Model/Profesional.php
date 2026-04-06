@@ -12,7 +12,7 @@ class Profesional extends Usuario
     {
     }
 
-    public static function create(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null, string $password): self
+    public static function create(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, string $password, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null): self
     {
         $profesional = new self();
         $profesional->setNombre($nombre);

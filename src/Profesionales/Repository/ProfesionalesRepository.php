@@ -4,6 +4,7 @@ namespace App\Profesionales\Repository;
 
 use App\Auth\Exceptions\UserAlreadyInactiveException;
 use App\Auth\Model\Roles;
+use App\Auth\Model\Usuario;
 use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Profesionales\Model\Profesional;
 use App\Shared\Repository;
@@ -74,13 +75,6 @@ class ProfesionalesRepository extends Repository
         return $data;
     }
 
-    public function buscarCoincidencia(Profesional $prof): Profesional|null //REFACTOR
-    {
-        $sql = "SELECT * FROM usuario WHERE telefono = ? OR email = ?";
-        $data = $this->findOneByQuery($sql, [$prof->getTelefono(), $prof->getEmail()]);
-        return $data;
-    }
-
     public function registrarProfesional(Profesional $profesional, string $passwordHash): Profesional
     {
         try {
@@ -145,10 +139,15 @@ class ProfesionalesRepository extends Repository
                 "idprofesional" => $id
             ]);
 
-            $id = $this->db->lastInsertId();
+            if($stmtProfesional->rowCount() === 0) {
+                $profesional->setId((int) $id);
+            } else {
+                $id = $this->db->lastInsertId();
+                $profesional->setId((int) $id);
+            }
+
             $this->db->commit();
 
-            $profesional->setId((int) $id);
 
             return $profesional;
         } catch (\Throwable $e) {

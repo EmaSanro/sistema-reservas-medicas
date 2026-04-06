@@ -49,22 +49,4 @@ class CrearProfesionalRequest {
     public function getPassword(): string {
         return $this->password;
     }
-
-    public static function fromArray($input) {
-        if(!isset($input["nombre"], $input["apellido"], $input["password"], $input["profesion"]) || !(isset($input["email"]) || isset($input["telefono"]))) {
-            throw new \InvalidArgumentException("ERROR: Completa los campos requeridos(nombre, apellido, contraseña, profesion, email y/o telefono)");
-        }
-        if(isset($input["email"]) && !filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
-            throw new \InvalidArgumentException("ERROR : Email invalido");
-        }
-
-        return new self(
-            ucwords(strtolower($input["nombre"])), 
-            ucwords(strtolower($input["apellido"])), 
-            ucwords(strtolower($input["profesion"])), 
-            $input["email"] ?? null, 
-            $input["telefono"] ?? null,
-            $input["password"]
-            );
-    } 
 }

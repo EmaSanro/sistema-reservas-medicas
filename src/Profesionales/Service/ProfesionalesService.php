@@ -4,6 +4,7 @@ namespace App\Profesionales\Service;
 use App\Auth\Exceptions\ForbiddenException;
 use App\Auth\Exceptions\UserAlreadyExistsException;
 use App\Auth\Model\Roles;
+use App\Auth\Repository\AuthRepository;
 use App\Profesionales\DTOs\Request\ActualizarProfesionalRequest;
 use App\Profesionales\DTOs\Request\CrearProfesionalRequest;
 use App\Profesionales\DTOs\Response\RespuestaProfesional;
@@ -15,7 +16,10 @@ use App\Reservas\Repository\ReservasRepository;
 
 class ProfesionalesService {
 
-    public function __construct(private ProfesionalesRepository $repo, private ReservasRepository $reservaRepo) { }
+    public function __construct(
+        private ProfesionalesRepository $repo, 
+        private ReservasRepository $reservaRepo,
+        private AuthRepository $authRepository) { }
 
     public function obtenerTodos(): array {
         $profesionales = $this->repo->obtenerTodos();
@@ -46,9 +50,9 @@ class ProfesionalesService {
     public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {
         $profesional = ProfesionalMapper::fromRequestCrear($request);
 
-        $profesionalExistente = $this->repo->buscarCoincidencia($profesional);
+        $profesionalExistente = $this->authRepository->buscarCoincidencia($profesional);
         if($profesionalExistente) {
-            if($profesionalExistente->getEmail() == $profesional->getEmail()) {
+            if($profesionalExistente->getEmail() === $profesional->getEmail() && $profesionalExistente->getEmail() !== null) {
                 throw new UserAlreadyExistsException("email", $profesional->getEmail());
             }
             throw new UserAlreadyExistsException("telefono", $profesional->getTelefono());
@@ -71,9 +75,9 @@ class ProfesionalesService {
         }
         ProfesionalMapper::fromRequestActualizar($profesionalExistente, $request);
 
-        $coincidencia = $this->repo->buscarCoincidencia($profesionalExistente);
+        $coincidencia = $this->authRepository->buscarCoincidencia($profesionalExistente);
         if($coincidencia && $coincidencia->getId() != $id) {
-            if($coincidencia->getEmail() == $profesionalExistente->getEmail()) {
+            if($coincidencia->getEmail() === $profesionalExistente->getEmail() && $coincidencia->getEmail() !== null) {
                 throw new UserAlreadyExistsException("email", $profesionalExistente->getEmail());
             }
             throw new UserAlreadyExistsException("telefono", $profesionalExistente->getTelefono());

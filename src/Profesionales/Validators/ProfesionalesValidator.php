@@ -47,8 +47,12 @@ class ProfesionalesValidator {
                 $errors[$campo] = "El campo $campo es obligatorio.";
             }
         }
+
+        if(!empty($errors)) {
+            throw new ValidationException($errors);
+        }
         
-        if(!isset($input["email"]) || !isset($input["telefono"])) {
+        if(!isset($input["email"]) && !isset($input["telefono"])) {
             $errors["contacto"] = "Al menos un dato de contacto (email o teléfono) es obligatorio!";
         }
 
@@ -70,11 +74,11 @@ class ProfesionalesValidator {
             $errors["profesion"] = "La profesión solo puede contener letras y espacios.";
         }
 
-        if(!filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
+        if(isset($input["email"]) && !filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
             $errors["email"] = "El email no tiene un formato válido";
         }
 
-        if(!preg_match("/^\d{7,15}$/", $input["telefono"])) {
+        if(isset($input["telefono"]) && !preg_match("/^\d{7,15}$/", $input["telefono"])) {
             $errors["telefono"] = "El teléfono debe contener solo dígitos y tener entre 7 y 15 caracteres";
         }
 

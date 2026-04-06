@@ -1,5 +1,5 @@
 <?php
-namespace App\Controller;
+namespace App\Profesionales\Controller;
 
 use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
@@ -123,7 +123,7 @@ class ProfesionalesController extends BaseController {
     }
 
     #[OA\Post(
-        path: "/profesionales",
+        path: "/profesionales/registrar",
         summary: "Registrar un profesional",
         tags: ["Profesionales"],
         security: [ ["bearerAuth" => []] ]
@@ -161,7 +161,7 @@ class ProfesionalesController extends BaseController {
         }
     }
 
-    #[OA\Put(
+    #[OA\Patch(
         path: "/profesionales/{id}",
         summary: "Actualizar datos del profesional",
         tags: ["Profesionales"],
@@ -224,6 +224,20 @@ class ProfesionalesController extends BaseController {
         in: "path",
         required: true,
         schema: new OA\Schema(type: "integer")
+    )]
+    #[OA\RequestBody(
+        required: true,
+        content: new OA\JsonContent(
+            required: ["motivo"],
+            properties: [
+                new OA\Property(
+                    property: "motivo",
+                    type: "string",
+                    description: "Motivo de la baja del profesional",
+                    example: "El profesional ha estado inactivo por mas de 6 meses"
+                )
+            ]
+        )
     )]
     #[OA\Response(
         response: 204,
