@@ -80,7 +80,7 @@ class ConsultorioController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example:"#/components/schemas/CrearConsultorioRequest")
+        content: new OA\JsonContent(ref:"#/components/schemas/CrearConsultorioRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -128,7 +128,7 @@ class ConsultorioController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example:"#/components/schemas/ActualizarConsultorioRequest")
+        content: new OA\JsonContent(ref:"#/components/schemas/ActualizarConsultorioRequest")
     )]
     #[OA\Response(
         response: 200,

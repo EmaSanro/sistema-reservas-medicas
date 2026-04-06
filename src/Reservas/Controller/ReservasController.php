@@ -76,7 +76,7 @@ class ReservasController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/CrearReservaRequest")
+        content: new OA\JsonContent(ref: "#/components/schemas/CrearReservaRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -121,7 +121,7 @@ class ReservasController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/ActualizarReservaRequest")
+        content: new OA\JsonContent(ref: "#/components/schemas/ActualizarReservaRequest")
     )]
     #[OA\Response(
         response: 200,
