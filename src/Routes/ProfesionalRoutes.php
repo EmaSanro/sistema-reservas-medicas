@@ -1,13 +1,15 @@
 <?php
 
-use App\Controller\ProfesionalesController;
+use App\Auth\Repository\AuthRepository;
+use App\Profesionales\Controller\ProfesionalesController;
 use App\Profesionales\Repository\ProfesionalesRepository;
 use App\Profesionales\Service\ProfesionalesService;
 use App\Reservas\Repository\ReservasRepository;
 
 $profesionalesRepository = new ProfesionalesRepository();
+$authRepository = new AuthRepository();
 $reservasRepository = new ReservasRepository();
-$profesionalesService = new ProfesionalesService($profesionalesRepository, $reservasRepository);
+$profesionalesService = new ProfesionalesService($profesionalesRepository, $reservasRepository, $authRepository);
 $profesionalesController = new ProfesionalesController($profesionalesService);
 
 $router->get('/api/profesionales', [$profesionalesController, "obtenerTodos"]);
@@ -17,5 +19,5 @@ $router->get('/api/profesionales/profesion/:profesion', [$profesionalesControlle
 $router->get('/api/profesionales/email/:email', [$profesionalesController, "obtenerPorEmail"]);
 $router->get('/api/profesionales/telefono/:telefono', [$profesionalesController, "obtenerPorTelefono"]);
 $router->post("/api/profesionales/registrar", [$profesionalesController, "registrarProfesional"]);
-$router->put("/api/profesionales/:id", [$profesionalesController, "actualizarProfesional"]);
-$router->delete("/api/profesionales/:id", [$profesionalesController, "eliminarProfesional"]);
+$router->patch("/api/profesionales/:id", [$profesionalesController, "actualizarProfesional"]);
+$router->delete("/api/profesionales/:id", [$profesionalesController, "darDeBajaProfesional"]);

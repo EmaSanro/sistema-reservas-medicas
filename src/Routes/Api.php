@@ -10,7 +10,7 @@ require_once __DIR__ . '/ReservasRoutes.php';
 require_once __DIR__ . '/AuthRoutes.php';
 require_once __DIR__ . '/NotasRoutes.php';
 
-$router->get("/api/docs", function() {
+$router->get("/api/docs/", function() {
     header('Content-Type: text/html; charset=utf-8');
     include __DIR__ . '/../../public/docs.php';
 });
