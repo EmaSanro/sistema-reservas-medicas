@@ -12,6 +12,9 @@ class Router {
     public function put(string $ruta, callable|array $operador) {
         $this->addRoute("PUT", $ruta, $operador);
     }
+    public function patch(string $ruta, callable|array $operador) {
+        $this->addRoute("PATCH", $ruta, $operador);
+    }
     public function delete(string $ruta, callable|array $operador) {
         $this->addRoute("DELETE", $ruta, $operador);
     }
@@ -55,6 +58,6 @@ class Router {
             }
         }
         http_response_code(404);
-        echo json_encode('Error ruta no encontrada');
+        echo json_encode("Error ruta no encontrada $URL");
     }
 }
