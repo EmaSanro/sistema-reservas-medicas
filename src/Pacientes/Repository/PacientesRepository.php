@@ -42,18 +42,7 @@ class PacientesRepository extends Repository
         $pacientes = $this->findByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE]);
         return $pacientes;
     }
-
-    public function buscarCoincidencia(Usuario $paciente): Usuario|null
-    {
-        $sql = "SELECT * FROM usuario WHERE (telefono = :telefono OR email = :email) AND rol = :rol";
-        $paciente = $this->findOneByQuery($sql, [
-            "telefono" => $paciente->getTelefono(),
-            "email" => $paciente->getEmail(),
-            "rol" => Roles::PACIENTE
-        ]);
-        return $paciente;
-    }
-
+    
     public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario
     {
         try {

@@ -4,6 +4,7 @@ namespace App\Pacientes\Service;
 use App\Auth\Exceptions\ForbiddenException;
 use App\Auth\Exceptions\UserAlreadyExistsException;
 use App\Auth\Model\Roles;
+use App\Auth\Repository\AuthRepository;
 use App\Pacientes\DTOs\Request\ActualizarPacienteRequest;
 use App\Pacientes\DTOs\Request\CrearPacienteRequest;
 use App\Pacientes\DTOs\Response\RespuestaPaciente;
@@ -15,7 +16,10 @@ use App\Reservas\Repository\ReservasRepository;
 
 class PacientesService {
 
-    public function __construct(private PacientesRepository $repo, private ReservasRepository $reservasRepo){ }
+    public function __construct(
+        private PacientesRepository $repo, 
+        private ReservasRepository $reservasRepo,
+        private AuthRepository $authRepo){ }
 
     public function obtenerTodos(): array {
         $pacientes = $this->repo->obtenerTodos();
@@ -40,7 +44,7 @@ class PacientesService {
 
     public function registrarPaciente(CrearPacienteRequest $request): RespuestaPaciente {
         $paciente = PacienteMapper::fromRequestCrear($request);
-        $coincidencia = $this->repo->buscarCoincidencia($paciente);
+        $coincidencia = $this->authRepo->buscarCoincidencia($paciente);
         if($coincidencia) {
             if($coincidencia->getEmail() === $paciente->getEmail()) {
                 throw new UserAlreadyExistsException("email", $paciente->getEmail());
@@ -67,7 +71,7 @@ class PacientesService {
 
         PacienteMapper::fromRequestActualizar($pacienteExistente, $request);
 
-        $pacienteDuplicado = $this->repo->buscarCoincidencia($pacienteExistente);
+        $pacienteDuplicado = $this->authRepo->buscarCoincidencia($pacienteExistente);
 
         if($pacienteDuplicado && $pacienteDuplicado->getId() != $id) {
             if($pacienteDuplicado->getEmail() === $pacienteExistente->getEmail()) {

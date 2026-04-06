@@ -30,7 +30,7 @@ class PacienteValidator {
             $errors["valor"] = "El valor para el filtro $filtro solo puede contener letras y espacios";
         }
 
-        if($filtro === "telefono" && !preg_match("/{0-9}/", $valor)) {
+        if($filtro === "telefono" && !preg_match("/^[0-9]+$/", $valor)) {
             $errors["valor"] = "El valor para el filtro teléfono debe contener solo dígitos";
         }
 
@@ -47,13 +47,17 @@ class PacienteValidator {
             }
         }
 
-        if(!isset($input["email"]) || !isset($input["telefono"])) {
+        if(!empty($errors)) {
+            throw new ValidationException($errors);
+        }
+
+        if(!isset($input["email"]) && !isset($input["telefono"])) {
             $errors["contacto"] = "Al menos un dato de contacto (email o teléfono) es obligatorio!";
         }
 
         if(!is_string($input["nombre"])) {
             $errors["nombre"] = "El nombre debe ser una cadena de texto";
-        } elseif(preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚüÜ]+$/", $input["nombre"])) {
+        } elseif(!preg_match("/^[a-zA-Z\sñáéíóúÁÉÍÓÚ]+$/", $input["nombre"])) {
             $errors["nombre"] = "El nombre solo puede contener letras";
         }
 
@@ -63,11 +67,11 @@ class PacienteValidator {
             $errors["apellido"] = "El apellido solo puede contener letras y espacios";
         }
 
-        if(!filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
+        if(isset($input["email"]) && !filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
             $errors["email"] = "El email no tiene un formato válido";
         }
 
-        if(!preg_match("/^\d{7,15}$/", $input["telefono"])) {
+        if(isset($input["telefono"]) && !preg_match("/^\d{7,15}$/", $input["telefono"])) {
             $errors["telefono"] = "El teléfono debe contener solo dígitos y tener entre 7 y 15 caracteres";
         }
 

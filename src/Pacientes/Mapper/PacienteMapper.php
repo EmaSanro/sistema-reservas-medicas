@@ -35,7 +35,7 @@ class PacienteMapper {
             Roles::PACIENTE,
             $request->getEmail(),
             $request->getTelefono(),
-            password: $request->getPassword()
+            $request->getPassword()
         );
     }
 

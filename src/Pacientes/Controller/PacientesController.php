@@ -1,5 +1,5 @@
 <?php
-namespace App\Controller;
+namespace App\Pacientes\Controller;
 
 use App\Auth\Model\Roles;
 use App\Middleware\AuthMiddleware;
@@ -130,13 +130,13 @@ class PacientesController extends BaseController {
     }
 
     #[OA\Post(
-        path: "/pacientes",
+        path: "/pacientes/registrar",
         summary: "Registrarse como paciente",
         tags: ["Pacientes"]
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/CrearPacienteRequest")
+        content: new OA\JsonContent(ref: "#/components/schemas/CrearPacienteRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -167,7 +167,7 @@ class PacientesController extends BaseController {
         }
     }
     
-    #[OA\Put(
+    #[OA\Patch(
         path: "/paciente/{id}",
         summary: "Actualizar datos del usuario",
         tags: ["Pacientes"],
@@ -181,7 +181,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/ActualizarPacienteRequest")
+        content: new OA\JsonContent(ref: "#/components/schemas/ActualizarPacienteRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -249,7 +249,7 @@ class PacientesController extends BaseController {
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             PacienteValidator::validarInputBajaPaciente($input);
             
-            $this->service->darDeBajaPaciente((int) $id, $input);
+            $this->service->darDeBajaPaciente((int) $id, $input["motivo"]);
 
             return $this->jsonResponse(204, "");
         } catch (\Throwable $e) {
