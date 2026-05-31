@@ -43,8 +43,8 @@ class ErrorMiddleware {
 
     private static function jsonResponse(int $statusCode, mixed $message): void {
         http_response_code($statusCode);
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
 
-        echo json_encode($message);
+        echo json_encode($message, JSON_UNESCAPED_UNICODE);
     }
 }

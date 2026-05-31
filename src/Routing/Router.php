@@ -58,6 +58,6 @@ class Router {
             }
         }
         http_response_code(404);
-        echo json_encode("Error ruta no encontrada $URL");
+        echo json_encode("Error ruta no encontrada $URL", JSON_UNESCAPED_UNICODE);
     }
 }

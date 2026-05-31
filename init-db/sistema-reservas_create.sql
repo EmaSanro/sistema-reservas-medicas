@@ -1,7 +1,10 @@
 -- Created by Redgate Data Modeler (https://datamodeler.redgate-platform.com)
 -- Last modification date: 2026-02-09 21:20:22.429
+DROP DATABASE IF EXISTS sistemareservas;
 
-CREATE DATABASE IF NOT EXISTS sistemareservas;
+CREATE DATABASE sistemareservas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE sistemareservas;
+
 -- tables
 -- Table: Consultorio
 CREATE TABLE consultorio (
@@ -13,7 +16,7 @@ CREATE TABLE consultorio (
     id_profesional int  NULL,
     UNIQUE INDEX ak_id_profesional (id_profesional),
     CONSTRAINT pk_id PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Table: Nota
 CREATE TABLE nota (
@@ -23,14 +26,14 @@ CREATE TABLE nota (
     reserva_id int  NOT NULL,
     created_at date NOT NULL DEFAULT (CURRENT_DATE),
     CONSTRAINT pk_nota PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Table: Profesional
 CREATE TABLE profesional (
     idprofesional int  NOT NULL,
     profesion varchar(60)  NOT NULL,
     CONSTRAINT pk_profesional PRIMARY KEY (idprofesional)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Table: Reservas
 CREATE TABLE reservas (
@@ -43,7 +46,7 @@ CREATE TABLE reservas (
     INDEX reservas_ak_idprofesional (idprofesional),
     INDEX reservas_ak_idpaciente (idpaciente),
     CONSTRAINT pk_reservas PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Table: Usuario
 CREATE TABLE usuario (
@@ -60,7 +63,7 @@ CREATE TABLE usuario (
     UNIQUE INDEX email_ak (email),
     UNIQUE INDEX telefono_ak (telefono),
     CONSTRAINT pk_usuario PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Table: archivo_nota
 CREATE TABLE archivo_nota (
@@ -73,7 +76,7 @@ CREATE TABLE archivo_nota (
     fecha_subida datetime  NOT NULL,
     nota_id int  NOT NULL,
     CONSTRAINT pk_archivo_nota PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- foreign keys
 -- Reference: Reservas_Usuario (table: Reservas)
