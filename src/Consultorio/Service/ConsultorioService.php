@@ -16,11 +16,11 @@ class ConsultorioService {
 
     public function __construct(private ConsultorioRepository $repo) { }
 
-    public function obtenerConsultorios(): array {
-        $consultorios = $this->repo->findAll();
-        $response = array_map(fn($consultorio) => ConsultorioMapper::toResponse($consultorio), $consultorios);
+    public function obtenerConsultorios(int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->findPaginated($page, $limit);
+        $paginated['data'] = array_map(fn($consultorio) => ConsultorioMapper::toResponse($consultorio), $paginated['data']);
 
-        return $response;
+        return $paginated;
     }
 
     public function obtenerConsultorio(int $id): RespuestaConsultorio {

@@ -21,10 +21,10 @@ class PacientesService {
         private ReservasRepository $reservasRepo,
         private AuthRepository $authRepo){ }
 
-    public function obtenerTodos(): array {
-        $pacientes = $this->repo->obtenerTodos();
-        $response = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $pacientes);
-        return $response;
+    public function obtenerTodos(int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->obtenerTodos($page, $limit);
+        $paginated['data'] = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $paginated['data']);
+        return $paginated;
     }
 
     public function obtenerPorId(int $id): RespuestaPaciente {
@@ -35,11 +35,10 @@ class PacientesService {
         return PacienteMapper::toResponse($paciente);
     }
 
-    public function buscarPor(string $filtro, string $valor): array {
-        $pacientesFiltrados = $this->repo->buscarPor($filtro, $valor);
-
-        $response = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $pacientesFiltrados);
-        return $response;
+    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->buscarPor($filtro, $valor, $page, $limit);
+        $paginated['data'] = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $paginated['data']);
+        return $paginated;
     }
 
     public function registrarPaciente(CrearPacienteRequest $request): RespuestaPaciente {

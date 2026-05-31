@@ -22,11 +22,10 @@ class PacientesRepository extends Repository
         return Usuario::class;
     }
 
-    public function obtenerTodos(): array
+    public function obtenerTodos(int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT * FROM usuario WHERE rol = :rol";
-        $pacientes = $this->findByQuery($sql, ["rol" => Roles::PACIENTE]);
-        return $pacientes;
+        return $this->findPaginatedByQuery($sql, ["rol" => Roles::PACIENTE], $page, $limit);
     }
 
     public function obtenerPorId(int $id): Usuario|null
@@ -36,11 +35,10 @@ class PacientesRepository extends Repository
         return $paciente;
     }
 
-    public function buscarPor(string $filtro, string $valor): array
+    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT * FROM usuario WHERE $filtro LIKE :valor AND rol = :rol";
-        $pacientes = $this->findByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE]);
-        return $pacientes;
+        return $this->findPaginatedByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE], $page, $limit);
     }
     
     public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario

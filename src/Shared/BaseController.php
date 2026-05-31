@@ -14,7 +14,18 @@ abstract class BaseController {
     
     protected function jsonResponse(int $code, mixed $response) {
         http_response_code($code);
-        echo json_encode($response);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($response, JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    protected function paginatedResponse(int $code, array $data, int $total, int $page, int $limit) {
+        $response = [
+            'data' => $data,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit
+        ];
+        $this->jsonResponse($code, $response);
     }
 }

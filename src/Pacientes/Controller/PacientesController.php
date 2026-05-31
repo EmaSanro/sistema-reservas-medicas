@@ -32,9 +32,12 @@ class PacientesController extends BaseController {
         try {
             AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
 
-            $pacientes = $this->service->obtenerTodos();
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
 
-            return $this->jsonResponse(200, $pacientes);
+            $paginated = $this->service->obtenerTodos($page, $limit);
+
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -121,9 +124,12 @@ class PacientesController extends BaseController {
             $filtro = $_GET["filtro"];
             $valor = $_GET["valor"];
             
-            $pacientes = $this->service->buscarPor($filtro, $valor);
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+
+            $paginated = $this->service->buscarPor($filtro, $valor, $page, $limit);
     
-            return $this->jsonResponse(200, $pacientes);
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

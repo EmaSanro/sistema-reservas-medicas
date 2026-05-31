@@ -120,7 +120,7 @@ class PacienteValidator {
         $errors = [];
         if(!isset($input["motivo"]) || empty(trim($input["motivo"]))) {
             $errors["motivo"] = "El motivo de baja es obligatorio!";
-        } elseif(strlen($input["motivo"]) > 255) {
+        } elseif(mb_strlen($input["motivo"]) > 255) {
             $errors["motivo"] = "El motivo no puede contener mas de 255 caracteres!";
         }
 

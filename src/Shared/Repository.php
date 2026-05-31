@@ -33,6 +33,11 @@ abstract class Repository {
         return $entities;
     }
 
+    public function findPaginated(int $page = 1, int $limit = 10): array {
+        $sql = sprintf("SELECT * FROM %s", $this->getTableName());
+        return $this->findPaginatedByQuery($sql, [], $page, $limit);
+    }
+
     public function findById(int $id): ?Entity {
         $sql = sprintf("SELECT * FROM %s WHERE id = ?", $this->getTableName());
         $stmt = $this->db->prepare($sql);
@@ -55,6 +60,22 @@ abstract class Repository {
         }
 
         return $entities;
+    }
+
+    protected function findPaginatedByQuery(string $sql, array $params = [], int $page = 1, int $limit = 10): array {
+        $countSql = "SELECT COUNT(*) as total FROM ($sql) as sub";
+        $stmtCount = $this->prepareAndExecute($countSql, $params);
+        $total = (int) $stmtCount->fetch(PDO::FETCH_ASSOC)['total'];
+
+        $offset = ($page - 1) * $limit;
+        $sql .= " LIMIT $limit OFFSET $offset";
+        
+        $entities = $this->findByQuery($sql, $params);
+
+        return [
+            'data' => $entities,
+            'total' => $total
+        ];
     }
 
     protected function findOneByQuery(string $sql, array $params = []): ?Entity {

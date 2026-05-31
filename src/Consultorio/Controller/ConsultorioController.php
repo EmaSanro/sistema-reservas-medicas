@@ -30,9 +30,12 @@ class ConsultorioController extends BaseController {
     )]
     public function obtenerConsultorios() {
         try {
-            $consultorios = $this->service->obtenerConsultorios();
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+
+            $paginated = $this->service->obtenerConsultorios($page, $limit);
             
-            return $this->jsonResponse(200, $consultorios);
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

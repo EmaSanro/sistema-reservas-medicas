@@ -23,12 +23,11 @@ class ReservasRepository extends Repository
         return Reserva::class;
     }
 
-    public function obtenerReservasPorUsuarioId(int $id, string $rol): array
+    public function obtenerReservasPorUsuarioId(int $id, string $rol, int $page = 1, int $limit = 10): array
     {
         $columna = ($rol == Roles::PACIENTE) ? "idpaciente" : "idprofesional";
         $sql = "SELECT * FROM reservas WHERE $columna = :id";
-        $data = $this->findByQuery($sql, ["id" => $id]);
-        return $data;
+        return $this->findPaginatedByQuery($sql, ["id" => $id], $page, $limit);
     }
 
     // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {

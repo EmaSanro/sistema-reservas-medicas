@@ -29,9 +29,12 @@ class ProfesionalesController extends BaseController {
     )]
     public function obtenerTodos() {
         try {
-            $profesionales = $this->service->obtenerTodos();
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
 
-            return $this->jsonResponse(200, $profesionales);
+            $paginated = $this->service->obtenerTodos($page, $limit);
+
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -114,9 +117,12 @@ class ProfesionalesController extends BaseController {
             $filtro = $_GET["filtro"];
             $valor = $_GET["valor"];
             
-            $profs = $this->service->obtenerPor($filtro, $valor);
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             
-            return $this->jsonResponse(200, $profs);
+            $paginated = $this->service->obtenerPor($filtro, $valor, $page, $limit);
+            
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

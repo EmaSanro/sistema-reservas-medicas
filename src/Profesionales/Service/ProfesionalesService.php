@@ -21,10 +21,10 @@ class ProfesionalesService {
         private ReservasRepository $reservaRepo,
         private AuthRepository $authRepository) { }
 
-    public function obtenerTodos(): array {
-        $profesionales = $this->repo->obtenerTodos();
-        $response = array_map(fn($profesional) => ProfesionalMapper::toResponse($profesional), $profesionales);
-        return $response;
+    public function obtenerTodos(int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->obtenerTodos($page, $limit);
+        $paginated['data'] = array_map(fn($profesional) => ProfesionalMapper::toResponse($profesional), $paginated['data']);
+        return $paginated;
     }
 
     public function obtenerPorId(int $id): RespuestaProfesional {
@@ -35,16 +35,16 @@ class ProfesionalesService {
         return ProfesionalMapper::toResponse($profesional);
     }
 
-    public function obtenerPor(string $filtro, string $valor): array {
-        $profesionales = match($filtro) {
-            'profesion' => $this->repo->obtenerPorProfesion($valor),
-            'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor),
-            default => $this->repo->buscarPor($filtro, $valor)
+    public function obtenerPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array {
+        $paginated = match($filtro) {
+            'profesion' => $this->repo->obtenerPorProfesion($valor, $page, $limit),
+            'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor, $page, $limit),
+            default => $this->repo->buscarPor($filtro, $valor, $page, $limit)
         };
 
-        $response = array_map(fn($prof) => ProfesionalMapper::toResponse($prof), $profesionales);
+        $paginated['data'] = array_map(fn($prof) => ProfesionalMapper::toResponse($prof), $paginated['data']);
 
-        return $response;
+        return $paginated;
     }
 
     public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {

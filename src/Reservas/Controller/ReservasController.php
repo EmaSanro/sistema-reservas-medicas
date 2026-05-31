@@ -31,9 +31,12 @@ class ReservasController extends BaseController {
         try {
             AuthMiddleware::handle([Roles::ADMIN]);
     
-            $reservas = $this->service->obtenerTodas();
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+            
+            $paginated = $this->service->obtenerTodas($page, $limit);
     
-            return $this->jsonResponse(200, $reservas);
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -61,9 +64,12 @@ class ReservasController extends BaseController {
         try {
             $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
     
-            $reservas = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol);
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             
-            return $this->jsonResponse(200, $reservas);
+            $paginated = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol, $page, $limit);
+            
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

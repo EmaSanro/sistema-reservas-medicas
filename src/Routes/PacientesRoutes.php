@@ -1,5 +1,6 @@
 <?php
 
+use App\Auth\Repository\AuthRepository;
 use App\Pacientes\Controller\PacientesController;
 use App\Pacientes\Repository\PacientesRepository;
 use App\Pacientes\Service\PacientesService;
@@ -7,7 +8,8 @@ use App\Reservas\Repository\ReservasRepository;
 
 $pacientesRepository = new PacientesRepository();
 $reservasRepository = new ReservasRepository();
-$pacientesService = new PacientesService($pacientesRepository, $reservasRepository);
+$authRepository = new AuthRepository();
+$pacientesService = new PacientesService($pacientesRepository, $reservasRepository, $authRepository);
 $pacientesController = new PacientesController($pacientesService);
 
 

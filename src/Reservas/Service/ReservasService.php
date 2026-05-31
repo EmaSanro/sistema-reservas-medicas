@@ -20,17 +20,17 @@ use DateTime;
 class ReservasService {
     public function __construct(private ReservasRepository $repo) {}
 
-    public function obtenerTodas(): array {
-        $reservas = $this->repo->findAll();
-        $response = array_map(fn($reserva) => ReservaMapper::toResponse($reserva), $reservas);
-        return $response;
+    public function obtenerTodas(int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->findPaginated($page, $limit);
+        $paginated['data'] = array_map(fn($reserva) => ReservaMapper::toResponse($reserva), $paginated['data']);
+        return $paginated;
     }
 
-    public function obtenerReservasPorUsuarioId(int $id, string $rol): array {
-        $reservas = $this->repo->obtenerReservasPorUsuarioId($id, $rol);
-        $response = array_map(fn($reserva) => $reserva->toDTO(), $reservas);
+    public function obtenerReservasPorUsuarioId(int $id, string $rol, int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->obtenerReservasPorUsuarioId($id, $rol, $page, $limit);
+        $paginated['data'] = array_map(fn($reserva) => $reserva->toDTO(), $paginated['data']);
 
-        return $response;
+        return $paginated;
     }
 
     public function reservar(CrearReservaRequest $request): RespuestaReserva {

@@ -23,11 +23,10 @@ class ProfesionalesRepository extends Repository
         return Profesional::class;
     }
 
-    public function obtenerTodos(): array
+    public function obtenerTodos(int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE rol = :rol";
-        $data = $this->findByQuery($sql, ["rol" => Roles::PROFESIONAL]);
-        return $data;
+        return $this->findPaginatedByQuery($sql, ["rol" => Roles::PROFESIONAL], $page, $limit);
     }
 
     public function obtenerPorId(int $id): Profesional|null
@@ -37,18 +36,16 @@ class ProfesionalesRepository extends Repository
         return $data;
     }
 
-    public function buscarPor(string $filtro, string $valor): array
+    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE $filtro LIKE :valor AND u.rol = :rol";
-        $data = $this->findByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PROFESIONAL]);
-        return $data;
+        return $this->findPaginatedByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PROFESIONAL], $page, $limit);
     }
 
-    public function obtenerPorProfesion(string $profesion): array
+    public function obtenerPorProfesion(string $profesion, int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE p.profesion LIKE :profesion";
-        $data = $this->findByQuery($sql, ["profesion" => ucwords("%$profesion%")]);
-        return $data;
+        return $this->findPaginatedByQuery($sql, ["profesion" => ucwords("%$profesion%")], $page, $limit);
     }
 
     public function obtenerPorTelefono(string $telefono): Profesional|null
@@ -65,14 +62,13 @@ class ProfesionalesRepository extends Repository
         return $data;
     }
 
-    public function obtenerProfesionalPorUbicacion(string $valor): array
+    public function obtenerProfesionalPorUbicacion(string $valor, int $page = 1, int $limit = 10): array
     {
         $sql = "SELECT u.*, p.profesion FROM usuario u 
                 JOIN profesional p ON u.id = p.idprofesional 
                 JOIN consultorio c ON p.idprofesional = c.idprofesional 
                 WHERE c.direccion LIKE :direccion OR c.ciudad LIKE :ciudad";
-        $data = $this->findByQuery($sql, ["direccion" => "%$valor%", "ciudad" => "%$valor%"]);
-        return $data;
+        return $this->findPaginatedByQuery($sql, ["direccion" => "%$valor%", "ciudad" => "%$valor%"], $page, $limit);
     }
 
     public function registrarProfesional(Profesional $profesional, string $passwordHash): Profesional
