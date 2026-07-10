@@ -24,8 +24,11 @@ final class RecordatorioService {
     /**
      * Recorre las reservas pendientes y las notifica. Aísla los fallos por reserva:
      * un error en una notificación no interrumpe el resto del batch.
+     * Antes del envío, purga ICS temporales viejos para que el directorio no crezca.
      */
     public function enviarPendientes(): void {
+        $this->limpiarIcsAntiguos();
+
         $recordatorios = $this->reservasRepository->recordatoriosPendientes();
         if (empty($recordatorios)) {
             return;
@@ -77,14 +80,55 @@ final class RecordatorioService {
     }
 
     private function publicarIcsTemporal(int $reservaId, string $contenido): string {
-        $nombreArchivo = "cita_{$reservaId}.ics";
-        $rutaFisica = __DIR__ . "/../../../public/temp_ics/{$nombreArchivo}";
+        $this->ensureTempIcsDir();
+
+        // Nombre aleatorio (128 bits) → no se puede enumerar la carpeta
+        // adivinando IDs de reserva. La relación reserva↔archivo se guarda en el log.
+        $nombreArchivo = bin2hex(random_bytes(16)) . '.ics';
+        $rutaFisica = $this->tempIcsDir() . "/{$nombreArchivo}";
 
         if (file_put_contents($rutaFisica, $contenido) === false) {
             throw new RuntimeException("No se pudo escribir el ICS temporal en {$rutaFisica}");
         }
 
+        error_log("ICS temporal para reserva {$reservaId} publicado como {$nombreArchivo}");
+
         $base = $_ENV['ICS_PUBLIC_BASE_URL'] ?? 'https://sistema-reservas.loca.lt/public/temp_ics';
         return rtrim($base, '/') . "/{$nombreArchivo}";
+    }
+
+    private function tempIcsDir(): string {
+        return __DIR__ . '/../../../public/temp_ics';
+    }
+
+    private function ensureTempIcsDir(): void {
+        $dir = $this->tempIcsDir();
+        // Doble is_dir para tolerar condiciones de carrera (otro proceso lo crea entre medio).
+        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+            throw new RuntimeException("No se pudo crear el directorio de ICS temporales: {$dir}");
+        }
+    }
+
+    /**
+     * Borra archivos ICS con mtime más viejo que $maxAgeHours horas.
+     * No propaga fallos: un unlink que falla se logea y sigue.
+     */
+    private function limpiarIcsAntiguos(int $maxAgeHours = 24): void {
+        $dir = $this->tempIcsDir();
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $limite = time() - ($maxAgeHours * 3600);
+
+        foreach (glob($dir . '/*.ics') ?: [] as $archivo) {
+            $mtime = @filemtime($archivo);
+            if ($mtime === false || $mtime > $limite) {
+                continue;
+            }
+            if (@unlink($archivo) === false) {
+                error_log("No se pudo borrar ICS antiguo: {$archivo}");
+            }
+        }
     }
 }
