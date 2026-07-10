@@ -11,8 +11,8 @@ CREATE TABLE consultorio (
     id int  NOT NULL,
     direccion varchar(100)  NOT NULL,
     ciudad varchar(60)  NOT NULL,
-    horario_apertura datetime  NOT NULL,
-    horario_cierre datetime  NOT NULL,
+    horario_apertura time  NOT NULL,
+    horario_cierre time  NOT NULL,
     id_profesional int  NULL,
     UNIQUE INDEX ak_id_profesional (id_profesional),
     CONSTRAINT pk_id PRIMARY KEY (id)
