@@ -17,7 +17,7 @@ class ReservaMapper {
 
     public static function toRequestActualizar(array $input): ActualizarReservaRequest {
         return new ActualizarReservaRequest(
-            isset($input["fecha"]) ? $input["fecha"] : null,
+            isset($input["fecha_reserva"]) ? $input["fecha_reserva"] : null,
             isset($input["estado"]) ? $input["estado"] : null
         );
     }
@@ -26,7 +26,7 @@ class ReservaMapper {
         return Reserva::create(
             $request->getIdPaciente(),
             $request->getIdProfesional(),
-            $request->getFecha(),
+            $request->getFechaReserva(),
             $request->getEstadoReserva()
         );
     }

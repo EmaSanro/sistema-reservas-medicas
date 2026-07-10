@@ -6,7 +6,7 @@ use DateTime;
 
 class ReservaValidator {
 
-    private const CAMPOS_REQUERIDOS = ["idProfesional", "fecha"];
+    private const CAMPOS_REQUERIDOS = ["idProfesional", "fecha_reserva"];
 
     public static function validarRequestCrear(array $data) {
         $errors = [];
@@ -21,12 +21,12 @@ class ReservaValidator {
             $errors["idProfesional"] = ["El ID del profesional debe ser un número entero positivo."];
         }
 
-        if(isset($data["fecha"])) {
-            $fecha = DateTime::createFromFormat("Y-m-d H:i:s", $data["fecha"]);
+        if(isset($data["fecha_reserva"])) {
+            $fecha = DateTime::createFromFormat("Y-m-d H:i:s", $data["fecha_reserva"]);
             if(!$fecha) {
-                $errors["fecha"] = ["La fecha debe tener el formato 'Y-m-d H:i:s'."];
+                $errors["fecha_reserva"] = ["La fecha debe tener el formato 'Y-m-d H:i:s'."];
             } elseif ($fecha < new DateTime()) {
-                $errors["fecha"] = ["La fecha de reserva no puede ser en el pasado."];
+                $errors["fecha_reserva"] = ["La fecha de reserva no puede ser en el pasado."];
             }
         }
 
@@ -38,12 +38,12 @@ class ReservaValidator {
     public static function validarRequestActualizar(array $data) {
         $errors = [];
 
-        if(isset($data["fecha"])) {
-            $fecha = DateTime::createFromFormat("Y-m-d H:i:s", $data["fecha"]);
+        if(isset($data["fecha_reserva"])) {
+            $fecha = DateTime::createFromFormat("Y-m-d H:i:s", $data["fecha_reserva"]);
             if(!$fecha) {
-                $errors["fecha"] = ["La fecha debe tener el formato 'Y-m-d H:i:s'."];
+                $errors["fecha_reserva"] = ["La fecha debe tener el formato 'Y-m-d H:i:s'."];
             } elseif ($fecha < new DateTime()) {
-                $errors["fecha"] = ["La fecha de reserva no puede ser en el pasado."];
+                $errors["fecha_reserva"] = ["La fecha de reserva no puede ser en el pasado."];
             }
         }
 
