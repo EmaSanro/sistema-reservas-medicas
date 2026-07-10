@@ -1,14 +1,18 @@
 <?php
 
-use App\Cron\Recordatorios;
+use App\Helper\GeneradorIcs;
 use App\Reservas\Repository\ReservasRepository;
-use App\Reservas\Service\ReservasService;
+use App\Reservas\Service\MailService;
+use App\Reservas\Service\RecordatorioService;
+use App\Reservas\Service\WhatsappService;
 
-require_once "vendor/autoload.php";
+require_once __DIR__ . '/../../vendor/autoload.php';
 
-$reservasRepository = new ReservasRepository();
-$service = new ReservasService($reservasRepository);
-$cron = new Recordatorios($service);
+$recordatorioService = new RecordatorioService(
+    new ReservasRepository(),
+    new MailService(),
+    new WhatsappService(),
+    new GeneradorIcs(),
+);
 
-// 2. Corres la tarea
-$cron->enviarNotificaciones();
+$recordatorioService->enviarPendientes();

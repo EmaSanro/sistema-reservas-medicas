@@ -6,10 +6,12 @@ use App\Auth\Model\Roles;
 use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
 use App\Reservas\Exceptions\ReservaCompletedException;
 use App\Reservas\Model\EstadoReserva;
+use App\Reservas\Model\RecordatorioReserva;
 use App\Reservas\Model\Reserva;
 use App\Reservas\Validators\ReservaSearchValidator;
 use App\Shared\Repository;
 use App\Shared\Search\SearchQueryBuilder;
+use PDO;
 
 class ReservasRepository extends Repository
 {
@@ -157,16 +159,34 @@ class ReservasRepository extends Repository
         }
     }
 
-    public function ReservasPendientesNotificacion(): array
+    /**
+     * Reservas CONFIRMADAS de mañana que todavía no se notificaron.
+     *
+     * @return list<RecordatorioReserva>
+     */
+    public function recordatoriosPendientes(): array
     {
         $sql = "
-            SELECT r.*, CONCAT(pac.nombre, ' ', pac.apellido) as paciente, pac.email, pac.telefono, CONCAT(prof.nombre, ' ', prof.apellido) as profesional FROM reservas r
-            JOIN usuario pac ON pac.id = r.idpaciente
+            SELECT r.id,
+                   r.fecha_reserva,
+                   CONCAT(pac.nombre, ' ', pac.apellido) AS paciente,
+                   pac.email,
+                   pac.telefono,
+                   CONCAT(prof.nombre, ' ', prof.apellido) AS profesional
+            FROM reservas r
+            JOIN usuario pac  ON pac.id  = r.idpaciente
             JOIN usuario prof ON prof.id = r.idprofesional
-            WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY) AND r.notificado = 0
+            WHERE DATE(r.fecha_reserva) = DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+              AND r.notificado = 0
+              AND r.estado = :estado
         ";
-        $reservas = $this->prepareAndExecute($sql)->fetchAll();
-        return $reservas;
+        $stmt = $this->prepareAndExecute($sql, ["estado" => EstadoReserva::CONFIRMADA]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map(
+            static fn(array $row): RecordatorioReserva => RecordatorioReserva::fromDatabase($row),
+            $rows
+        );
     }
 
     public function marcarComoNotificado(int $id): void
