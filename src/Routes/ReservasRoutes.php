@@ -1,17 +1,20 @@
 <?php
 
+use App\Auth\Model\Roles;
+use App\Profesionales\Repository\ProfesionalesRepository;
 use App\Reservas\Controller\ReservasController;
 use App\Reservas\Repository\ReservasRepository;
 use App\Reservas\Service\ReservasService;
 
 $reservasRepository = new ReservasRepository();
-$reservasService = new ReservasService($reservasRepository);
+$profesionalesRepository = new ProfesionalesRepository();
+$reservasService = new ReservasService($reservasRepository, $profesionalesRepository);
 $reservasController = new ReservasController($reservasService);
 
-$router->get("/api/reservas", [$reservasController, "obtenerTodas"]);
-$router->get("/api/reservas/mis-reservas", [$reservasController, "obtenerReservasPorUsuarioId"]);
-$router->get("/api/reservas/profesional/:idProfesional", [$reservasController, "obtenerReservasDeProfesional"]);
-$router->get("/api/reservas/paciente/:idPaciente", [$reservasController, "obtenerReservasDePaciente"]);
-$router->get("/api/reservas/buscarPor", [$reservasController, "obtenerPor"]);
-$router->post("/api/reservas/reservar", [$reservasController, "reservar"]);
-$router->put("/api/reservas/cancelar/:id", [$reservasController, "cancelarReserva"]);
+$router->get("/api/reservas", [$reservasController, "listar"], [Roles::ADMIN]);
+$router->get("/api/reservas/mis-reservas", [$reservasController, "obtenerReservasPorUsuarioId"], [Roles::PACIENTE, Roles::PROFESIONAL]);
+$router->get("/api/reservas/profesional/:idProfesional", [$reservasController, "obtenerReservasDeProfesional"], [Roles::ADMIN]);
+$router->get("/api/reservas/paciente/:idPaciente", [$reservasController, "obtenerReservasDePaciente"], [Roles::ADMIN]);
+$router->post("/api/reservas/reservar", [$reservasController, "reservar"], [Roles::PACIENTE]);
+$router->patch("/api/reservas/:id", [$reservasController, "actualizarReserva"], [Roles::ADMIN, Roles::PROFESIONAL]);
+$router->put("/api/reservas/cancelar/:id", [$reservasController, "cancelarReserva"], [Roles::PACIENTE]);

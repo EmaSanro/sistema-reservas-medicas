@@ -1,8 +1,6 @@
 <?php
 namespace App\Nota\Controller;
 
-use App\Auth\Model\Roles;
-use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
 use App\Nota\Mapper\NotaMapper;
 use App\Nota\Service\ArchivoNotaService;
@@ -16,7 +14,7 @@ class NotaController extends BaseController {
 
     public function crearNota() {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+            $usuario = $this->usuarioAutenticado();
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             NotaValidator::validarRequestCrear($input);
             $archivos = $this->procesarArchivos();
@@ -31,7 +29,7 @@ class NotaController extends BaseController {
 
     public function obtenerNotaPorId(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+            $usuario = $this->usuarioAutenticado();
 
             NotaValidator::validarID($id);
 
@@ -45,7 +43,7 @@ class NotaController extends BaseController {
 
     public function actualizarNota(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
+            $usuario = $this->usuarioAutenticado();
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             NotaValidator::validarID($id);
             NotaValidator::validarRequestActualizar($input);
@@ -65,8 +63,8 @@ class NotaController extends BaseController {
             NotaValidator::validarID($idNota);
             NotaValidator::validarID($idArchivo);
     
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]); 
-    
+            $usuario = $this->usuarioAutenticado();
+
             $archivo = $this->archivoService->obtenerArchivoNota((int) $idNota, (int) $idArchivo, $usuario);
     
             if(!file_exists($archivo->getRuta())) {
@@ -91,8 +89,8 @@ class NotaController extends BaseController {
             NotaValidator::validarID($idNota);
             NotaValidator::validarID($idArchivo);
     
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL]);
-    
+            $usuario = $this->usuarioAutenticado();
+
             $this->archivoService->eliminarArchivoNota($idArchivo, $idNota, $usuario);
     
             return $this->jsonResponse(204, "");

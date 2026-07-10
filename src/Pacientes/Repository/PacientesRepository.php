@@ -6,7 +6,9 @@ use App\Auth\Exceptions\UserAlreadyInactiveException;
 use App\Auth\Model\Roles;
 use App\Auth\Model\Usuario;
 use App\Pacientes\Exceptions\PacienteNotFoundException;
+use App\Pacientes\Validators\PacienteSearchValidator;
 use App\Shared\Repository;
+use App\Shared\Search\SearchQueryBuilder;
 use PDO;
 
 class PacientesRepository extends Repository
@@ -22,10 +24,15 @@ class PacientesRepository extends Repository
         return Usuario::class;
     }
 
-    public function obtenerTodos(int $page = 1, int $limit = 10): array
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array
     {
-        $sql = "SELECT * FROM usuario WHERE rol = :rol";
-        return $this->findPaginatedByQuery($sql, ["rol" => Roles::PACIENTE], $page, $limit);
+        $built = SearchQueryBuilder::build(PacienteSearchValidator::definitions(), $filtros);
+
+        $where = array_merge(["rol = :rol"], $built['where']);
+        $params = array_merge(["rol" => Roles::PACIENTE], $built['params']);
+
+        $sql = "SELECT * FROM usuario WHERE " . implode(" AND ", $where);
+        return $this->findPaginatedByQuery($sql, $params, $page, $limit);
     }
 
     public function obtenerPorId(int $id): Usuario|null
@@ -33,12 +40,6 @@ class PacientesRepository extends Repository
         $sql = "SELECT * FROM usuario WHERE id = :id AND rol = :rol";
         $paciente = $this->findOneByQuery($sql, ["id" => $id, "rol" => Roles::PACIENTE]);
         return $paciente;
-    }
-
-    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array
-    {
-        $sql = "SELECT * FROM usuario WHERE $filtro LIKE :valor AND rol = :rol";
-        return $this->findPaginatedByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE], $page, $limit);
     }
     
     public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario

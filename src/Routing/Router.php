@@ -1,29 +1,40 @@
 <?php
 namespace App\Routing;
+
+use App\Middleware\AuthMiddleware;
+use App\Security\RequestContext;
+
 class Router {
     private array $routes = [];
 
-    public function get(string $ruta, callable|array $operador) {
-        $this->addRoute("GET", $ruta, $operador);
+    /**
+     * En todos los verbos, $rolesPermitidos define el acceso a la ruta:
+     *   null  -> ruta publica, no se valida el token
+     *   []    -> requiere token valido, cualquier rol
+     *   [...] -> requiere token valido y alguno de esos roles
+     */
+    public function get(string $ruta, callable|array $operador, ?array $rolesPermitidos = null) {
+        $this->addRoute("GET", $ruta, $operador, $rolesPermitidos);
     }
-    public function post(string $ruta, callable|array $operador) {
-        $this->addRoute("POST", $ruta, $operador);
+    public function post(string $ruta, callable|array $operador, ?array $rolesPermitidos = null) {
+        $this->addRoute("POST", $ruta, $operador, $rolesPermitidos);
     }
-    public function put(string $ruta, callable|array $operador) {
-        $this->addRoute("PUT", $ruta, $operador);
+    public function put(string $ruta, callable|array $operador, ?array $rolesPermitidos = null) {
+        $this->addRoute("PUT", $ruta, $operador, $rolesPermitidos);
     }
-    public function patch(string $ruta, callable|array $operador) {
-        $this->addRoute("PATCH", $ruta, $operador);
+    public function patch(string $ruta, callable|array $operador, ?array $rolesPermitidos = null) {
+        $this->addRoute("PATCH", $ruta, $operador, $rolesPermitidos);
     }
-    public function delete(string $ruta, callable|array $operador) {
-        $this->addRoute("DELETE", $ruta, $operador);
+    public function delete(string $ruta, callable|array $operador, ?array $rolesPermitidos = null) {
+        $this->addRoute("DELETE", $ruta, $operador, $rolesPermitidos);
     }
 
-    private function addRoute(string $verbo, string $ruta, callable|array $operador) {
+    private function addRoute(string $verbo, string $ruta, callable|array $operador, ?array $rolesPermitidos) {
         $this->routes[] = [
             "verbo" => $verbo,
             "ruta" => $ruta,
-            "operador" => $operador
+            "operador" => $operador,
+            "roles" => $rolesPermitidos
         ];
     }
 
@@ -43,9 +54,13 @@ class Router {
             if($verbo === $route["verbo"] && preg_match($pattern, $URL, $matches)) {
                 // Quitamos el primer elemento (que es la URL completa) para quedarnos con los parámetros
                 array_shift($matches);
-                
+
+                if($route["roles"] !== null) {
+                    RequestContext::setUsuario(AuthMiddleware::handle($route["roles"]));
+                }
+
                 $operador = $route["operador"];
-                
+
                 if(is_array($operador)) {
                     [$controller, $method] = $operador;
                     // Pasamos los parámetros extraídos al método del controlador

@@ -17,28 +17,6 @@ class ProfesionalesValidator {
         }
     }
 
-    public static function validarParametrosBusqueda(string $filtro, string $valor) {
-        $errors = [];
-        $filtrosPermitidos = ["nombre", "apellido", "email", "telefono", "profesion"];
-        if(empty($filtro) || empty($valor)) {
-            $errors["busqueda"] = "Es necesario poner un filtro y un valor de busqueda";
-        } elseif(!in_array($filtro, $filtrosPermitidos)) {
-            $errors["filtro"] = "Filtro no permitido. Filtros permitidos: " . implode(", ", $filtrosPermitidos);
-        }
-
-        if(($filtro === "nombre" || $filtro === "apellido" || $filtro === "profesion") && !preg_match("/^[a-zA-ZáéíóúÁÉÍÓÚüÜ\s]+$/", $valor)) {
-            $errors["valor"] = "El valor para el filtro $filtro solo puede contener letras y espacios";
-        }
-
-        if($filtro === "telefono" && !preg_match("/{0-9}/", $valor)) {
-            $errors["valor"] = "El valor para el filtro teléfono debe contener solo dígitos";
-        }
-
-        if(!empty($errors)) {
-            throw new ValidationException($errors);
-        }
-    }
-
     public static function validarRequestCrear(array $input) {
         $errors = [];
 

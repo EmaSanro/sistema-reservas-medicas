@@ -16,8 +16,8 @@ class ConsultorioService {
 
     public function __construct(private ConsultorioRepository $repo) { }
 
-    public function obtenerConsultorios(int $page = 1, int $limit = 10): array {
-        $paginated = $this->repo->findPaginated($page, $limit);
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->listar($filtros, $page, $limit);
         $paginated['data'] = array_map(fn($consultorio) => ConsultorioMapper::toResponse($consultorio), $paginated['data']);
 
         return $paginated;

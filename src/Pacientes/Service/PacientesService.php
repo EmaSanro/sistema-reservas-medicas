@@ -21,8 +21,8 @@ class PacientesService {
         private ReservasRepository $reservasRepo,
         private AuthRepository $authRepo){ }
 
-    public function obtenerTodos(int $page = 1, int $limit = 10): array {
-        $paginated = $this->repo->obtenerTodos($page, $limit);
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->listar($filtros, $page, $limit);
         $paginated['data'] = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $paginated['data']);
         return $paginated;
     }
@@ -33,12 +33,6 @@ class PacientesService {
             throw new PacienteNotFoundException($id);
         }
         return PacienteMapper::toResponse($paciente);
-    }
-
-    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array {
-        $paginated = $this->repo->buscarPor($filtro, $valor, $page, $limit);
-        $paginated['data'] = array_map(fn($paciente) => PacienteMapper::toResponse($paciente), $paginated['data']);
-        return $paginated;
     }
 
     public function registrarPaciente(CrearPacienteRequest $request): RespuestaPaciente {

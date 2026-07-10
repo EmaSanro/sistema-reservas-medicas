@@ -1,11 +1,10 @@
 <?php
 namespace App\Consultorio\Controller;
 
-use App\Auth\Model\Roles;
 use App\Consultorio\Mapper\ConsultorioMapper;
 use App\Consultorio\Service\ConsultorioService;
+use App\Consultorio\Validators\ConsultorioSearchValidator;
 use App\Consultorio\Validators\ConsultorioValidator;
-use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
 use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
@@ -16,25 +15,35 @@ class ConsultorioController extends BaseController {
 
     #[OA\Get(
         path: "/consultorios",
-        summary: "Listado de consultorios",
+        summary: "Listado de consultorios. Opcionalmente se pueden pasar filtros como query params (ciudad, direccion, idprofesional)",
         tags: ["Consultorios"],
         security: [ ["bearerAuth" => []] ]
     )]
+    #[OA\Parameter(name: "ciudad", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "direccion", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "idprofesional", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de todos los consultorios registrados",
+        description: "Lista de consultorios (opcionalmente filtrada)",
         content: new OA\JsonContent(
             type: "array",
             items: new OA\Items(ref: "#/components/schemas/RespuestaConsultorio")
         )
     )]
-    public function obtenerConsultorios() {
+    #[OA\Response(
+        response: 400,
+        description: "Filtro no permitido o valor invalido",
+        content: new OA\JsonContent(example:["ERROR" => "Filtro no permitido"])
+    )]
+    public function listar() {
         try {
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+            $filtros = ConsultorioSearchValidator::validar($this->extractFilterParams());
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
 
-            $paginated = $this->service->obtenerConsultorios($page, $limit);
-            
+            $paginated = $this->service->listar($filtros, $page, $limit);
+
             return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
@@ -102,8 +111,8 @@ class ConsultorioController extends BaseController {
     )] 
     public function crearConsultorio() {
         try {
-            $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-    
+            $usuario = $this->usuarioAutenticado();
+
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ConsultorioValidator::validarRequestCrear($input);
     
@@ -155,8 +164,8 @@ class ConsultorioController extends BaseController {
     )]
     public function actualizarConsultorio(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-    
+            $usuario = $this->usuarioAutenticado();
+
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ConsultorioValidator::validarID($id);
             ConsultorioValidator::validarRequestActualizar($input);
@@ -200,9 +209,9 @@ class ConsultorioController extends BaseController {
     )]
     public function borrarConsultorio(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+            $usuario = $this->usuarioAutenticado();
             ConsultorioValidator::validarID($id);
-    
+
             $this->service->borrarConsultorio((int) $id, $usuario);
     
             return $this->jsonResponse(204, "");

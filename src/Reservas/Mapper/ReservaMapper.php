@@ -44,8 +44,8 @@ class ReservaMapper {
     public static function toResponse(Reserva $reserva): RespuestaReserva {
         return new RespuestaReserva(
             $reserva->getId(),
-            $reserva->getIdProfesional(),
             $reserva->getIdPaciente(),
+            $reserva->getIdProfesional(),
             $reserva->getFechaReserva(),
             $reserva->getEstadoReserva()
         );

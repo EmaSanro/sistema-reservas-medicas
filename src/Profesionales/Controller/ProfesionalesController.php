@@ -1,12 +1,11 @@
 <?php
 namespace App\Profesionales\Controller;
 
-use App\Auth\Model\Roles;
-use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
 use App\Profesionales\Mapper\ProfesionalMapper;
 use App\Profesionales\Service\ProfesionalesService;
 use App\Profesionales\Validators\ProfesionalesValidator;
+use App\Profesionales\Validators\ProfesionalSearchValidator;
 use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
@@ -16,23 +15,37 @@ class ProfesionalesController extends BaseController {
 
     #[OA\Get(
         path: "/profesionales",
-        summary: "Listado de los profesionales",
+        summary: "Listado de los profesionales. Opcionalmente se pueden pasar filtros como query params (nombre, apellido, email, telefono, profesion, ciudad, direccion)",
         tags: ["Profesionales"]
     )]
+    #[OA\Parameter(name: "nombre", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "apellido", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "email", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "telefono", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "profesion", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "ciudad", in: "query", required: false, description: "Filtra por ciudad del consultorio", schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "direccion", in: "query", required: false, description: "Filtra por direccion del consultorio", schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de los profesionales",
+        description: "Lista de profesionales (opcionalmente filtrada)",
         content: new OA\JsonContent(
             type: "array",
             items: new OA\Items(ref: "#/components/schemas/RespuestaProfesional")
         )
     )]
-    public function obtenerTodos() {
+    #[OA\Response(
+        response: 400,
+        description: "Filtro no permitido o valor invalido",
+        content: new OA\JsonContent(example:["ERROR" => "Filtro no permitido"])
+    )]
+    public function listar() {
         try {
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
+            $filtros = ProfesionalSearchValidator::validar($this->extractFilterParams());
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
 
-            $paginated = $this->service->obtenerTodos($page, $limit);
+            $paginated = $this->service->listar($filtros, $page, $limit);
 
             return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
@@ -69,60 +82,11 @@ class ProfesionalesController extends BaseController {
     )]
     public function obtenerPorId(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
             ProfesionalesValidator::validarID($id);
 
             $profesional = $this->service->obtenerPorId((int) $id);
 
             return $this->jsonResponse(200, $profesional);
-        } catch (\Throwable $e) {
-            ErrorMiddleware::handleException($e);
-        }
-    }
-
-    #[OA\Get(
-        path: "/profesionales/buscar",
-        summary: "Buscar profesionales",
-        tags: ["Profesionales"],
-    )]
-    #[OA\Parameter(
-        name: "filtro",
-        in: "query",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Parameter(
-        name: "valor",
-        in: "query",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Response(
-        response: 200,
-        description: "Listado de profesionales obtenidos",
-        content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaProfesional")
-        )
-    )]
-    #[OA\Response(
-        response: 400,
-        description: "Solicitud invalida: filtro o valor no ingresado | el filtro no es valido para la busqueda",
-        content: new OA\JsonContent(example:["ERROR" => "El filtro ingresado no es valido para la busqueda"])
-    )]
-    public function obtenerPor() {
-        try {
-            ProfesionalesValidator::validarParametrosBusqueda($_GET["filtro"] ?? '', $_GET["valor"] ?? '');
-                
-            $filtro = $_GET["filtro"];
-            $valor = $_GET["valor"];
-            
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-            
-            $paginated = $this->service->obtenerPor($filtro, $valor, $page, $limit);
-            
-            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -155,9 +119,8 @@ class ProfesionalesController extends BaseController {
     )]
     public function registrarProfesional() {
         try {
-            AuthMiddleware::handle([Roles::ADMIN]);
             $input = json_decode(file_get_contents('php://input'), true) ?? [];
-            
+
             ProfesionalesValidator::validarRequestCrear($input);
             $profesionalCreado = $this->service->registrarProfesional(ProfesionalMapper::toRequestCrear($input));
     
@@ -205,7 +168,7 @@ class ProfesionalesController extends BaseController {
     )]
     public function actualizarProfesional(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PROFESIONAL, Roles::ADMIN]);
+            $usuario = $this->usuarioAutenticado();
             ProfesionalesValidator::validarID($id);
     
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
@@ -262,7 +225,6 @@ class ProfesionalesController extends BaseController {
     )]
     public function darDeBajaProfesional(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN]);
             ProfesionalesValidator::validarID($id);
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ProfesionalesValidator::validarInputBajaPaciente($input);

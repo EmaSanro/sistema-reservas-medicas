@@ -21,8 +21,8 @@ class ProfesionalesService {
         private ReservasRepository $reservaRepo,
         private AuthRepository $authRepository) { }
 
-    public function obtenerTodos(int $page = 1, int $limit = 10): array {
-        $paginated = $this->repo->obtenerTodos($page, $limit);
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->listar($filtros, $page, $limit);
         $paginated['data'] = array_map(fn($profesional) => ProfesionalMapper::toResponse($profesional), $paginated['data']);
         return $paginated;
     }
@@ -33,18 +33,6 @@ class ProfesionalesService {
             throw new ProfesionalNotFoundException($id);
         }
         return ProfesionalMapper::toResponse($profesional);
-    }
-
-    public function obtenerPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array {
-        $paginated = match($filtro) {
-            'profesion' => $this->repo->obtenerPorProfesion($valor, $page, $limit),
-            'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor, $page, $limit),
-            default => $this->repo->buscarPor($filtro, $valor, $page, $limit)
-        };
-
-        $paginated['data'] = array_map(fn($prof) => ProfesionalMapper::toResponse($prof), $paginated['data']);
-
-        return $paginated;
     }
 
     public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {

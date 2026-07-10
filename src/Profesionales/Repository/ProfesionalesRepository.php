@@ -7,7 +7,9 @@ use App\Auth\Model\Roles;
 use App\Auth\Model\Usuario;
 use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Profesionales\Model\Profesional;
+use App\Profesionales\Validators\ProfesionalSearchValidator;
 use App\Shared\Repository;
+use App\Shared\Search\SearchQueryBuilder;
 use PDO;
 
 class ProfesionalesRepository extends Repository
@@ -23,10 +25,19 @@ class ProfesionalesRepository extends Repository
         return Profesional::class;
     }
 
-    public function obtenerTodos(int $page = 1, int $limit = 10): array
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array
     {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE rol = :rol";
-        return $this->findPaginatedByQuery($sql, ["rol" => Roles::PROFESIONAL], $page, $limit);
+        $built = SearchQueryBuilder::build(ProfesionalSearchValidator::definitions(), $filtros);
+
+        $joins = array_merge(["JOIN profesional p ON u.id = p.idprofesional"], $built['joins']);
+        $where = array_merge(["u.rol = :rol"], $built['where']);
+        $params = array_merge(["rol" => Roles::PROFESIONAL], $built['params']);
+
+        $sql = "SELECT u.*, p.profesion FROM usuario u "
+             . implode(" ", $joins)
+             . " WHERE " . implode(" AND ", $where);
+
+        return $this->findPaginatedByQuery($sql, $params, $page, $limit);
     }
 
     public function obtenerPorId(int $id): Profesional|null
@@ -36,16 +47,20 @@ class ProfesionalesRepository extends Repository
         return $data;
     }
 
-    public function buscarPor(string $filtro, string $valor, int $page = 1, int $limit = 10): array
+    /**
+     * Verifica si existe un profesional activo con el id dado.
+     * Sin hidratar la entidad — pensado para chequeos previos a una operacion
+     * (ej. antes de crear una reserva).
+     */
+    public function existePorId(int $id): bool
     {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE $filtro LIKE :valor AND u.rol = :rol";
-        return $this->findPaginatedByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PROFESIONAL], $page, $limit);
-    }
-
-    public function obtenerPorProfesion(string $profesion, int $page = 1, int $limit = 10): array
-    {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE p.profesion LIKE :profesion";
-        return $this->findPaginatedByQuery($sql, ["profesion" => ucwords("%$profesion%")], $page, $limit);
+        $sql = "SELECT 1 FROM profesional p
+                INNER JOIN usuario u ON u.id = p.idprofesional
+                WHERE p.idprofesional = :id AND u.activo = 1
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(["id" => $id]);
+        return (bool) $stmt->fetchColumn();
     }
 
     public function obtenerPorTelefono(string $telefono): Profesional|null
@@ -60,15 +75,6 @@ class ProfesionalesRepository extends Repository
         $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE email = :email AND rol = :rol";
         $data = $this->findOneByQuery($sql, ["email" => $email, "rol" => Roles::PROFESIONAL]);
         return $data;
-    }
-
-    public function obtenerProfesionalPorUbicacion(string $valor, int $page = 1, int $limit = 10): array
-    {
-        $sql = "SELECT u.*, p.profesion FROM usuario u 
-                JOIN profesional p ON u.id = p.idprofesional 
-                JOIN consultorio c ON p.idprofesional = c.idprofesional 
-                WHERE c.direccion LIKE :direccion OR c.ciudad LIKE :ciudad";
-        return $this->findPaginatedByQuery($sql, ["direccion" => "%$valor%", "ciudad" => "%$valor%"], $page, $limit);
     }
 
     public function registrarProfesional(Profesional $profesional, string $passwordHash): Profesional

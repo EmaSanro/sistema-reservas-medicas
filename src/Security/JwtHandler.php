@@ -13,12 +13,12 @@ class JWTHandler {
         }
         return $key;
     }
-    public static function generateToken($data) {
+    public static function generateToken(mixed $data) {
         $time = time();
 
         $token = [
             "iat" => $time,
-            "exp" => $time * (60*60),
+            "exp" => $time + (60*60),
             "data" => $data 
         ];
 

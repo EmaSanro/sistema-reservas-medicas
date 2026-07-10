@@ -1,11 +1,10 @@
 <?php
 namespace App\Pacientes\Controller;
 
-use App\Auth\Model\Roles;
-use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
 use App\Pacientes\Mapper\PacienteMapper;
 use App\Pacientes\Service\PacientesService;
+use App\Pacientes\Validators\PacienteSearchValidator;
 use App\Pacientes\Validators\PacienteValidator;
 use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
@@ -16,26 +15,35 @@ class PacientesController extends BaseController {
 
     #[OA\Get(
         path: "/pacientes",
-        summary: "Lista de pacientes",
+        summary: "Lista de pacientes. Opcionalmente se pueden pasar filtros como query params (nombre, apellido, email, telefono)",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]
     )]
+    #[OA\Parameter(name: "nombre", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "apellido", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "email", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "telefono", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de pacientes",
+        description: "Lista de pacientes (opcionalmente filtrada)",
         content: new OA\JsonContent(
             type: "array",
             items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
         )
     )]
-    public function obtenerTodos() {
+    #[OA\Response(
+        response: 400,
+        description: "Filtro no permitido o valor invalido",
+        content: new OA\JsonContent(example:["ERROR" => "Filtro no permitido"])
+    )]
+    public function listar() {
         try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+            $filtros = PacienteSearchValidator::validar($this->extractFilterParams());
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
 
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-
-            $paginated = $this->service->obtenerTodos($page, $limit);
+            $paginated = $this->service->listar($filtros, $page, $limit);
 
             return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
@@ -72,64 +80,11 @@ class PacientesController extends BaseController {
     )]
     public function obtenerPorId(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
             PacienteValidator::validarID($id);
 
             $paciente = $this->service->obtenerPorId((int) $id);
             
             return $this->jsonResponse(200, $paciente);
-        } catch (\Throwable $e) {
-            ErrorMiddleware::handleException($e);
-        }
-    }
-
-    #[OA\Get(
-        path: "/pacientes/buscar",
-        summary: "Buscar pacientes",
-        tags: ["Pacientes"],
-        security: [ ["bearerAuth" => []] ]
-    )]
-    #[OA\Parameter(
-        name: "filtro",
-        in: "query",
-        description: "Filtro de busqueda(nombre, apellido, email, telefono)",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Parameter(
-        name: "valor",
-        in: "query",
-        description: "Valor de busqueda",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Response(
-        response: 200,
-        description: "Listado de pacientes filtrados",
-        content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
-        )
-    )]
-    #[OA\Response(
-        response: 400,
-        description: "Filtro invalido",
-        content: new OA\JsonContent(example:["ERROR" => "El filtro ingresado es un filtro invalido"])
-    )]
-    public function buscarPor() {
-        try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-
-            PacienteValidator::validarParametrosBusqueda($_GET["filtro"] ?? "", $_GET["valor"] ?? "");
-            $filtro = $_GET["filtro"];
-            $valor = $_GET["valor"];
-            
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-
-            $paginated = $this->service->buscarPor($filtro, $valor, $page, $limit);
-    
-            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }
@@ -206,7 +161,7 @@ class PacientesController extends BaseController {
     )]
     public function actualizarPaciente(string $id) {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
+            $usuario = $this->usuarioAutenticado();
             PacienteValidator::validarID($id);
 
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
@@ -249,8 +204,6 @@ class PacientesController extends BaseController {
     )]
     public function eliminarPaciente(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN]);
-
             PacienteValidator::validarID($id);
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             PacienteValidator::validarInputBajaPaciente($input);

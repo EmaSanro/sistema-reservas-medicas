@@ -16,11 +16,11 @@ class RespuestaConsultorio {
     #[OA\Property(example: 12)]
     public readonly int|null $idprofesional;
 
-    public function __construct(int $id, string $direccion, string $ciudad, string $horario, int $idprofesional) {
+    public function __construct(int $id, string $direccion, string $ciudad, string $horario, int|null $idprofesional) {
         $this->id = $id;
         $this->direccion = $direccion;
         $this->ciudad = $ciudad;
         $this->horario = $horario;
-        $this->idprofesional = $idprofesional ?? null;
+        $this->idprofesional = $idprofesional;
     }
 }

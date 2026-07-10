@@ -1,11 +1,10 @@
 <?php
 namespace App\Reservas\Controller;
 
-use App\Auth\Model\Roles;
-use App\Middleware\AuthMiddleware;
 use App\Middleware\ErrorMiddleware;
 use App\Reservas\Mapper\ReservaMapper;
 use App\Reservas\Service\ReservasService;
+use App\Reservas\Validators\ReservaSearchValidator;
 use App\Reservas\Validators\ReservaValidator;
 use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
@@ -15,27 +14,36 @@ class ReservasController extends BaseController {
 
     #[OA\Get(
         path: "/reservas",
-        summary: "Obtener todas las reservas",
+        summary: "Obtener todas las reservas. Opcionalmente se pueden pasar filtros como query params (idprofesional, idpaciente, estado, fecha)",
         tags: ["Reservas"],
         security: [ ["bearerAuth" => []] ]
     )]
+    #[OA\Parameter(name: "idprofesional", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "idpaciente", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "estado", in: "query", required: false, description: "Confirmada | Completada | No asistio | Cancelada", schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "fecha_reserva", in: "query", required: false, description: "YYYY, YYYY-MM o YYYY-MM-DD", schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista todas las reservas existentes",
+        description: "Lista de reservas (opcionalmente filtrada)",
         content: new OA\JsonContent(
             type: "array",
             items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
         )
     )]
-    public function obtenerTodas() {
+    #[OA\Response(
+        response: 400,
+        description: "Filtro no permitido o valor invalido",
+        content: new OA\JsonContent(example:["ERROR" => "Filtro no permitido"])
+    )]
+    public function listar() {
         try {
-            AuthMiddleware::handle([Roles::ADMIN]);
-    
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-            
-            $paginated = $this->service->obtenerTodas($page, $limit);
-    
+            $filtros = ReservaSearchValidator::validar($this->extractFilterParams());
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
+
+            $paginated = $this->service->listar($filtros, $page, $limit);
+
             return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
@@ -62,8 +70,8 @@ class ReservasController extends BaseController {
     )]
     public function obtenerReservasPorUsuarioId() {
         try {
-            $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::PROFESIONAL]);
-    
+            $usuario = $this->usuarioAutenticado();
+
             $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
             $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             
@@ -101,8 +109,8 @@ class ReservasController extends BaseController {
     )]
     public function reservar() {
         try {
-            $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
-    
+            $paciente = $this->usuarioAutenticado();
+
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ReservaValidator::validarRequestCrear($input);
     
@@ -146,7 +154,6 @@ class ReservasController extends BaseController {
     )]
     public function actualizarReserva(string $id) {
         try {
-            AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
             ReservaValidator::validarId($id);
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ReservaValidator::validarRequestActualizar($input);
@@ -192,9 +199,9 @@ class ReservasController extends BaseController {
     )]
     public function cancelarReserva(string $id) {
         try {
-            $paciente = AuthMiddleware::handle([Roles::PACIENTE]);
+            $paciente = $this->usuarioAutenticado();
             ReservaValidator::validarId($id);
-    
+
             $this->service->cancelarReserva((int) $id, $paciente);
     
             return $this->jsonResponse(200, ["EXITO" => "Reserva cancelada!"]);

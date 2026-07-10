@@ -27,6 +27,10 @@ class ConsultorioValidator {
                 $errors[$campo] = ["El campo $campo es requerido"];
             }
         }
+        
+        if(!empty($errors)) {
+            throw new ValidationException($errors);
+        }
 
         if(!is_string($input["ciudad"])) {
             $errors["ciudad"] = ["El campo ciudad debe ser una cadena de texto."];

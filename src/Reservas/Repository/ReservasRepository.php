@@ -3,12 +3,13 @@
 namespace App\Reservas\Repository;
 
 use App\Auth\Model\Roles;
-use App\Profesionales\Exceptions\ProfesionalNotFoundException;
 use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
 use App\Reservas\Exceptions\ReservaCompletedException;
 use App\Reservas\Model\EstadoReserva;
 use App\Reservas\Model\Reserva;
+use App\Reservas\Validators\ReservaSearchValidator;
 use App\Shared\Repository;
+use App\Shared\Search\SearchQueryBuilder;
 
 class ReservasRepository extends Repository
 {
@@ -28,6 +29,18 @@ class ReservasRepository extends Repository
         $columna = ($rol == Roles::PACIENTE) ? "idpaciente" : "idprofesional";
         $sql = "SELECT * FROM reservas WHERE $columna = :id";
         return $this->findPaginatedByQuery($sql, ["id" => $id], $page, $limit);
+    }
+
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array
+    {
+        $built = SearchQueryBuilder::build(ReservaSearchValidator::definitions(), $filtros);
+
+        $sql = "SELECT * FROM reservas";
+        if(!empty($built['where'])) {
+            $sql .= " WHERE " . implode(" AND ", $built['where']);
+        }
+
+        return $this->findPaginatedByQuery($sql, $built['params'], $page, $limit);
     }
 
     // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
@@ -98,22 +111,24 @@ class ReservasRepository extends Repository
         }
     }
 
-    public function buscarCoincidencia(int $idPaciente, int $idProfesional, string $fecha): Reserva
+    /**
+     * Devuelve una reserva CONFIRMADA que ocupe el slot pedido (mismo paciente
+     * o mismo profesional a la misma fecha_reserva), o null si el slot esta libre.
+     * Las reservas canceladas o completadas no bloquean nuevas reservas.
+     */
+    public function buscarCoincidencia(int $idPaciente, int $idProfesional, string $fecha): ?Reserva
     {
-        $sqlProfesional = "SELECT * FROM profesional WHERE idprofesional = :idprofesional";
-        $profesional = $this->findOneByQuery($sqlProfesional, ["idprofesional" => $idProfesional]);
-        if (!$profesional) {
-            throw new ProfesionalNotFoundException($idProfesional);
-        }
-        $sqlCoincidencia = "
-            SELECT * FROM reservas 
-            WHERE (idpaciente = :idpaciente OR idprofesional = :idprofesional) AND fecha_reserva = :fecha_reserva";
-        $coincidencia = $this->findOneByQuery($sqlCoincidencia, [
+        $sql = "SELECT * FROM reservas
+                WHERE (idpaciente = :idpaciente OR idprofesional = :idprofesional)
+                  AND fecha_reserva = :fecha_reserva
+                  AND estado = :estado
+                LIMIT 1";
+        return $this->findOneByQuery($sql, [
             "idpaciente" => $idPaciente,
             "idprofesional" => $idProfesional,
-            "fecha_reserva" => $fecha
+            "fecha_reserva" => $fecha,
+            "estado" => EstadoReserva::CONFIRMADA,
         ]);
-        return $coincidencia;
     }
 
     public function perteneceAlPaciente(int $id, int $idPaciente): Reserva|null
@@ -133,7 +148,7 @@ class ReservasRepository extends Repository
         }
 
         $update = $this->db->prepare("
-            UPDATE reserva SET estado = :estado fecha_cancelacion = NOW() WHERE id = :id AND estado = :estadoActual AND fecha_reserva > NOW() + INTERVAL 24 HOUR
+            UPDATE reservas SET estado = :estado, fecha_cancelacion = NOW() WHERE id = :id AND estado = :estadoActual AND fecha_reserva > NOW() + INTERVAL 24 HOUR
         ");
         $update->execute(["estado" => EstadoReserva::CANCELADA, "id" => $reserva->getId(), "estadoActual" => EstadoReserva::CONFIRMADA]);
 

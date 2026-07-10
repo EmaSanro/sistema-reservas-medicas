@@ -40,8 +40,8 @@ class ConsultorioMapper {
     public static function toResponse(Consultorio $consultorio): RespuestaConsultorio {
         return new RespuestaConsultorio(
             $consultorio->getId(),
-            $consultorio->getCiudad(),
             $consultorio->getDireccion(),
+            $consultorio->getCiudad(),
             "{$consultorio->getHorarioApertura()} - {$consultorio->getHorarioCierre()}",
             $consultorio->getIdProfesional()
         );

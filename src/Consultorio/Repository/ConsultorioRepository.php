@@ -2,7 +2,9 @@
 namespace App\Consultorio\Repository;
 
 use App\Consultorio\Model\Consultorio;
+use App\Consultorio\Validators\ConsultorioSearchValidator;
 use App\Shared\Repository;
+use App\Shared\Search\SearchQueryBuilder;
 use PDO;
 
 class ConsultorioRepository extends Repository {
@@ -74,6 +76,17 @@ class ConsultorioRepository extends Repository {
         if ($deleteQuery->rowCount() === 0) {
             throw new \Exception("Error en la base de datos");
         } 
+    }
+
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $built = SearchQueryBuilder::build(ConsultorioSearchValidator::definitions(), $filtros);
+
+        $sql = "SELECT * FROM consultorio";
+        if(!empty($built['where'])) {
+            $sql .= " WHERE " . implode(" AND ", $built['where']);
+        }
+
+        return $this->findPaginatedByQuery($sql, $built['params'], $page, $limit);
     }
 
     public function buscarPorCiudadDireccion(string $ciudad, string $direccion): Consultorio|null {

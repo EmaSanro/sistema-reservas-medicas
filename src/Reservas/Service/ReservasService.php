@@ -3,6 +3,8 @@ namespace App\Reservas\Service;
 
 use App\Auth\Exceptions\ForbiddenException;
 use App\Helper\GeneradorIcs;
+use App\Profesionales\Exceptions\ProfesionalNotFoundException;
+use App\Profesionales\Repository\ProfesionalesRepository;
 use App\Reservas\DTOs\Request\ActualizarReservaRequest;
 use App\Reservas\DTOs\Request\CrearReservaRequest;
 use App\Reservas\DTOs\Response\RespuestaReserva;
@@ -11,36 +13,49 @@ use App\Reservas\Exceptions\ReservaAlreadyCancelledException;
 use App\Reservas\Exceptions\ReservaNotFoundException;
 use App\Reservas\Exceptions\UsuarioConReservaException;
 use App\Reservas\Mapper\ReservaMapper;
-use App\Reservas\Model\EstadoReserva;
 use App\Reservas\Model\Reserva;
 use App\Reservas\Repository\ReservasRepository;
 use DateInterval;
 use DateTime;
 
 class ReservasService {
-    public function __construct(private ReservasRepository $repo) {}
+    public function __construct(
+        private ReservasRepository $repo,
+        private ProfesionalesRepository $profesionalesRepo,
+    ) {}
 
-    public function obtenerTodas(int $page = 1, int $limit = 10): array {
-        $paginated = $this->repo->findPaginated($page, $limit);
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->listar($filtros, $page, $limit);
         $paginated['data'] = array_map(fn($reserva) => ReservaMapper::toResponse($reserva), $paginated['data']);
         return $paginated;
     }
 
     public function obtenerReservasPorUsuarioId(int $id, string $rol, int $page = 1, int $limit = 10): array {
         $paginated = $this->repo->obtenerReservasPorUsuarioId($id, $rol, $page, $limit);
-        $paginated['data'] = array_map(fn($reserva) => $reserva->toDTO(), $paginated['data']);
+        $paginated['data'] = array_map(fn($reserva) => ReservaMapper::toResponse($reserva), $paginated['data']);
 
         return $paginated;
     }
 
+
     public function reservar(CrearReservaRequest $request): RespuestaReserva {
         $reserva = ReservaMapper::fromRequestCrear($request);
-        $reservaExistente = $this->repo->buscarCoincidencia($reserva->getIdPaciente(), $reserva->getIdProfesional(), $reserva->getFechaReserva());
-        if($reservaExistente) {
-            if($reservaExistente->getIdPaciente() === $reserva->getIdPaciente() && $reservaExistente->getFechaReserva() == $reserva->getFechaReserva()) {
-                throw new UsuarioConReservaException("Ya tienes una reserva para esa misma fecha y hora");
-            }
-            throw new UsuarioConReservaException("El profesional ya tiene una reserva para esa misma fecha y hora");
+
+        if(!$this->profesionalesRepo->existePorId($reserva->getIdProfesional())) {
+            throw new ProfesionalNotFoundException($reserva->getIdProfesional());
+        }
+
+        $conflicto = $this->repo->buscarCoincidencia(
+            $reserva->getIdPaciente(),
+            $reserva->getIdProfesional(),
+            $reserva->getFechaReserva()
+        );
+        if($conflicto) {
+            throw new UsuarioConReservaException(
+                $conflicto->getIdPaciente() === $reserva->getIdPaciente()
+                    ? "Ya tienes una reserva para esa misma fecha y hora"
+                    : "El profesional ya tiene una reserva para esa misma fecha y hora"
+            );
         }
 
         $reservaCreada = $this->repo->reservar($reserva);
@@ -56,9 +71,13 @@ class ReservasService {
         }
         ReservaMapper::fromRequestActualizar($reservaExistente, $request);
 
-        $coincidencia = $this->repo->buscarCoincidencia($reservaExistente->getIdPaciente(), $reservaExistente->getIdProfesional(), $reservaExistente->getFechaReserva());
+        $conflicto = $this->repo->buscarCoincidencia(
+            $reservaExistente->getIdPaciente(),
+            $reservaExistente->getIdProfesional(),
+            $reservaExistente->getFechaReserva()
+        );
 
-        if($coincidencia && $coincidencia->getId() !== $reservaExistente->getId() && $coincidencia->getEstadoReserva() !== EstadoReserva::CANCELADA) {
+        if($conflicto && $conflicto->getId() !== $reservaExistente->getId()) {
             throw new UsuarioConReservaException("Ya existe una reserva para esa misma fecha y hora");
         }
 
