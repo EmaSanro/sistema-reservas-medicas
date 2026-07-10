@@ -6,7 +6,7 @@
 
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.+?)/?$ index.php?url=$1 [L,QSA,B]
+    RewriteRule ^(.+?)/?$ index.php [L,QSA,B]
 
     Options -Indexes
 
@@ -15,8 +15,8 @@
         Header set Content-Disposition attachment
     </FilesMatch>
     
-    Header set Access-Control-Allow-Origin "*"
-    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Origin "http://localhost:5500"
+    Header set Access-Control-Allow-Methods "GET, POST, PATCH, OPTIONS, PUT, DELETE"
     Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
     
 </IfModule>
