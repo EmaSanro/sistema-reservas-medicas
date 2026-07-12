@@ -16,6 +16,10 @@ class ReservaValidator {
                 $errors[$campo] = ["El campo $campo es requerido."];
             }
         }
+        
+        if(!empty($errors)) {
+            throw new ValidationException($errors);
+        }
 
         if(!ctype_digit($data["idProfesional"]) || (int)$data["idProfesional"] <= 0) {
             $errors["idProfesional"] = ["El ID del profesional debe ser un número entero positivo."];

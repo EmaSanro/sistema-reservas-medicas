@@ -27,6 +27,10 @@ class NotaValidator {
             }
         }
 
+        if(!empty($errors)) {
+            throw new ValidationException($errors);
+        }
+
         if(!ctype_digit($data["reserva_id"]) || (int)$data["reserva_id"] <= 0) {
             $errors["reserva_id"] = ["El ID de reserva debe ser un número entero positivo."];
         }

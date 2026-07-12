@@ -15,6 +15,6 @@ $router->get("/api/reservas", [$reservasController, "listar"], [Roles::ADMIN]);
 $router->get("/api/reservas/mis-reservas", [$reservasController, "obtenerReservasPorUsuarioId"], [Roles::PACIENTE, Roles::PROFESIONAL]);
 $router->get("/api/reservas/profesional/:idProfesional", [$reservasController, "obtenerReservasDeProfesional"], [Roles::ADMIN]);
 $router->get("/api/reservas/paciente/:idPaciente", [$reservasController, "obtenerReservasDePaciente"], [Roles::ADMIN]);
-$router->post("/api/reservas/reservar", [$reservasController, "reservar"], [Roles::PACIENTE]);
+$router->post("/api/reservas", [$reservasController, "reservar"], [Roles::PACIENTE]);
 $router->patch("/api/reservas/:id", [$reservasController, "actualizarReserva"], [Roles::ADMIN, Roles::PROFESIONAL]);
 $router->put("/api/reservas/cancelar/:id", [$reservasController, "cancelarReserva"], [Roles::PACIENTE]);

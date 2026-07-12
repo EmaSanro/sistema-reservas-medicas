@@ -40,7 +40,7 @@ class ArchivoNotaService {
             mkdir($directorioDestino, 0755, true);
         }
         
-        $rutaCompleta = "$directorioDestino $nombreSistema";
+        $rutaCompleta = "$directorioDestino$nombreSistema";
         
         // Mover archivo
         if (!move_uploaded_file($archivo['tmp_name'], $rutaCompleta)) {

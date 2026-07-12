@@ -16,6 +16,6 @@ $pacientesController = new PacientesController($pacientesService);
 
 $router->get("/api/pacientes", [$pacientesController, "listar"], [Roles::ADMIN, Roles::PROFESIONAL]);
 $router->get("/api/pacientes/:id", [$pacientesController, "obtenerPorId"], [Roles::ADMIN, Roles::PROFESIONAL]);
-$router->post("/api/pacientes/registrar", [$pacientesController, "registrarPaciente"]);
+$router->post("/api/pacientes", [$pacientesController, "registrarPaciente"]);
 $router->patch("/api/pacientes/:id", [$pacientesController, "actualizarPaciente"], [Roles::PACIENTE, Roles::ADMIN]);
 $router->delete("/api/pacientes/:id", [$pacientesController, "eliminarPaciente"], [Roles::ADMIN]);

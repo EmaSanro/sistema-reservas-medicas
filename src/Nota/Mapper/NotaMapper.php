@@ -1,4 +1,4 @@
-<?php 
+<?php
 namespace App\Nota\Mapper;
 
 use App\Nota\DTOs\Request\ActualizarNotaRequest;
@@ -8,12 +8,26 @@ use App\Nota\Model\Nota;
 
 class NotaMapper {
 
-    public static function fromRequest(CrearNotaRequest|ActualizarNotaRequest $nota): Nota {
+    public static function fromRequestCrear(CrearNotaRequest $request): Nota {
         return Nota::create(
-            $nota->getMotivoVisita(),
-            $nota->getTextoNota(),
-            $nota->getReservaId()
+            $request->getMotivoVisita(),
+            $request->getTextoNota(),
+            $request->getReservaId(),
         );
+    }
+
+    /**
+     * Aplica los cambios del request sobre la entidad ya cargada (patch).
+     * No reemplaza la instancia — se preservan id y estado persistido.
+     * Solo se pisan los campos que vinieron no-null en el request.
+     */
+    public static function aplicarActualizacion(Nota $nota, ActualizarNotaRequest $request): void {
+        if ($request->getMotivoVisita() !== null) {
+            $nota->setMotivoVisita($request->getMotivoVisita());
+        }
+        if ($request->getTextoNota() !== null) {
+            $nota->setTextoNota($request->getTextoNota());
+        }
     }
 
     public static function toRequestCrear(array $data): CrearNotaRequest {
@@ -30,12 +44,17 @@ class NotaMapper {
             isset($data['texto_nota']) ? trim($data['texto_nota']) : null
         );
     }
-    public static function toResponse(Nota $nota): RespuestaNota {
+
+    /**
+     * @param list<\App\Nota\DTOs\Response\RespuestaArchivoNota> $adjuntos
+     */
+    public static function toResponse(Nota $nota, array $adjuntos = []): RespuestaNota {
         return new RespuestaNota(
             $nota->getId(),
             $nota->getMotivoVisita(),
             $nota->getTextoNota(),
-            $nota->getReservaId()
+            $nota->getReservaId(),
+            $adjuntos,
         );
     }
 }
