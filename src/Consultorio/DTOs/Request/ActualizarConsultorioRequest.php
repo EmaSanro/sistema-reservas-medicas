@@ -11,9 +11,9 @@ class ActualizarConsultorioRequest {
         #[OA\Property(example: "Avenida Rivadavia 2200", nullable: true)]
         private ?string $direccion = null,
         #[OA\Property(example: "08:00", nullable: true)]
-        private ?string $horarioApertura = null,
+        private ?string $horario_apertura = null,
         #[OA\Property(example: "17:00", nullable: true)]
-        private ?string $horarioCierre = null
+        private ?string $horario_cierre = null
     ) {}
 
     public function getCiudad(): ?string {
@@ -25,11 +25,11 @@ class ActualizarConsultorioRequest {
     }
 
     public function getHorarioApertura(): ?string {
-        return $this->horarioApertura;
+        return $this->horario_apertura;
     }
 
     public function getHorarioCierre(): ?string {
-        return $this->horarioCierre;
+        return $this->horario_cierre;
     }
 
     public function setCiudad(?string $ciudad): void {
@@ -40,11 +40,11 @@ class ActualizarConsultorioRequest {
         $this->direccion = $direccion;
     }
 
-    public function setHorarioApertura(?string $horarioApertura): void {
-        $this->horarioApertura = $horarioApertura;
+    public function setHorarioApertura(?string $horario_apertura): void {
+        $this->horario_apertura = $horario_apertura;
     }
 
-    public function setHorarioCierre(?string $horarioCierre): void {
-        $this->horarioCierre = $horarioCierre;
+    public function setHorarioCierre(?string $horario_cierre): void {
+        $this->horario_cierre = $horario_cierre;
     }
 }

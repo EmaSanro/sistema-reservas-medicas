@@ -12,8 +12,8 @@ class ConsultorioMapper {
         return new CrearConsultorioRequest(
             trim($input['ciudad']),
             trim($input['direccion']),
-            $input['horarioApertura'],
-            $input['horarioCierre'],
+            $input['horario_apertura'],
+            $input['horario_cierre'],
             $input['idProfesional'] ?? null
         );
     }
@@ -22,8 +22,8 @@ class ConsultorioMapper {
         return new ActualizarConsultorioRequest(
             isset($input['ciudad']) ? trim($input["ciudad"]) : null,
             isset($input["direccion"]) ? trim($input['direccion']) : null,
-            isset($input['horarioApertura']) ?? null,
-            isset($input['horarioCierre']) ?? null
+            $input['horario_apertura'] ?? null,
+            $input['horario_cierre'] ?? null
         );
     }
 

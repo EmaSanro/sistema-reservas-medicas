@@ -49,7 +49,7 @@ class ConsultorioValidator {
         }
 
         if(!self::validarHorario(($input["horario_cierre"]))) {
-            $errors["horario_apertura"] = ["El campo horario_cierre debe tener formato HH:MM (24hs)."];
+            $errors["horario_cierre"] = ["El campo horario_cierre debe tener formato HH:MM (24hs)."];
         } elseif($input["horario_apertura"] >= $input["horario_cierre"]) {
             $errors["horario_cierre"] = ["El campo horario_cierre debe ser mayor al horario_apertura."];
         }
