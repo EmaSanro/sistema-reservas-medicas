@@ -27,7 +27,7 @@ class ConsultorioMapper {
         );
     }
 
-    public static function fromRequest(CrearConsultorioRequest|ActualizarConsultorioRequest $request): Consultorio {
+    public static function fromRequestCrear(CrearConsultorioRequest $request): Consultorio {
         return Consultorio::create(
             $request->getCiudad(),
             $request->getDireccion(),
@@ -35,6 +35,26 @@ class ConsultorioMapper {
             $request->getHorarioCierre(),
             $request->getIdProfesional()
         );
+    }
+
+    /**
+     * Aplica los cambios del request sobre la entidad ya cargada (patch).
+     * No reemplaza la instancia — se preservan id e idprofesional.
+     * Solo se pisan los campos que vinieron no-null en el request.
+     */
+    public static function aplicarActualizacion(Consultorio $consultorio, ActualizarConsultorioRequest $request): void {
+        if ($request->getCiudad() !== null) {
+            $consultorio->setCiudad($request->getCiudad());
+        }
+        if ($request->getDireccion() !== null) {
+            $consultorio->setDireccion($request->getDireccion());
+        }
+        if ($request->getHorarioApertura() !== null) {
+            $consultorio->setHorarioApertura($request->getHorarioApertura());
+        }
+        if ($request->getHorarioCierre() !== null) {
+            $consultorio->setHorarioCierre($request->getHorarioCierre());
+        }
     }
 
     public static function toResponse(Consultorio $consultorio): RespuestaConsultorio {

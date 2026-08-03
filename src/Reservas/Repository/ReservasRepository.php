@@ -87,27 +87,22 @@ class ReservasRepository extends Repository
     public function actualizarReserva(int $id, Reserva $reserva): Reserva {
         try {
             $this->db->beginTransaction();
+
             $update = $this->db->prepare("
                 UPDATE reservas SET fecha_reserva = :fecha_reserva, estado = :estado
                 WHERE id = :id
             ");
             $update->execute([
                 "fecha_reserva" => $reserva->getFechaReserva(),
-                "estado" => $reserva->getEstadoReserva(),
-                "id" => $id
+                "estado"        => $reserva->getEstadoReserva(),
+                "id"            => $id,
             ]);
 
-            if($update->rowCount() === 0) {
-                throw new \Exception("No se pudo actualizar la reserva");
-            }
-            $id = $this->db->lastInsertId();
-
-            $reserva->setId($id);
-
             $this->db->commit();
-
+            
+            $reserva->setId($id);
             return $reserva;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->db->rollBack();
             throw $e;
         }

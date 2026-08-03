@@ -32,7 +32,7 @@ class ConsultorioService {
     }
 
     public function crearConsultorio(CrearConsultorioRequest $request, mixed $usuario): RespuestaConsultorio {
-        $consultorio = ConsultorioMapper::fromRequest($request);
+        $consultorio = ConsultorioMapper::fromRequestCrear($request);
 
         if($this->repo->buscarPorCiudadDireccion($consultorio->getCiudad(), $consultorio->getDireccion())) {
             throw new ConsultorioAlreadyExistsException("direccion", $consultorio->getDireccion());
@@ -48,41 +48,29 @@ class ConsultorioService {
     }
 
     public function actualizarConsultorio(ActualizarConsultorioRequest $request, int $id, mixed $usuario): RespuestaConsultorio {
-        /** @var Consultorio $consultorioExistente */
-        $consultorioExistente = $this->repo->findById($id);
-        if(!$consultorioExistente) {
+        /** @var Consultorio|null $consultorio */
+        $consultorio = $this->repo->findById($id);
+        if(!$consultorio) {
             throw new ConsultorioNotFoundException($id);
         }
 
-        $consultorio = $this->repo->esAtendidoPor($id);
-        if($usuario->rol != Roles::ADMIN && $consultorio["idprofesional"] != $usuario->id) {
+        // findById ya trajo el idprofesional; no hace falta volver a consultarlo.
+        if($usuario->rol !== Roles::ADMIN && $consultorio->getIdProfesional() !== (int) $usuario->id) {
             throw new ForbiddenException("No tienes permisos para actualizar un consultorio que no es tuyo!");
         }
 
-        if($request->getCiudad() === null) {
-            $request->setCiudad($consultorioExistente->getCiudad());
-        }
-        if($request->getDireccion() === null) {
-            $request->setDireccion($consultorioExistente->getDireccion());
-        }
-        if($request->getHorarioApertura() === null) {
-            $request->setHorarioApertura($consultorioExistente->getHorarioApertura());
-        }
-        if($request->getHorarioCierre() === null) {
-            $request->setHorarioCierre($consultorioExistente->getHorarioCierre());
+        // Patch sobre la entidad cargada: los campos ausentes conservan su valor.
+        ConsultorioMapper::aplicarActualizacion($consultorio, $request);
+
+        /** @var Consultorio|null $coincidencia */
+        $coincidencia = $this->repo->buscarPorCiudadDireccion($consultorio->getCiudad(), $consultorio->getDireccion());
+        if($coincidencia && $coincidencia->getId() !== $id) {
+            throw new ConsultorioAlreadyExistsException("direccion", $consultorio->getDireccion());
         }
 
-        $consultorio = ConsultorioMapper::fromRequest($request);
-        
-        /** @var Consultorio $coincidencia */
-        $coincidencia = $this->repo->buscarPorCiudadDireccion($request->getCiudad(), $request->getDireccion());
-        if($coincidencia && $coincidencia->getId() != $id) {
-            throw new ConsultorioAlreadyExistsException("direccion", $request->getDireccion());
-        }
+        $consultorioActualizado = $this->repo->actualizarConsultorio($consultorio, $id);
 
-        $consultorio = $this->repo->actualizarConsultorio($consultorio, $id);
-
-        return ConsultorioMapper::toResponse($consultorio);
+        return ConsultorioMapper::toResponse($consultorioActualizado);
     }
 
     public function borrarConsultorio(int $id, mixed $usuario): void {

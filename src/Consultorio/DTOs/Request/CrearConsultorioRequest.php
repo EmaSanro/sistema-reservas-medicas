@@ -39,7 +39,7 @@ class CrearConsultorioRequest {
         return $this->horario_cierre;
     }
 
-    public function getIdProfesional() : int {
+    public function getIdProfesional() : ?int {
         return $this->idProfesional;
     }
 }

@@ -121,36 +121,32 @@ class ProfesionalesRepository extends Repository
     {
         try {
             $this->db->beginTransaction();
-            $query = "UPDATE usuario SET nombre = :nombre, apellido = :apellido, email = :email, telefono = :telefono";
-            $params = [
-                "nombre" => $profesional->getNombre(), 
-                "apellido" => $profesional->getApellido(), 
-                "email" => $profesional->getEmail(), 
-                "telefono" => $profesional->getTelefono()
-            ];
 
-            $query .= " WHERE id = :id AND rol = :rol";
-            $params["id"] = $id;
-            $params["rol"] = Roles::PROFESIONAL;
-            $stmtUsuario = $this->db->prepare($query);
-            $stmtUsuario->execute($params);
-
-            $stmtProfesional = $this->db->prepare("UPDATE profesional SET profesion = :profesion WHERE idprofesional = :idprofesional");
-            $stmtProfesional->execute([
-                "profesion" => $profesional->getProfesion(), 
-                "idprofesional" => $id
+            $stmtUsuario = $this->db->prepare("
+                UPDATE usuario
+                SET nombre = :nombre, apellido = :apellido, email = :email, telefono = :telefono
+                WHERE id = :id AND rol = :rol
+            ");
+            $stmtUsuario->execute([
+                "nombre"   => $profesional->getNombre(),
+                "apellido" => $profesional->getApellido(),
+                "email"    => $profesional->getEmail(),
+                "telefono" => $profesional->getTelefono(),
+                "id"       => $id,
+                "rol"      => Roles::PROFESIONAL,
             ]);
 
-            if($stmtProfesional->rowCount() === 0) {
-                $profesional->setId((int) $id);
-            } else {
-                $id = $this->db->lastInsertId();
-                $profesional->setId((int) $id);
-            }
+            $stmtProfesional = $this->db->prepare(
+                "UPDATE profesional SET profesion = :profesion WHERE idprofesional = :idprofesional"
+            );
+            $stmtProfesional->execute([
+                "profesion"     => $profesional->getProfesion(),
+                "idprofesional" => $id,
+            ]);
 
             $this->db->commit();
 
-
+            $profesional->setId($id);
             return $profesional;
         } catch (\Throwable $e) {
             $this->db->rollBack();

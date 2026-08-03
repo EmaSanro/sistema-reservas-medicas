@@ -31,20 +31,4 @@ class ActualizarConsultorioRequest {
     public function getHorarioCierre(): ?string {
         return $this->horario_cierre;
     }
-
-    public function setCiudad(?string $ciudad): void {
-        $this->ciudad = $ciudad;
-    }
-
-    public function setDireccion(?string $direccion): void {
-        $this->direccion = $direccion;
-    }
-
-    public function setHorarioApertura(?string $horario_apertura): void {
-        $this->horario_apertura = $horario_apertura;
-    }
-
-    public function setHorarioCierre(?string $horario_cierre): void {
-        $this->horario_cierre = $horario_cierre;
-    }
 }

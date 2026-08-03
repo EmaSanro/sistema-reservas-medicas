@@ -8,13 +8,13 @@ USE sistemareservas;
 -- tables
 -- Table: Consultorio
 CREATE TABLE consultorio (
-    id int  NOT NULL,
+    id int  NOT NULL AUTO_INCREMENT,
     direccion varchar(100)  NOT NULL,
     ciudad varchar(60)  NOT NULL,
     horario_apertura time  NOT NULL,
     horario_cierre time  NOT NULL,
-    id_profesional int  NULL,
-    UNIQUE INDEX ak_id_profesional (id_profesional),
+    idprofesional int  NULL,
+    UNIQUE INDEX ak_idprofesional (idprofesional),
     CONSTRAINT pk_id PRIMARY KEY (id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
@@ -43,6 +43,7 @@ CREATE TABLE reservas (
     fecha_reserva datetime  NOT NULL,
     estado varchar(15)  NOT NULL,
     fecha_cancelacion datetime  NULL,
+    notificado bool NOT NULL DEFAULT 0,
     INDEX reservas_ak_idprofesional (idprofesional),
     INDEX reservas_ak_idpaciente (idpaciente),
     CONSTRAINT pk_reservas PRIMARY KEY (id)
@@ -84,7 +85,7 @@ ALTER TABLE reservas ADD CONSTRAINT reservas_usuario FOREIGN KEY reservas_usuari
     REFERENCES usuario (id);
 
 -- Reference: fk_consultorio_profesional (table: Consultorio)
-ALTER TABLE consultorio ADD CONSTRAINT fk_consultorio_profesional FOREIGN KEY fk_consultorio_profesional (id_profesional)
+ALTER TABLE consultorio ADD CONSTRAINT fk_consultorio_profesional FOREIGN KEY fk_consultorio_profesional (idprofesional)
     REFERENCES profesional (idprofesional)
     ON DELETE CASCADE
     ON UPDATE CASCADE;
