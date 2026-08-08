@@ -2,6 +2,7 @@
 namespace App\Consultorio\Validators;
 
 use App\Shared\Exceptions\ValidationException;
+use App\Shared\Validators\NumberValidator;
 use DateTime;
 
 class ConsultorioValidator {
@@ -10,7 +11,7 @@ class ConsultorioValidator {
 
     public static function validarID(string $id) {
         $errors = [];
-        if(!ctype_digit($id) || (int)$id <= 0) {
+        if(!NumberValidator::esEnteroPositivo($id)) {
             $errors["id"] = ["El ID debe ser un número entero positivo."];
         }
 
@@ -55,7 +56,7 @@ class ConsultorioValidator {
         }
 
         if(isset($input["idProfesional"])) {
-            if(!ctype_digit(strval($input["idProfesional"])) || (int)$input["idProfesional"] <= 0) {
+            if(!NumberValidator::esEnteroPositivo($input["idProfesional"])) {
                 $errors["idProfesional"] = ["El campo idProfesional debe ser un número entero positivo."];
             }
         }
@@ -95,7 +96,7 @@ class ConsultorioValidator {
         }
 
         if(isset($input["idProfesional"])) {
-            if(!ctype_digit(strval($input["idProfesional"])) || (int)$input["idProfesional"] <= 0) {
+            if(!NumberValidator::esEnteroPositivo($input["idProfesional"])) {
                 $errors["idProfesional"] = ["El campo idProfesional debe ser un número entero positivo."];
             }
         }

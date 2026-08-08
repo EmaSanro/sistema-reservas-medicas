@@ -13,19 +13,11 @@ class ActualizarNotaRequest {
         private ?string $texto_nota = null
     ) {}
 
-    public function getMotivoVisita(): string {
+    public function getMotivoVisita(): ?string {
         return $this->motivo_visita;
     }
 
-    public function getTextoNota(): string {
+    public function getTextoNota(): ?string {
         return $this->texto_nota;
-    }
-
-    public function setMotivoVisita(string $motivo_visita): void {
-        $this->motivo_visita = $motivo_visita;
-    }
-
-    public function setTextoNota(string $texto_nota): void {
-        $this->texto_nota = $texto_nota;
     }
 }

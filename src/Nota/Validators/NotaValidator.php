@@ -2,6 +2,7 @@
 namespace App\Nota\Validators;
 
 use App\Shared\Exceptions\ValidationException;
+use App\Shared\Validators\NumberValidator;
 
 class NotaValidator {
 
@@ -9,7 +10,7 @@ class NotaValidator {
 
     public static function validarID(string $id): void {
         $errors = [];
-        if(!ctype_digit($id) || (int)$id <= 0) {
+        if(!NumberValidator::esEnteroPositivo($id)) {
             $errors["id"] = ["El ID debe ser un número entero positivo."];
         }
 
@@ -31,7 +32,7 @@ class NotaValidator {
             throw new ValidationException($errors);
         }
 
-        if(!ctype_digit($data["reserva_id"]) || (int)$data["reserva_id"] <= 0) {
+        if(!NumberValidator::esEnteroPositivo($data["reserva_id"])) {
             $errors["reserva_id"] = ["El ID de reserva debe ser un número entero positivo."];
         }
 

@@ -2,13 +2,14 @@
 namespace App\Pacientes\Validators;
 
 use App\Shared\Exceptions\ValidationException;
+use App\Shared\Validators\NumberValidator;
 
 class PacienteValidator {
 
     private const CAMPOS_REQUERIDOS = ["nombre", "apellido", "password"];
     public static function validarID(string $id) {
         $errors = [];
-        if(!ctype_digit($id) || (int)$id <= 0) {
+        if(!NumberValidator::esEnteroPositivo($id)) {
             $errors["id"] = ["El ID debe ser un número entero positivo."];
         }
 

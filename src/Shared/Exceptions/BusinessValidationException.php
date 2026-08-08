@@ -18,7 +18,7 @@ class BusinessValidationException extends AppException {
         return $this->safeMessage;
     }
 
-    public function getField(): string
+    public function getField(): ?string
     {
         return $this->field;
     }

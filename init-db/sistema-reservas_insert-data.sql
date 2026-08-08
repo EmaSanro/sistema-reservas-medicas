@@ -47,12 +47,12 @@ INSERT INTO consultorio (id, direccion, ciudad, horario_apertura, horario_cierre
 --    cada profesional y cada paciente aparece una sola vez.
 -- -------------------------------------------------------------
 INSERT INTO reservas (id, idprofesional, idpaciente, fecha_reserva, estado, fecha_cancelacion) VALUES
-(1, 6, 1,  '2026-03-10 09:00:00', 'Confirmada',  NULL),
-(2, 7, 2,  '2026-03-11 10:30:00', 'Confirmada',  NULL),
-(3, 8, 3,  '2026-03-12 08:00:00', 'Pendiente',   NULL),
+(1, 6, 1,  '2026-09-10 09:00:00', 'Confirmada',  NULL),
+(2, 7, 2,  '2026-10-11 10:30:00', 'Confirmada',  NULL),
+(3, 8, 3,  '2026-03-12 08:00:00', 'Completada',   NULL),
 (4, 6, 4,  '2026-02-20 11:00:00', 'Cancelada',   '2026-02-18 09:00:00'),
-(5, 7, 5,  '2026-03-15 14:00:00', 'Confirmada',  NULL),
-(6, 8, 10, '2026-03-18 07:30:00', 'Pendiente',   NULL);
+(5, 7, 5,  '2026-11-15 14:00:00', 'Confirmada',  NULL),
+(6, 8, 10, '2026-03-18 07:30:00', 'Completada',   NULL);
 
 -- =============================================================
 -- Fin del script de inserción

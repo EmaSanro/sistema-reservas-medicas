@@ -74,6 +74,9 @@ class ConsultorioService {
     }
 
     public function borrarConsultorio(int $id, mixed $usuario): void {
+        if(!$this->repo->findById($id)) {
+            throw new ConsultorioNotFoundException($id);
+        }
         $consultorio = $this->repo->esAtendidoPor($id);
         if($usuario->rol == Roles::PROFESIONAL && $consultorio["idprofesional"] != $usuario->id) {
             throw new ForbiddenException("No puedes eliminar un consultorio ajeno!");

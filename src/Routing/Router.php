@@ -42,12 +42,12 @@ class Router {
         header('Content-Type: application/json; charset=utf-8');
         $verbo = $_SERVER['REQUEST_METHOD'];
         $URL = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $basePath = implode('/', array_slice(explode('/', $_SERVER['SCRIPT_NAME']), 0, -1));
-        // 2. Limpiamos la URL quitando el basePath
-        // Quedará solo como /api/{URL}
-        $URL = "/api".substr($URL, strlen($basePath));
-        // Aseguramos que siempre empiece con /
-        if (empty($URL)) $URL = '/';
+        $basePath = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
+        if ($basePath !== '' && str_starts_with($URL, $basePath)) {
+            $URL = substr($URL, strlen($basePath));
+        }
+        $URL = "/" . trim($URL, "/");
+        
         foreach($this->routes as $route) {
             $pattern = "#^" . preg_replace("/:[a-zA-Z0-9]+/", '([^/]+)', $route["ruta"]) . "$#";
 

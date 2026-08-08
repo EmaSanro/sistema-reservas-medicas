@@ -2,6 +2,7 @@
 namespace App\Reservas\Validators;
 
 use App\Shared\Exceptions\ValidationException;
+use App\Shared\Validators\NumberValidator;
 use DateTime;
 
 class ReservaValidator {
@@ -21,7 +22,7 @@ class ReservaValidator {
             throw new ValidationException($errors);
         }
 
-        if(!ctype_digit($data["idProfesional"]) || (int)$data["idProfesional"] <= 0) {
+        if(!NumberValidator::esEnteroPositivo($data["idProfesional"])) {
             $errors["idProfesional"] = ["El ID del profesional debe ser un número entero positivo."];
         }
 
@@ -58,7 +59,7 @@ class ReservaValidator {
 
     public static function validarID(string $id) {
         $errors = [];
-        if(!ctype_digit($id) || (int)$id <= 0) {
+        if(!NumberValidator::esEnteroPositivo($id)) {
             $errors["id"] = ["El ID debe ser un número entero positivo."];
         }
 
