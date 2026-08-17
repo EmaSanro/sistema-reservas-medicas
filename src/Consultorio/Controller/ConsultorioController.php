@@ -83,9 +83,9 @@ class ConsultorioController extends BaseController {
     public function obtenerConsultorioPorId(string $id) {
         try {
             ConsultorioValidator::validarID($id);
-            
+
             $consultorio = $this->service->obtenerConsultorio((int) $id);
-    
+
             return $this->jsonResponse(200, $consultorio);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
@@ -123,11 +123,11 @@ class ConsultorioController extends BaseController {
 
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ConsultorioValidator::validarRequestCrear($input);
-    
+
             $request = ConsultorioMapper::toRequestCrear($input);
-            
+
             $consultorio = $this->service->crearConsultorio($request, $usuario);
-            
+
             return $this->jsonResponse(201, $consultorio);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);

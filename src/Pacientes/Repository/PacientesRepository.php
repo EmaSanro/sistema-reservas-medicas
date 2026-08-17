@@ -67,8 +67,10 @@ class PacientesRepository extends Repository
 
             return $usuario;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
@@ -96,8 +98,10 @@ class PacientesRepository extends Repository
 
             return $usuario;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 

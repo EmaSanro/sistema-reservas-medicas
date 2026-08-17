@@ -99,8 +99,10 @@ class ProfesionalesRepository extends Repository
 
             return $profesional;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
@@ -136,8 +138,10 @@ class ProfesionalesRepository extends Repository
             $profesional->setId($id);
             return $profesional;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 

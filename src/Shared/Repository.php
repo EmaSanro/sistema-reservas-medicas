@@ -2,13 +2,16 @@
 
 namespace App\Shared;
 
+use App\Shared\Exceptions\DuplicatedEntryException;
 use AppConfig\Database;
 use PDO;
+use PDOException;
 use PDOStatement;
 use Throwable;
 
 abstract class Repository {
     protected PDO $db;
+    private const int MYSQL_DUPLICATED_CODE_ERROR = 1062;
 
     public function __construct() {
         $this->db = Database::getConnection();
@@ -164,7 +167,22 @@ abstract class Repository {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            throw new \Exception("Error en la base de datos");
+            // Se preserva la excepcion original: envolverla en una generica
+            // destruia tipo y stack trace, y ademas se tragaba la
+            // DuplicatedEntryException que las capas de arriba necesitan.
+            throw $this->translateException($e);
         }
+    }
+
+    /**
+     * Traduce excepciones del driver a excepciones propias, para que las capas
+     * superiores no necesiten conocer codigos de error de MySQL.
+     */
+    protected function translateException(Throwable $e): Throwable {
+        if ($e instanceof PDOException && ($e->errorInfo[1] ?? null) === self::MYSQL_DUPLICATED_CODE_ERROR) {
+            return new DuplicatedEntryException($e->getMessage(), $e);
+        }
+
+        return $e;
     }
 }

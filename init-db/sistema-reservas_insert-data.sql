@@ -36,10 +36,10 @@ INSERT INTO profesional (idprofesional, profesion) VALUES
 --    Cada consultorio tiene a lo sumo un profesional (UNIQUE)
 -- -------------------------------------------------------------
 INSERT INTO consultorio (id, direccion, ciudad, horario_apertura, horario_cierre, idprofesional) VALUES
-(1, 'Av. San Martín 1250, Piso 2, Of. 5', 'Tres Arroyos', '2026-01-01 08:00:00', '2026-01-01 16:00:00', 6),
-(2, 'Calle Moreno 780',                   'Tres Arroyos', '2026-01-01 09:00:00', '2026-01-01 17:00:00', 7),
-(3, 'Av. Independencia 340, Of. 12',      'Tres Arroyos', '2026-01-01 07:00:00', '2026-01-01 15:00:00', 8),
-(4, 'Calle Belgrano 95',                  'Tres Arroyos', '2026-01-01 10:00:00', '2026-01-01 18:00:00', NULL);
+(1, 'Av. San Martín 1250, Piso 2, Of. 5', 'Tres Arroyos', '08:00:00', '16:00:00', 6),
+(2, 'Calle Moreno 780',                   'Tres Arroyos', '09:00:00', '17:00:00', 7),
+(3, 'Av. Independencia 340, Of. 12',      'Tres Arroyos', '07:00:00', '15:00:00', 8),
+(4, 'Calle Belgrano 95',                  'Tres Arroyos', '10:00:00', '18:00:00', NULL);
 
 -- -------------------------------------------------------------
 -- 4. RESERVAS
@@ -47,12 +47,12 @@ INSERT INTO consultorio (id, direccion, ciudad, horario_apertura, horario_cierre
 --    cada profesional y cada paciente aparece una sola vez.
 -- -------------------------------------------------------------
 INSERT INTO reservas (id, idprofesional, idpaciente, fecha_reserva, estado, fecha_cancelacion) VALUES
-(1, 6, 1,  '2026-09-10 09:00:00', 'Confirmada',  NULL),
-(2, 7, 2,  '2026-10-11 10:30:00', 'Confirmada',  NULL),
-(3, 8, 3,  '2026-03-12 08:00:00', 'Completada',   NULL),
-(4, 6, 4,  '2026-02-20 11:00:00', 'Cancelada',   '2026-02-18 09:00:00'),
-(5, 7, 5,  '2026-11-15 14:00:00', 'Confirmada',  NULL),
-(6, 8, 10, '2026-03-18 07:30:00', 'Completada',   NULL);
+(1, 6, 1,  'DATE_ADD(CURDATE(), INTERVAL 3 DAY)', 'Confirmada',  NULL),
+(2, 7, 2,  'DATE_ADD(CURDATE(), INTERVAL 6 DAY)', 'Confirmada',  NULL),
+(3, 8, 3,  'DATE_ADD(CURDATE(), INTERVAL 10 DAY)', 'Completada',   NULL),
+(4, 6, 4,  'DATE_ADD(CURDATE(), INTERVAL 1 DAY)', 'Cancelada',   '2026-08-17 09:00:00'),
+(5, 7, 5,  'DATE_ADD(CURDATE(), INTERVAL 15 DAY)', 'Confirmada',  NULL),
+(6, 8, 10, 'DATE_ADD(CURDATE(), INTERVAL 7 DAY)', 'Completada',   NULL);
 
 -- =============================================================
 -- Fin del script de inserción

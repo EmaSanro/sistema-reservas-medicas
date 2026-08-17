@@ -39,8 +39,10 @@ class ArchivoNotaRepository extends Repository {
 
             return $archivo;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 

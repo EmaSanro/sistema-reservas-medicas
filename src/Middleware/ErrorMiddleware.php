@@ -25,7 +25,7 @@ class ErrorMiddleware {
             if($e instanceof BusinessValidationException && $e->getField() !== null) {
                 $body["errors"] = $e->getField();
             }
-            self::jsonResponse($e->getStatusCode(), $body);
+            self::jsonResponse($e->getStatusCode(), $body, $e->getHeaders());
             return;
         }
 
@@ -41,9 +41,16 @@ class ErrorMiddleware {
         throw new \ErrorException($message, 0, $severity, $file, $line);
     }
 
-    private static function jsonResponse(int $statusCode, mixed $message): void {
+    /**
+     * @param array<string, string> $headers Headers adicionales (ej. Retry-After en un 429)
+     */
+    private static function jsonResponse(int $statusCode, mixed $message, array $headers = []): void {
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
+
+        foreach ($headers as $nombre => $valor) {
+            header("{$nombre}: {$valor}");
+        }
 
         echo json_encode($message, JSON_UNESCAPED_UNICODE);
     }

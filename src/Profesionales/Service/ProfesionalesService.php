@@ -13,6 +13,7 @@ use App\Profesionales\Exceptions\ProfesionalWithReserveException;
 use App\Profesionales\Mapper\ProfesionalMapper;
 use App\Profesionales\Repository\ProfesionalesRepository;
 use App\Reservas\Repository\ReservasRepository;
+use App\Shared\Exceptions\DuplicatedEntryException;
 
 class ProfesionalesService {
 
@@ -42,7 +43,15 @@ class ProfesionalesService {
 
         $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
 
-        $profesionalCreado = $this->repo->registrarProfesional($profesional, $passwordHash);
+        try {
+            $profesionalCreado = $this->repo->registrarProfesional($profesional, $passwordHash);
+        } catch (DuplicatedEntryException $e) {
+            // Perdimos una carrera: entre el chequeo de arriba y el INSERT otro
+            // request tomo el mismo contacto. Ahora el SELECT si lo encuentra,
+            // asi que se puede responder 409 con el campo exacto en vez de 500.
+            $this->verificarContactoDisponible($profesional->getEmail(), $profesional->getTelefono());
+            throw $e;
+        }
 
         return ProfesionalMapper::toResponse($profesionalCreado);
     }
@@ -63,7 +72,17 @@ class ProfesionalesService {
             $id
         );
 
-        $profActualizado = $this->repo->actualizarProfesional($id, $profesionalExistente);
+        try {
+            $profActualizado = $this->repo->actualizarProfesional($id, $profesionalExistente);
+        } catch (DuplicatedEntryException $e) {
+            $this->verificarContactoDisponible(
+                $profesionalExistente->getEmail(),
+                $profesionalExistente->getTelefono(),
+                $id
+            );
+            throw $e;
+        }
+
         return ProfesionalMapper::toResponse($profActualizado);
     }
 

@@ -61,6 +61,7 @@ CREATE TABLE usuario (
     activo bool  NOT NULL,
     motivo_baja varchar(255)  NULL,
     fecha_baja datetime  NULL,
+    INDEX usuario_ak_rol(rol),
     UNIQUE INDEX email_ak (email),
     UNIQUE INDEX telefono_ak (telefono),
     CONSTRAINT pk_usuario PRIMARY KEY (id)

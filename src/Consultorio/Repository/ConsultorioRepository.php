@@ -39,8 +39,10 @@ class ConsultorioRepository extends Repository {
             $consultorio->setId((int) $id);
             return $consultorio;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
@@ -63,8 +65,10 @@ class ConsultorioRepository extends Repository {
 
             return $this->findById($id);
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 

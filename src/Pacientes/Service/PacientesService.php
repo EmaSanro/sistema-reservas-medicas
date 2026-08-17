@@ -14,6 +14,7 @@ use App\Pacientes\Exceptions\PacienteWithReserveException;
 use App\Pacientes\Mapper\PacienteMapper;
 use App\Pacientes\Repository\PacientesRepository;
 use App\Reservas\Repository\ReservasRepository;
+use App\Shared\Exceptions\DuplicatedEntryException;
 
 class PacientesService {
 
@@ -50,7 +51,15 @@ class PacientesService {
 
         $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
 
-        $pacienteCreado = $this->repo->registrarPaciente($paciente, $passwordHash);
+        try {
+            $pacienteCreado = $this->repo->registrarPaciente($paciente, $passwordHash);
+        } catch (DuplicatedEntryException $e) {
+            // Perdimos una carrera: entre el chequeo de arriba y el INSERT otro
+            // request tomo el mismo contacto. Ahora el SELECT si lo encuentra,
+            // asi que se puede responder 409 con el campo exacto en vez de 500.
+            $this->verificarContactoDisponible($paciente->getEmail(), $paciente->getTelefono());
+            throw $e;
+        }
 
         return PacienteMapper::toResponse($pacienteCreado);
     }
@@ -73,7 +82,16 @@ class PacientesService {
             $id
         );
 
-        $pacienteActualizado = $this->repo->actualizarPaciente($id, $pacienteExistente);
+        try {
+            $pacienteActualizado = $this->repo->actualizarPaciente($id, $pacienteExistente);
+        } catch (DuplicatedEntryException $e) {
+            $this->verificarContactoDisponible(
+                $pacienteExistente->getEmail(),
+                $pacienteExistente->getTelefono(),
+                $id
+            );
+            throw $e;
+        }
 
         return PacienteMapper::toResponse($pacienteActualizado);
     }
