@@ -26,10 +26,18 @@ class ReservasController extends BaseController {
     #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de reservas (opcionalmente filtrada)",
+        description: "Lista paginada de reservas (opcionalmente filtrada)",
         content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
+            properties: [
+                new OA\Property(
+                    property: "data",
+                    type: "array",
+                    items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
+                ),
+                new OA\Property(property: "total", type: "integer", example: 42),
+                new OA\Property(property: "page", type: "integer", example: 1),
+                new OA\Property(property: "limit", type: "integer", example: 10),
+            ]
         )
     )]
     #[OA\Response(
@@ -55,12 +63,22 @@ class ReservasController extends BaseController {
         tags: ["Reservas"],
         security: [ ["bearerAuth" => []] ]
     )]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de las reservas de un usuario dado",
+        description: "Lista paginada de las reservas del usuario autenticado",
         content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
+            properties: [
+                new OA\Property(
+                    property: "data",
+                    type: "array",
+                    items: new OA\Items(ref: "#/components/schemas/RespuestaReserva")
+                ),
+                new OA\Property(property: "total", type: "integer", example: 42),
+                new OA\Property(property: "page", type: "integer", example: 1),
+                new OA\Property(property: "limit", type: "integer", example: 10),
+            ]
         )
     )]
     #[OA\Response(
@@ -72,9 +90,8 @@ class ReservasController extends BaseController {
         try {
             $usuario = $this->usuarioAutenticado();
 
-            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-            $limit = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
-            
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
+
             $paginated = $this->service->obtenerReservasPorUsuarioId($usuario->id, $usuario->rol, $page, $limit);
             
             return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
@@ -83,7 +100,7 @@ class ReservasController extends BaseController {
         }
     }
     #[OA\Post(
-        path: "/reservas/reservar",
+        path: "/reservas",
         summary: "Realizar una reserva",
         tags: ["Reservas"],
         security: [ ["bearerAuth" => []] ]
@@ -166,7 +183,7 @@ class ReservasController extends BaseController {
         }
     }
     #[OA\Put(
-        path: "/reservas/{id}/cancelar",
+        path: "/reservas/cancelar/{id}",
         summary: "Cancelar una reserva",
         tags: ["Reservas"],
         security: [ ["bearerAuth" => []] ]

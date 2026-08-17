@@ -38,15 +38,9 @@ class ProfesionalesService {
     public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {
         $profesional = ProfesionalMapper::fromRequestCrear($request);
 
-        $profesionalExistente = $this->authRepository->buscarCoincidencia($profesional);
-        if($profesionalExistente) {
-            if($profesionalExistente->getEmail() === $profesional->getEmail() && $profesionalExistente->getEmail() !== null) {
-                throw new UserAlreadyExistsException("email", $profesional->getEmail());
-            }
-            throw new UserAlreadyExistsException("telefono", $profesional->getTelefono());
-        }
+        $this->verificarContactoDisponible($profesional->getEmail(), $profesional->getTelefono());
 
-        $passwordHash = password_hash($profesional->getPassword(), PASSWORD_BCRYPT);
+        $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
 
         $profesionalCreado = $this->repo->registrarProfesional($profesional, $passwordHash);
 
@@ -63,13 +57,12 @@ class ProfesionalesService {
         }
         ProfesionalMapper::fromRequestActualizar($profesionalExistente, $request);
 
-        $coincidencia = $this->authRepository->buscarCoincidencia($profesionalExistente);
-        if($coincidencia && $coincidencia->getId() != $id) {
-            if($coincidencia->getEmail() === $profesionalExistente->getEmail() && $coincidencia->getEmail() !== null) {
-                throw new UserAlreadyExistsException("email", $profesionalExistente->getEmail());
-            }
-            throw new UserAlreadyExistsException("telefono", $profesionalExistente->getTelefono());
-        }
+        $this->verificarContactoDisponible(
+            $profesionalExistente->getEmail(),
+            $profesionalExistente->getTelefono(),
+            $id
+        );
+
         $profActualizado = $this->repo->actualizarProfesional($id, $profesionalExistente);
         return ProfesionalMapper::toResponse($profActualizado);
     }
@@ -79,5 +72,18 @@ class ProfesionalesService {
             throw new ProfesionalWithReserveException("El profesional tiene reservas pendientes");
         }
         $this->repo->darDeBajaProfesional($id, $motivo);
+    }
+
+    /**
+     * @param int|null $excluirId Id del propio usuario al actualizar, para que
+     *                            reenviar sus datos actuales no cuente como duplicado.
+     */
+    private function verificarContactoDisponible(?string $email, ?string $telefono, ?int $excluirId = null): void {
+        if ($email !== null && $this->authRepository->emailEnUso($email, $excluirId)) {
+            throw new UserAlreadyExistsException("email", $email);
+        }
+        if ($telefono !== null && $this->authRepository->telefonoEnUso($telefono, $excluirId)) {
+            throw new UserAlreadyExistsException("telefono", $telefono);
+        }
     }
 }

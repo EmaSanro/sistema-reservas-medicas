@@ -63,19 +63,39 @@ abstract class Repository {
     }
 
     protected function findPaginatedByQuery(string $sql, array $params = [], int $page = 1, int $limit = 10): array {
-        $countSql = "SELECT COUNT(*) as total FROM ($sql) as sub";
-        $stmtCount = $this->prepareAndExecute($countSql, $params);
-        $total = (int) $stmtCount->fetch(PDO::FETCH_ASSOC)['total'];
-
-        $offset = ($page - 1) * $limit;
-        $sql .= " LIMIT $limit OFFSET $offset";
-        
-        $entities = $this->findByQuery($sql, $params);
-
         return [
-            'data' => $entities,
-            'total' => $total
+            'data' => $this->findByQuery($this->withLimit($sql, $page, $limit), $params),
+            'total' => $this->countByQuery($sql, $params),
         ];
+    }
+
+    /**
+     * Paginado sobre una proyeccion que no corresponde a getEntityClass()
+     * (tipicamente un JOIN). $mapper recibe cada fila cruda y devuelve el
+     * read model correspondiente.
+     *
+     * @template T
+     * @param callable(array<string, mixed>): T $mapper
+     * @return array{data: list<T>, total: int}
+     */
+    protected function findPaginatedByQueryAs(string $sql, callable $mapper, array $params = [], int $page = 1, int $limit = 10): array {
+        return [
+            'data' => array_map($mapper, $this->fetchRows($this->withLimit($sql, $page, $limit), $params)),
+            'total' => $this->countByQuery($sql, $params),
+        ];
+    }
+
+    /**
+     * El COUNT corre sobre el SQL sin LIMIT: es el total de la busqueda, no
+     * el de la pagina.
+     */
+    private function countByQuery(string $sql, array $params = []): int {
+        return (int) $this->prepareAndExecute("SELECT COUNT(*) FROM ($sql) as sub", $params)->fetchColumn();
+    }
+
+    private function withLimit(string $sql, int $page, int $limit): string {
+        $offset = ($page - 1) * $limit;
+        return $sql . " LIMIT $limit OFFSET $offset";
     }
 
     protected function findOneByQuery(string $sql, array $params = []): ?Entity {
@@ -100,6 +120,32 @@ abstract class Repository {
     protected function insertAndGetId(string $sql, array $params = []): int {
         $this->prepareAndExecute($sql, $params);
         return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Para chequeos de existencia. La query debe proyectar una sola columna
+     * (tipicamente "SELECT 1 ... LIMIT 1"): no hidrata entidades.
+     */
+    protected function existsByQuery(string $sql, array $params = []): bool {
+        return (bool) $this->prepareAndExecute($sql, $params)->fetchColumn();
+    }
+
+    /**
+     * Devuelve la fila cruda sin pasar por getEntityClass(). Pensado para
+     * proyecciones que no corresponden a una entidad completa.
+     */
+    protected function fetchOneRow(string $sql, array $params = []): ?array {
+        $row = $this->prepareAndExecute($sql, $params)->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Contraparte plural de fetchOneRow(): filas crudas, sin hidratar entidades.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function fetchRows(string $sql, array $params = []): array {
+        return $this->prepareAndExecute($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
     }
 
     protected function prepareAndExecute(string $sql, array $params = []): PDOStatement {

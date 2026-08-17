@@ -5,6 +5,7 @@ use App\Auth\Exceptions\ForbiddenException;
 use App\Auth\Exceptions\UserAlreadyExistsException;
 use App\Auth\Model\Roles;
 use App\Auth\Repository\AuthRepository;
+use App\Auth\Service\RateLimiter;
 use App\Pacientes\DTOs\Request\ActualizarPacienteRequest;
 use App\Pacientes\DTOs\Request\CrearPacienteRequest;
 use App\Pacientes\DTOs\Response\RespuestaPaciente;
@@ -17,9 +18,10 @@ use App\Reservas\Repository\ReservasRepository;
 class PacientesService {
 
     public function __construct(
-        private PacientesRepository $repo, 
+        private PacientesRepository $repo,
         private ReservasRepository $reservasRepo,
-        private AuthRepository $authRepo){ }
+        private AuthRepository $authRepo,
+        private RateLimiter $rateLimiter){ }
 
     public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
         $paginated = $this->repo->listar($filtros, $page, $limit);
@@ -35,18 +37,19 @@ class PacientesService {
         return PacienteMapper::toResponse($paciente);
     }
 
-    public function registrarPaciente(CrearPacienteRequest $request): RespuestaPaciente {
+    public function registrarPaciente(CrearPacienteRequest $request, string $ip): RespuestaPaciente {
+        $this->rateLimiter->checkRegistration($ip);
+
+        // Se registra el intento antes de resolverlo: el abuso a frenar es el
+        // sondeo de emails, que se hace justamente provocando el 409.
+        $this->rateLimiter->recordRegistrationAttempt($ip);
+
         $paciente = PacienteMapper::fromRequestCrear($request);
-        $coincidencia = $this->authRepo->buscarCoincidencia($paciente);
-        if($coincidencia) {
-            if($coincidencia->getEmail() === $paciente->getEmail()) {
-                throw new UserAlreadyExistsException("email", $paciente->getEmail());
-            }
-            throw new UserAlreadyExistsException("telefono", $paciente->getTelefono());
-        }
+
+        $this->verificarContactoDisponible($paciente->getEmail(), $paciente->getTelefono());
 
         $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
-        
+
         $pacienteCreado = $this->repo->registrarPaciente($paciente, $passwordHash);
 
         return PacienteMapper::toResponse($pacienteCreado);
@@ -64,14 +67,11 @@ class PacientesService {
 
         PacienteMapper::fromRequestActualizar($pacienteExistente, $request);
 
-        $pacienteDuplicado = $this->authRepo->buscarCoincidencia($pacienteExistente);
-
-        if($pacienteDuplicado && $pacienteDuplicado->getId() != $id) {
-            if($pacienteDuplicado->getEmail() === $pacienteExistente->getEmail()) {
-                throw new UserAlreadyExistsException("email", $pacienteExistente->getEmail());
-            }
-            throw new UserAlreadyExistsException("telefono", $pacienteExistente->getTelefono());
-        }
+        $this->verificarContactoDisponible(
+            $pacienteExistente->getEmail(),
+            $pacienteExistente->getTelefono(),
+            $id
+        );
 
         $pacienteActualizado = $this->repo->actualizarPaciente($id, $pacienteExistente);
 
@@ -83,5 +83,18 @@ class PacientesService {
             throw new PacienteWithReserveException("No se puede dar de baja un paciente con futuras reservas!");
         }
         $this->repo->darDeBajaPaciente($id, $motivo);
+    }
+
+    /**
+     * @param int|null $excluirId Id del propio usuario al actualizar, para que
+     *                            reenviar sus datos actuales no cuente como duplicado.
+     */
+    private function verificarContactoDisponible(?string $email, ?string $telefono, ?int $excluirId = null): void {
+        if ($email !== null && $this->authRepo->emailEnUso($email, $excluirId)) {
+            throw new UserAlreadyExistsException("email", $email);
+        }
+        if ($telefono !== null && $this->authRepo->telefonoEnUso($telefono, $excluirId)) {
+            throw new UserAlreadyExistsException("telefono", $telefono);
+        }
     }
 }

@@ -53,7 +53,6 @@ class Profesional extends Usuario
         $profesional->activo = (bool) $data["activo"];
         $profesional->motivo_baja = $data["motivo_baja"];
         $profesional->fecha_baja = $data["fecha_baja"];
-        $profesional->password = $data["password"];
 
         return $profesional;
     }

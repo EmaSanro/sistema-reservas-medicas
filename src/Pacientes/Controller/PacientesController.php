@@ -27,10 +27,18 @@ class PacientesController extends BaseController {
     #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de pacientes (opcionalmente filtrada)",
+        description: "Lista paginada de pacientes (opcionalmente filtrada)",
         content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
+            properties: [
+                new OA\Property(
+                    property: "data",
+                    type: "array",
+                    items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
+                ),
+                new OA\Property(property: "total", type: "integer", example: 42),
+                new OA\Property(property: "page", type: "integer", example: 1),
+                new OA\Property(property: "limit", type: "integer", example: 10),
+            ]
         )
     )]
     #[OA\Response(
@@ -91,7 +99,7 @@ class PacientesController extends BaseController {
     }
 
     #[OA\Post(
-        path: "/pacientes/registrar",
+        path: "/pacientes",
         summary: "Registrarse como paciente",
         tags: ["Pacientes"]
     )]
@@ -114,14 +122,22 @@ class PacientesController extends BaseController {
         description: "Usuario ya registrado",
         content: new OA\JsonContent(example:["ERROR" => "Ya se registro un usuario con ese email y/o telefono"])
     )]
+    #[OA\Response(
+        response: 429,
+        description: "Demasiados intentos desde esta IP. Incluye header Retry-After con los segundos restantes",
+        content: new OA\JsonContent(example:["message" => "Demasiados intentos. Probá de nuevo más tarde."])
+    )]
     public function registrarPaciente() {
         try {
             $input = json_decode(file_get_contents('php://input'), true) ?? [];
-            
+
             PacienteValidator::validarRequestCrear($input);
-            
-            $pacienteCreado = $this->service->registrarPaciente(PacienteMapper::toRequestCrear($input));
-            
+
+            $pacienteCreado = $this->service->registrarPaciente(
+                PacienteMapper::toRequestCrear($input),
+                $this->clientIp()
+            );
+
             return $this->jsonResponse(201, $pacienteCreado);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
@@ -129,7 +145,7 @@ class PacientesController extends BaseController {
     }
     
     #[OA\Patch(
-        path: "/paciente/{id}",
+        path: "/pacientes/{id}",
         summary: "Actualizar datos del usuario",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]

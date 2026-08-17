@@ -4,6 +4,7 @@ namespace App\Shared; // CORREGIR NAMESPACE ACA Y EN LOS DEMAS CONTROLADORES
 use App\Security\RequestContext;
 use OpenApi\Attributes as OA;
 #[OA\Info(version: "1.0.0", title: "API Reservas medicas", description: "API para gestionar las reservas medicas")]
+#[OA\Server(url: "/api", description: "Prefijo comun de todas las rutas del router")]
 #[OA\SecurityScheme(
     securityScheme: "bearerAuth",
     type: "http",
@@ -40,6 +41,22 @@ abstract class BaseController {
             'limit' => $limit
         ];
         $this->jsonResponse($code, $response);
+    }
+
+    /**
+     * IP del cliente, para el rate limiting.
+     *
+     * Se resuelve en el controller y no en el service porque leer
+     * superglobales desde un service lo vuelve intesteable: el controller es
+     * el borde HTTP y pasa el valor hacia abajo.
+     *
+     * OJO: detras de un reverse proxy (nginx, Cloudflare) esto devuelve la IP
+     * del proxy y el limite por IP pasa a ser global. Manejar X-Forwarded-For
+     * requiere una lista de proxies confiables; sin ella, cualquiera falsea el
+     * header y se saltea el limite. Ver cambios_pendientes.md.
+     */
+    protected function clientIp(): string {
+        return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
     }
 
     /**

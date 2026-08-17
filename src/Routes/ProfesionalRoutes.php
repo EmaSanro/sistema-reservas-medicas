@@ -15,9 +15,6 @@ $profesionalesController = new ProfesionalesController($profesionalesService);
 
 $router->get('/api/profesionales', [$profesionalesController, "listar"]);
 $router->get('/api/profesionales/:id', [$profesionalesController, "obtenerPorId"], [Roles::ADMIN, Roles::PROFESIONAL]);
-// $router->get('/api/profesionales/profesion/:profesion', [$profesionalesController, "obtenerPorProfesion"]);
-// $router->get('/api/profesionales/email/:email', [$profesionalesController, "obtenerPorEmail"]);
-// $router->get('/api/profesionales/telefono/:telefono', [$profesionalesController, "obtenerPorTelefono"]);
 $router->post("/api/profesionales/registrar", [$profesionalesController, "registrarProfesional"], [Roles::ADMIN]);
 $router->patch("/api/profesionales/:id", [$profesionalesController, "actualizarProfesional"], [Roles::PROFESIONAL, Roles::ADMIN]);
 $router->delete("/api/profesionales/:id", [$profesionalesController, "darDeBajaProfesional"], [Roles::ADMIN]);

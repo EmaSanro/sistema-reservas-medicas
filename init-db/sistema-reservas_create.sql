@@ -79,6 +79,21 @@ CREATE TABLE archivo_nota (
     CONSTRAINT pk_archivo_nota PRIMARY KEY (id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
+-- Table: access_attempt
+-- Contadores del rate limiting. Infraestructura pura: no mapea a ninguna
+-- entidad de dominio, por eso va nombrada en ingles.
+-- Una fila por intento y por clave: un login fallido escribe dos
+-- (identifier + ip), un intento de registro escribe una (solo ip).
+CREATE TABLE access_attempt (
+    id int  NOT NULL AUTO_INCREMENT,
+    action varchar(20)  NOT NULL,      -- 'login' | 'registration'
+    key_type varchar(20)  NOT NULL,    -- 'identifier' | 'ip'
+    key_value varchar(190)  NOT NULL,  -- identificador normalizado o IP
+    created_at datetime  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_access_attempt_count (action, key_type, key_value, created_at),
+    CONSTRAINT pk_access_attempt PRIMARY KEY (id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
 -- foreign keys
 -- Reference: Reservas_Usuario (table: Reservas)
 ALTER TABLE reservas ADD CONSTRAINT reservas_usuario FOREIGN KEY reservas_usuario (idpaciente)

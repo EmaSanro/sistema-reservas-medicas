@@ -93,7 +93,7 @@ final class RecordatorioService {
 
         error_log("ICS temporal para reserva {$reservaId} publicado como {$nombreArchivo}");
 
-        $base = $_ENV['ICS_PUBLIC_BASE_URL'] ?? 'https://sistema-reservas.loca.lt/public/temp_ics';
+        $base = $_ENV['ICS_PUBLIC_BASE_URL'] ?? 'https://sistema-reservas.loca.lt/temp_ics';
         return rtrim($base, '/') . "/{$nombreArchivo}";
     }
 

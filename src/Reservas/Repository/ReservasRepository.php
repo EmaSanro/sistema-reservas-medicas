@@ -8,6 +8,7 @@ use App\Reservas\Exceptions\ReservaCompletedException;
 use App\Reservas\Model\EstadoReserva;
 use App\Reservas\Model\RecordatorioReserva;
 use App\Reservas\Model\Reserva;
+use App\Reservas\Model\ReservaConParticipantes;
 use App\Reservas\Validators\ReservaSearchValidator;
 use App\Shared\Repository;
 use App\Shared\Search\SearchQueryBuilder;
@@ -15,6 +16,20 @@ use PDO;
 
 class ReservasRepository extends Repository
 {
+    /**
+     * Tablas de la proyeccion con participantes. Los JOIN son internos y no
+     * LEFT a proposito: ambas FK son NOT NULL y estan enforced, y las bajas de
+     * usuario son logicas (activo = 0), asi que la fila nunca desaparece.
+     *
+     * Los alias (r, pac, prof, p) son los que asume
+     * ReservaConParticipantes::columnasSelect().
+     */
+    private const FROM_CON_PARTICIPANTES = "
+        FROM reservas r
+        JOIN usuario pac ON pac.id = r.idpaciente
+        JOIN usuario prof ON prof.id = r.idprofesional
+        JOIN profesional p ON p.idprofesional = r.idprofesional
+    ";
 
     protected function getTableName(): string
     {
@@ -26,36 +41,58 @@ class ReservasRepository extends Repository
         return Reserva::class;
     }
 
+    /**
+     * SELECT + JOINs base de la proyeccion. Sin WHERE: lo agrega cada consulta.
+     */
+    private static function sqlConParticipantes(): string
+    {
+        return "SELECT " . ReservaConParticipantes::columnasSelect() . self::FROM_CON_PARTICIPANTES;
+    }
+
     public function obtenerReservasPorUsuarioId(int $id, string $rol, int $page = 1, int $limit = 10): array
     {
-        $columna = ($rol == Roles::PACIENTE) ? "idpaciente" : "idprofesional";
-        $sql = "SELECT * FROM reservas WHERE $columna = :id";
-        return $this->findPaginatedByQuery($sql, ["id" => $id], $page, $limit);
+        $columna = ($rol == Roles::PACIENTE) ? "r.idpaciente" : "r.idprofesional";
+        $sql = self::sqlConParticipantes() . " WHERE $columna = :id";
+
+        return $this->findPaginatedByQueryAs(
+            $sql,
+            static fn(array $row): ReservaConParticipantes => ReservaConParticipantes::fromDatabase($row),
+            ["id" => $id],
+            $page,
+            $limit
+        );
     }
 
     public function listar(array $filtros = [], int $page = 1, int $limit = 10): array
     {
         $built = SearchQueryBuilder::build(ReservaSearchValidator::definitions(), $filtros);
 
-        $sql = "SELECT * FROM reservas";
+        $sql = self::sqlConParticipantes();
+        if(!empty($built['joins'])) {
+            $sql .= " " . implode(" ", $built['joins']);
+        }
         if(!empty($built['where'])) {
             $sql .= " WHERE " . implode(" AND ", $built['where']);
         }
 
-        return $this->findPaginatedByQuery($sql, $built['params'], $page, $limit);
+        return $this->findPaginatedByQueryAs(
+            $sql,
+            static fn(array $row): ReservaConParticipantes => ReservaConParticipantes::fromDatabase($row),
+            $built['params'],
+            $page,
+            $limit
+        );
     }
 
-    // public function obtenerReservaEspecifica($idPaciente, $idProfesional, $fecha) {
-    //     $reserva = $this->db->prepare("
-    //         SELECT r.id, r.fecha_reserva, CONCAT(upa.nombre, ' ', upa.apellido) as paciente, CONCAT(upr.nombre, ' ', upr.apellido) as profesional 
-    //         FROM reservas r 
-    //         JOIN usuario upa ON upa.id = r.idpaciente 
-    //         JOIN usuario upr ON upr.id = r.idprofesional
-    //         WHERE idpaciente = ? AND idprofesional = ? and fecha_reserva = ?
-    //     ");
-    //     $reserva->execute([$idPaciente, $idProfesional, $fecha]);
-    //     return $reserva->fetch();
-    // }
+    /**
+     * Una reserva con sus participantes resueltos. La usan los endpoints de
+     * escritura para devolver la misma forma que los de lectura.
+     */
+    public function obtenerDetalladaPorId(int $id): ?ReservaConParticipantes
+    {
+        $row = $this->fetchOneRow(self::sqlConParticipantes() . " WHERE r.id = :id", ["id" => $id]);
+        return $row === null ? null : ReservaConParticipantes::fromDatabase($row);
+    }
 
     public function reservar(Reserva $reserva): Reserva
     {

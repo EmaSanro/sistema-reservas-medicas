@@ -1,5 +1,7 @@
 <?php
-// public/docs.php (o agrega una ruta /docs en tu router)
+// Vista de Swagger UI. La ruta GET /api/docs le inyecta $openapiUrl;
+// el valor por defecto cubre el caso de acceso directo al archivo.
+$openapiUrl ??= '/api/openapi';
 ?>
 <!DOCTYPE html>
 <html>
@@ -12,7 +14,7 @@
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
     <script>
         SwaggerUIBundle({
-            url: '/openapi',
+            url: <?= json_encode($openapiUrl, JSON_UNESCAPED_SLASHES) ?>,
             dom_id: '#swagger-ui',
             presets: [SwaggerUIBundle.presets.apis],
             layout: "BaseLayout"

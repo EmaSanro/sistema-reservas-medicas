@@ -31,13 +31,13 @@ class PacientesRepository extends Repository
         $where = array_merge(["rol = :rol"], $built['where']);
         $params = array_merge(["rol" => Roles::PACIENTE], $built['params']);
 
-        $sql = "SELECT * FROM usuario WHERE " . implode(" AND ", $where);
+        $sql = "SELECT " . Usuario::columnasSelect() . " FROM usuario WHERE " . implode(" AND ", $where);
         return $this->findPaginatedByQuery($sql, $params, $page, $limit);
     }
 
     public function obtenerPorId(int $id): Usuario|null
     {
-        $sql = "SELECT * FROM usuario WHERE id = :id AND rol = :rol";
+        $sql = "SELECT " . Usuario::columnasSelect() . " FROM usuario WHERE id = :id AND rol = :rol";
         $paciente = $this->findOneByQuery($sql, ["id" => $id, "rol" => Roles::PACIENTE]);
         return $paciente;
     }

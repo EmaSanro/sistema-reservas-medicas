@@ -24,7 +24,7 @@ class AuthController extends BaseController {
     #[OA\Response(
         response: 200,
         description: "Logueado correctamente",
-        content: new OA\JsonContent(example:["OK" => "correctamente", "TOKEN" => "{token}"])
+        content: new OA\JsonContent(ref: "#/components/schemas/LoginResponse")
     )]
     #[OA\Response(
         response: 400,
@@ -36,13 +36,23 @@ class AuthController extends BaseController {
         description: "Datos incorrectos",
         content: new OA\JsonContent(example:["ERROR" => "Credenciales incorrectas"])
     )]
+    #[OA\Response(
+        response: 403,
+        description: "La cuenta se encuentra dada de baja",
+        content: new OA\JsonContent(example:["message" => "Este usuario se encuentra dado de baja"])
+    )]
+    #[OA\Response(
+        response: 429,
+        description: "Demasiados intentos. Incluye header Retry-After con los segundos restantes",
+        content: new OA\JsonContent(example:["message" => "Demasiados intentos. Probá de nuevo más tarde."])
+    )]
     public function login() {
         try {
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             AuthValidator::validateInputLogin($input);
 
-            $response = $this->service->login(AuthMapper::toLoginRequest($input));
-            
+            $response = $this->service->login(AuthMapper::toLoginRequest($input), $this->clientIp());
+
             $this->jsonResponse(200, $response);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);

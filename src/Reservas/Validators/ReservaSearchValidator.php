@@ -21,11 +21,14 @@ final class ReservaSearchValidator extends SearchFilterValidator {
             preg_match("/^\d{4}(-\d{2}(-\d{2})?)?$/", $v)
                 ? null : "Formato requerido: YYYY, YYYY-MM o YYYY-MM-DD";
 
+        // Columnas calificadas con el alias "r" de ReservasRepository: la
+        // proyeccion tambien une profesional, que trae su propia columna
+        // idprofesional. Sin el alias, el WHERE queda ambiguo.
         return [
-            'idprofesional' => new FilterDefinition('idprofesional', 'idprofesional', FilterOperator::EQUALS, $enteroPositivo),
-            'idpaciente'    => new FilterDefinition('idpaciente',    'idpaciente',    FilterOperator::EQUALS, $enteroPositivo),
-            'estado'        => new FilterDefinition('estado',        'estado',        FilterOperator::EQUALS, $estadoValido),
-            'fecha_reserva' => new FilterDefinition('fecha_reserva', 'fecha_reserva', FilterOperator::LIKE_STARTS_WITH, $fechaValida),
+            'idprofesional' => new FilterDefinition('idprofesional', 'r.idprofesional', FilterOperator::EQUALS, $enteroPositivo),
+            'idpaciente'    => new FilterDefinition('idpaciente',    'r.idpaciente',    FilterOperator::EQUALS, $enteroPositivo),
+            'estado'        => new FilterDefinition('estado',        'r.estado',        FilterOperator::EQUALS, $estadoValido),
+            'fecha_reserva' => new FilterDefinition('fecha_reserva', 'r.fecha_reserva', FilterOperator::LIKE_STARTS_WITH, $fechaValida),
         ];
     }
 }

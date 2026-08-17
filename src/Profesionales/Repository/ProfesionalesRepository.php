@@ -33,7 +33,7 @@ class ProfesionalesRepository extends Repository
         $where = array_merge(["u.rol = :rol"], $built['where']);
         $params = array_merge(["rol" => Roles::PROFESIONAL], $built['params']);
 
-        $sql = "SELECT u.*, p.profesion FROM usuario u "
+        $sql = "SELECT " . Usuario::columnasSelect('u') . ", p.profesion FROM usuario u "
              . implode(" ", $joins)
              . " WHERE " . implode(" AND ", $where);
 
@@ -42,7 +42,10 @@ class ProfesionalesRepository extends Repository
 
     public function obtenerPorId(int $id): Profesional|null
     {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE id = :id";
+        $sql = "SELECT " . Usuario::columnasSelect('u') . ", p.profesion
+                FROM usuario u
+                JOIN profesional p ON u.id = p.idprofesional
+                WHERE u.id = :id";
         $data = $this->findOneByQuery($sql, ["id" => $id]);
         return $data;
     }
@@ -58,23 +61,7 @@ class ProfesionalesRepository extends Repository
                 INNER JOIN usuario u ON u.id = p.idprofesional
                 WHERE p.idprofesional = :id AND u.activo = 1
                 LIMIT 1";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute(["id" => $id]);
-        return (bool) $stmt->fetchColumn();
-    }
-
-    public function obtenerPorTelefono(string $telefono): Profesional|null
-    {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE telefono = :telefono AND rol = :rol";
-        $data = $this->findOneByQuery($sql, ["telefono" => $telefono, "rol" => Roles::PROFESIONAL]);
-        return $data;
-    }
-
-    public function obtenerPorEmail(string $email): Profesional|null
-    {
-        $sql = "SELECT * FROM usuario u JOIN profesional p ON u.id = p.idprofesional WHERE email = :email AND rol = :rol";
-        $data = $this->findOneByQuery($sql, ["email" => $email, "rol" => Roles::PROFESIONAL]);
-        return $data;
+        return $this->existsByQuery($sql, ["id" => $id]);
     }
 
     public function registrarProfesional(Profesional $profesional, string $passwordHash): Profesional

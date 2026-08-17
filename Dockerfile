@@ -14,6 +14,7 @@ RUN docker-php-ext-install pdo_mysql mysqli gd xml
 
 # 3. Activamos módulos de Apache (Headers y Rewrite)
 RUN a2enmod rewrite headers
+RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!' /etc/apache2/sites-available/*.conf
 
 # 4. Descargamos Composer desde su imagen oficial
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

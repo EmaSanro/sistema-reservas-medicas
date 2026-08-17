@@ -1,7 +1,9 @@
 <?php
 
 use App\Auth\Model\Roles;
+use App\Auth\Repository\AccessAttemptRepository;
 use App\Auth\Repository\AuthRepository;
+use App\Auth\Service\RateLimiter;
 use App\Pacientes\Controller\PacientesController;
 use App\Pacientes\Repository\PacientesRepository;
 use App\Pacientes\Service\PacientesService;
@@ -10,7 +12,8 @@ use App\Reservas\Repository\ReservasRepository;
 $pacientesRepository = new PacientesRepository();
 $reservasRepository = new ReservasRepository();
 $authRepository = new AuthRepository();
-$pacientesService = new PacientesService($pacientesRepository, $reservasRepository, $authRepository);
+$rateLimiter = new RateLimiter(new AccessAttemptRepository());
+$pacientesService = new PacientesService($pacientesRepository, $reservasRepository, $authRepository, $rateLimiter);
 $pacientesController = new PacientesController($pacientesService);
 
 

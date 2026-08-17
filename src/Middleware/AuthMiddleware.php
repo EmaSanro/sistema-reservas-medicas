@@ -10,8 +10,9 @@ class AuthMiddleware {
 
         if (!empty($rolesPermitidos) && !in_array($usuario->rol, $rolesPermitidos)) {
             throw new ForbiddenException("No tenés permisos");
+        } elseif(!$usuario->activo) {
+            throw new ForbiddenException();
         }
-
         return $usuario;
     }
 }

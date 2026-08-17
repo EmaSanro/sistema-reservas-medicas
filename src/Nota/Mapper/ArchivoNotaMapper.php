@@ -35,6 +35,7 @@ class ArchivoNotaMapper {
         return new RespuestaArchivoNota(
             $archivo->getId(),
             $archivo->getNombreOriginal(),
+            $archivo->getTipoArchivo(),
             $archivo->getPeso(),
             $archivo->getFechaSubida(),
             $archivo->getNotaId()

@@ -59,7 +59,7 @@ class ReservasService {
 
         $reservaCreada = $this->repo->reservar($reserva);
 
-        return ReservaMapper::toResponse($reservaCreada);
+        return $this->respuestaDetallada($reservaCreada->getId());
     }
 
     public function actualizarReserva(int $id, ActualizarReservaRequest $request): RespuestaReserva {
@@ -80,9 +80,23 @@ class ReservasService {
             throw new UsuarioConReservaException("Ya existe una reserva para esa misma fecha y hora");
         }
 
-        $reservaActualizada = $this->repo->actualizarReserva($id, $reservaExistente);
+        $this->repo->actualizarReserva($id, $reservaExistente);
 
-        return ReservaMapper::toResponse($reservaActualizada);
+        return $this->respuestaDetallada($id);
+    }
+
+    /**
+     * Relee la reserva con sus participantes resueltos, para que los endpoints
+     * de escritura devuelvan la misma forma que los de lectura. El null solo
+     * seria posible si la fila desaparecio entre la escritura y esta consulta.
+     */
+    private function respuestaDetallada(int $id): RespuestaReserva {
+        $detallada = $this->repo->obtenerDetalladaPorId($id);
+        if($detallada === null) {
+            throw new ReservaNotFoundException($id);
+        }
+
+        return ReservaMapper::toResponse($detallada);
     }
 
     public function cancelarReserva(int $idReserva, mixed $paciente): void {

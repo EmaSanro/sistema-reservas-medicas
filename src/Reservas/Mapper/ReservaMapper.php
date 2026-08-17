@@ -3,8 +3,11 @@ namespace App\Reservas\Mapper;
 
 use App\Reservas\DTOs\Request\ActualizarReservaRequest;
 use App\Reservas\DTOs\Request\CrearReservaRequest;
+use App\Reservas\DTOs\Response\PacienteReserva;
+use App\Reservas\DTOs\Response\ProfesionalReserva;
 use App\Reservas\DTOs\Response\RespuestaReserva;
 use App\Reservas\Model\Reserva;
+use App\Reservas\Model\ReservaConParticipantes;
 
 class ReservaMapper {
     public static function toRequestCrear(array $input, int $idPaciente): CrearReservaRequest {
@@ -41,13 +44,22 @@ class ReservaMapper {
         return $reserva;
     }
 
-    public static function toResponse(Reserva $reserva): RespuestaReserva {
+    public static function toResponse(ReservaConParticipantes $reserva): RespuestaReserva {
         return new RespuestaReserva(
-            $reserva->getId(),
-            $reserva->getIdPaciente(),
-            $reserva->getIdProfesional(),
-            $reserva->getFechaReserva(),
-            $reserva->getEstadoReserva()
+            $reserva->id,
+            new PacienteReserva(
+                $reserva->idPaciente,
+                $reserva->nombrePaciente,
+                $reserva->apellidoPaciente
+            ),
+            new ProfesionalReserva(
+                $reserva->idProfesional,
+                $reserva->nombreProfesional,
+                $reserva->apellidoProfesional,
+                $reserva->profesion
+            ),
+            $reserva->fechaReserva,
+            $reserva->estado
         );
     }
 }

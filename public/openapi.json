@@ -5,6 +5,12 @@
         "description": "API para gestionar las reservas medicas",
         "version": "1.0.0"
     },
+    "servers": [
+        {
+            "url": "/api",
+            "description": "Prefijo comun de todas las rutas del router"
+        }
+    ],
     "paths": {
         "/auth/login": {
             "post": {
@@ -28,10 +34,8 @@
                         "description": "Logueado correctamente",
                         "content": {
                             "application/json": {
-                                "schema": {},
-                                "example": {
-                                    "OK": "correctamente",
-                                    "TOKEN": "{token}"
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginResponse"
                                 }
                             }
                         }
@@ -55,6 +59,28 @@
                                 }
                             }
                         }
+                    },
+                    "403": {
+                        "description": "La cuenta se encuentra dada de baja",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Este usuario se encuentra dado de baja"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Demasiados intentos. Incluye header Retry-After con los segundos restantes",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Demasiados intentos. Probá de nuevo más tarde."
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -64,18 +90,88 @@
                 "tags": [
                     "Consultorios"
                 ],
-                "summary": "Listado de consultorios",
-                "operationId": "d740d0857db6e6f502d63b4472aae394",
+                "summary": "Listado de consultorios. Opcionalmente se pueden pasar filtros como query params (ciudad, direccion, idprofesional)",
+                "operationId": "fd113d065aa5ba1f8e67c25dfb2b2e27",
+                "parameters": [
+                    {
+                        "name": "ciudad",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "direccion",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "idprofesional",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de todos los consultorios registrados",
+                        "description": "Lista paginada de consultorios (opcionalmente filtrada)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaConsultorio"
-                                    }
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RespuestaConsultorio"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "limit": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Filtro no permitido o valor invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Filtro no permitido"
                                 }
                             }
                         }
@@ -322,23 +418,69 @@
                 ]
             }
         },
-        "/pacientes": {
-            "get": {
+        "/notas": {
+            "post": {
                 "tags": [
-                    "Pacientes"
+                    "Notas"
                 ],
-                "summary": "Lista de pacientes",
-                "operationId": "0c7b92a19c53e653ae83a3cc8560a42a",
+                "summary": "Crear una nota sobre una reserva propia",
+                "description": "Solo el profesional dueño de la reserva puede crear la nota. La respuesta separa la nota guardada de los adjuntos que fallaron.",
+                "operationId": "02aac40933205003da181b9b0d6d83c8",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CrearNotaRequest"
+                            }
+                        }
+                    }
+                },
                 "responses": {
-                    "200": {
-                        "description": "Lista de pacientes",
+                    "201": {
+                        "description": "Nota creada",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaPaciente"
+                                    "$ref": "#/components/schemas/ResultadoMutacionNota"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Campo obligatorio faltante o invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Los datos ingresados no son válidos.",
+                                    "errors": {
+                                        "motivo_visita": [
+                                            "El motivo de visita solo puede contener letras, números y espacios."
+                                        ]
                                     }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La reserva pertenece a otro profesional",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "No tienes permisos de crear notas en una reserva ajena!"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "La reserva indicada no existe",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Reserva con identificador '123' no encontrado"
                                 }
                             }
                         }
@@ -349,6 +491,525 @@
                         "bearerAuth": []
                     }
                 ]
+            }
+        },
+        "/notas/{id}": {
+            "get": {
+                "tags": [
+                    "Notas"
+                ],
+                "summary": "Nota por ID, con sus adjuntos",
+                "operationId": "650abcfebc4c0ef1f66b6671175e3ad6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Nota encontrada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaNota"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Los datos ingresados no son válidos.",
+                                    "errors": {
+                                        "id": [
+                                            "El ID debe ser un número entero positivo."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La nota pertenece a la reserva de otro profesional",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "No tienes permisos sobre esta nota"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe una nota con ese ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Nota con identificador '5' no encontrado"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Notas"
+                ],
+                "summary": "Actualizar una nota propia",
+                "description": "Los campos omitidos conservan su valor. La respuesta devuelve la nota con todos sus adjuntos actuales.",
+                "operationId": "5750667296126fad9b7bc4450486a645",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ActualizarNotaRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nota actualizada",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResultadoMutacionNota"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID o campo/s invalido/s",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Los datos ingresados no son válidos.",
+                                    "errors": {
+                                        "motivo_visita": [
+                                            "El motivo de visita solo puede contener letras, números y espacios."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "La nota pertenece a la reserva de otro profesional",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "No tienes permisos sobre esta nota"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe una nota con ese ID",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Nota con identificador '5' no encontrado"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/notas/{idNota}/archivos/{idArchivo}": {
+            "get": {
+                "tags": [
+                    "Notas"
+                ],
+                "summary": "Descargar un adjunto de una nota propia",
+                "description": "Devuelve el binario del archivo. Sin query params se envia como descarga (Content-Disposition: attachment); con ?preview se envia para mostrar en el navegador (inline).",
+                "operationId": "193495a339eb0490dda31243adecddf6",
+                "parameters": [
+                    {
+                        "name": "idNota",
+                        "in": "path",
+                        "description": "ID de la nota dueña del archivo",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "idArchivo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "preview",
+                        "in": "query",
+                        "description": "Presente (con cualquier valor) devuelve el archivo inline en vez de como descarga",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Contenido binario del archivo",
+                        "headers": {
+                            "Content-Disposition": {
+                                "description": "attachment o inline, segun el query param preview",
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "content": {
+                            "application/pdf": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "image/jpeg": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "image/png": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID de nota o de archivo invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Los datos ingresados no son válidos.",
+                                    "errors": {
+                                        "id": [
+                                            "El ID debe ser un número entero positivo."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El archivo pertenece a la nota de otro profesional",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "No tienes permisos para descargar archivos que no son tuyos!"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe el archivo, no pertenece a esa nota, o falta en disco",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Archivo con identificador '7' no encontrado"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Notas"
+                ],
+                "summary": "Eliminar un adjunto de una nota propia",
+                "description": "Borra el registro y el archivo en disco. La operacion es idempotente respecto del archivo fisico: si ya no existe en disco, igual se elimina el registro.",
+                "operationId": "6ce378b639d3ed2d89bf6affa6a1514a",
+                "parameters": [
+                    {
+                        "name": "idNota",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "idArchivo",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Archivo eliminado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "ID de nota o de archivo invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Los datos ingresados no son válidos.",
+                                    "errors": {
+                                        "id": [
+                                            "El ID debe ser un número entero positivo."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "El archivo pertenece a la nota de otro profesional",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "No puedes eliminar archivos ajenos!"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No existe el archivo o no pertenece a esa nota",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Archivo con identificador '7' no encontrado"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/pacientes": {
+            "get": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Lista de pacientes. Opcionalmente se pueden pasar filtros como query params (nombre, apellido, email, telefono)",
+                "operationId": "60378d4b5186f70f0aa7fdfd4eff2200",
+                "parameters": [
+                    {
+                        "name": "nombre",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "apellido",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "telefono",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de pacientes (opcionalmente filtrada)",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RespuestaPaciente"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "limit": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Filtro no permitido o valor invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Filtro no permitido"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Pacientes"
+                ],
+                "summary": "Registrarse como paciente",
+                "operationId": "d64c41e428b216318a0ef5bff9ca2665",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CrearPacienteRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Registrado correctamente",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/RespuestaPaciente"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "JSON invalido o criterios de password no cumplidos",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "La contraseña debe tener minimo 8 caracteres"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Usuario ya registrado",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Ya se registro un usuario con ese email y/o telefono"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Demasiados intentos desde esta IP. Incluye header Retry-After con los segundos restantes",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "message": "Demasiados intentos. Probá de nuevo más tarde."
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         "/pacientes/{id}": {
@@ -461,128 +1122,13 @@
                         "bearerAuth": []
                     }
                 ]
-            }
-        },
-        "/pacientes/buscar": {
-            "get": {
-                "tags": [
-                    "Pacientes"
-                ],
-                "summary": "Buscar pacientes",
-                "operationId": "9858b80872922c4fe5784e29533ab4dc",
-                "parameters": [
-                    {
-                        "name": "filtro",
-                        "in": "query",
-                        "description": "Filtro de busqueda(nombre, apellido, email, telefono)",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "valor",
-                        "in": "query",
-                        "description": "Valor de busqueda",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Listado de pacientes filtrados",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaPaciente"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Filtro invalido",
-                        "content": {
-                            "application/json": {
-                                "schema": {},
-                                "example": {
-                                    "ERROR": "El filtro ingresado es un filtro invalido"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/pacientes/registrar": {
-            "post": {
-                "tags": [
-                    "Pacientes"
-                ],
-                "summary": "Registrarse como paciente",
-                "operationId": "c82ebba8b061b5608ce5ec737b4f3d2d",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CrearPacienteRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Registrado correctamente",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/RespuestaPaciente"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "JSON invalido o criterios de password no cumplidos",
-                        "content": {
-                            "application/json": {
-                                "schema": {},
-                                "example": {
-                                    "ERROR": "La contraseña debe tener minimo 8 caracteres"
-                                }
-                            }
-                        }
-                    },
-                    "409": {
-                        "description": "Usuario ya registrado",
-                        "content": {
-                            "application/json": {
-                                "schema": {},
-                                "example": {
-                                    "ERROR": "Ya se registro un usuario con ese email y/o telefono"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/paciente/{id}": {
+            },
             "patch": {
                 "tags": [
                     "Pacientes"
                 ],
                 "summary": "Actualizar datos del usuario",
-                "operationId": "4a80acd395468f2fea79bbbd73c7a3a2",
+                "operationId": "e168e97d846916e8ae78496e56d9b9f1",
                 "parameters": [
                     {
                         "name": "id",
@@ -649,18 +1195,122 @@
                 "tags": [
                     "Profesionales"
                 ],
-                "summary": "Listado de los profesionales",
-                "operationId": "cb55cd3213390287181d09c8ebc2d67a",
+                "summary": "Listado de los profesionales. Opcionalmente se pueden pasar filtros como query params (nombre, apellido, email, telefono, profesion, ciudad, direccion)",
+                "operationId": "7167299be780cdfbff07e37265a36f17",
+                "parameters": [
+                    {
+                        "name": "nombre",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "apellido",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "email",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "telefono",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "profesion",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "ciudad",
+                        "in": "query",
+                        "description": "Filtra por ciudad del consultorio",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "direccion",
+                        "in": "query",
+                        "description": "Filtra por direccion del consultorio",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "Lista de los profesionales",
+                        "description": "Lista paginada de profesionales (opcionalmente filtrada)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaProfesional"
-                                    }
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RespuestaProfesional"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "limit": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Filtro no permitido o valor invalido",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "Filtro no permitido"
                                 }
                             }
                         }
@@ -877,59 +1527,6 @@
                 ]
             }
         },
-        "/profesionales/buscar": {
-            "get": {
-                "tags": [
-                    "Profesionales"
-                ],
-                "summary": "Buscar profesionales",
-                "operationId": "1636c40c3463f651683ea93055faffa2",
-                "parameters": [
-                    {
-                        "name": "filtro",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "valor",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Listado de profesionales obtenidos",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaProfesional"
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Solicitud invalida: filtro o valor no ingresado | el filtro no es valido para la busqueda",
-                        "content": {
-                            "application/json": {
-                                "schema": {},
-                                "example": {
-                                    "ERROR": "El filtro ingresado no es valido para la busqueda"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/profesionales/registrar": {
             "post": {
                 "tags": [
@@ -993,58 +1590,98 @@
                 "tags": [
                     "Reservas"
                 ],
-                "summary": "Obtener todas las reservas",
-                "operationId": "ff05f9ed398a35b98d70c79f812ac798",
-                "responses": {
-                    "200": {
-                        "description": "Lista todas las reservas existentes",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaReserva"
-                                    }
-                                }
-                            }
+                "summary": "Obtener todas las reservas. Opcionalmente se pueden pasar filtros como query params (idprofesional, idpaciente, estado, fecha)",
+                "operationId": "52c2ce0c552adf641f8704d8b0bbab23",
+                "parameters": [
+                    {
+                        "name": "idprofesional",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "idpaciente",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "description": "Confirmada | Completada | No asistio | Cancelada",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "fecha_reserva",
+                        "in": "query",
+                        "description": "YYYY, YYYY-MM o YYYY-MM-DD",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
                         }
                     }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/reservas/mis-reservas": {
-            "get": {
-                "tags": [
-                    "Reservas"
                 ],
-                "summary": "Obtener las reservas de un usuario ya sea profesional o paciente",
-                "operationId": "78daf52d0763d4c9ced94187227b0982",
                 "responses": {
                     "200": {
-                        "description": "Lista de las reservas de un usuario dado",
+                        "description": "Lista paginada de reservas (opcionalmente filtrada)",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RespuestaReserva"
-                                    }
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RespuestaReserva"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "limit": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
                                 }
                             }
                         }
                     },
-                    "404": {
-                        "description": "No hay reservas",
+                    "400": {
+                        "description": "Filtro no permitido o valor invalido",
                         "content": {
                             "application/json": {
                                 "schema": {},
                                 "example": {
-                                    "ERROR": "No tienes reservas realizadas"
+                                    "ERROR": "Filtro no permitido"
                                 }
                             }
                         }
@@ -1055,15 +1692,13 @@
                         "bearerAuth": []
                     }
                 ]
-            }
-        },
-        "/reservas/reservar": {
+            },
             "post": {
                 "tags": [
                     "Reservas"
                 ],
                 "summary": "Realizar una reserva",
-                "operationId": "ad070de6a108e1ffd3af9490a39bdb81",
+                "operationId": "3966e75c6ab3ba2e8dfa6e51f49956cb",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -1103,6 +1738,81 @@
                                 "schema": {},
                                 "example": {
                                     "ERROR": "Este usuario ya tiene una reserva para esa misma fecha"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/reservas/mis-reservas": {
+            "get": {
+                "tags": [
+                    "Reservas"
+                ],
+                "summary": "Obtener las reservas de un usuario ya sea profesional o paciente",
+                "operationId": "78daf52d0763d4c9ced94187227b0982",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lista paginada de las reservas del usuario autenticado",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/RespuestaReserva"
+                                            }
+                                        },
+                                        "total": {
+                                            "type": "integer",
+                                            "example": 42
+                                        },
+                                        "page": {
+                                            "type": "integer",
+                                            "example": 1
+                                        },
+                                        "limit": {
+                                            "type": "integer",
+                                            "example": 10
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No hay reservas",
+                        "content": {
+                            "application/json": {
+                                "schema": {},
+                                "example": {
+                                    "ERROR": "No tienes reservas realizadas"
                                 }
                             }
                         }
@@ -1183,13 +1893,13 @@
                 ]
             }
         },
-        "/reservas/{id}/cancelar": {
+        "/reservas/cancelar/{id}": {
             "put": {
                 "tags": [
                     "Reservas"
                 ],
                 "summary": "Cancelar una reserva",
-                "operationId": "fd02562bf56ff50521ea6d70d7a7ddd2",
+                "operationId": "7ace14fb68b931efc8d22f3d0da8f22c",
                 "parameters": [
                     {
                         "name": "id",
@@ -1281,6 +1991,15 @@
                 },
                 "type": "object"
             },
+            "LoginResponse": {
+                "properties": {
+                    "token": {
+                        "type": "string",
+                        "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6MTAsInJvbCI6IlBhY2llbnRlIn0.firma"
+                    }
+                },
+                "type": "object"
+            },
             "ActualizarConsultorioRequest": {
                 "properties": {
                     "ciudad": {
@@ -1293,12 +2012,12 @@
                         "example": "Avenida Rivadavia 2200",
                         "nullable": true
                     },
-                    "horarioApertura": {
+                    "horario_apertura": {
                         "type": "string",
                         "example": "08:00",
                         "nullable": true
                     },
-                    "horarioCierre": {
+                    "horario_cierre": {
                         "type": "string",
                         "example": "17:00",
                         "nullable": true
@@ -1439,6 +2158,91 @@
                     "reserva_id": {
                         "type": "integer",
                         "example": 123
+                    }
+                },
+                "type": "object"
+            },
+            "AdjuntoFallidoInfo": {
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "example": "estudio.pdf"
+                    },
+                    "motivo": {
+                        "type": "string",
+                        "example": "El archivo no puede superar 5MB"
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaArchivoNota": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 7
+                    },
+                    "nombre_original": {
+                        "type": "string",
+                        "example": "estudio.pdf"
+                    },
+                    "tipo_archivo": {
+                        "type": "string",
+                        "example": "application/pdf"
+                    },
+                    "peso": {
+                        "description": "Peso del archivo en bytes",
+                        "type": "integer",
+                        "example": 204800
+                    },
+                    "fecha_subida": {
+                        "type": "string",
+                        "example": "2026-06-15 14:32:34"
+                    },
+                    "nota_id": {
+                        "type": "integer",
+                        "example": 1
+                    }
+                },
+                "type": "object"
+            },
+            "RespuestaNota": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 5
+                    },
+                    "motivo_visita": {
+                        "type": "string",
+                        "example": "Consulta general"
+                    },
+                    "texto_nota": {
+                        "type": "string",
+                        "example": "El paciente refiere dolor de cabeza desde hace 3 días..."
+                    },
+                    "reserva_id": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "adjuntos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RespuestaArchivoNota"
+                        }
+                    }
+                },
+                "type": "object"
+            },
+            "ResultadoMutacionNota": {
+                "description": "Respuesta para las operaciones de crear/actualizar una nota que aceptan\nsubida de archivos. Distingue explícitamente lo que se guardó de lo que\nfalló, para que el cliente pueda mostrar el estado real por archivo\nen lugar de asumir \"todo fue bien\" cuando alguno no se pudo procesar.",
+                "properties": {
+                    "nota": {
+                        "$ref": "#/components/schemas/RespuestaNota"
+                    },
+                    "adjuntosFallidos": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AdjuntoFallidoInfo"
+                        }
                     }
                 },
                 "type": "object"
@@ -1668,7 +2472,7 @@
                 "required": [
                     "idProfesional",
                     "idPaciente",
-                    "fecha"
+                    "fecha_reserva"
                 ],
                 "properties": {
                     "idProfesional": {
@@ -1679,7 +2483,7 @@
                         "type": "integer",
                         "example": 123
                     },
-                    "fecha": {
+                    "fecha_reserva": {
                         "type": "string",
                         "example": "2026-03-15 18:45:00"
                     },
@@ -1690,21 +2494,60 @@
                 },
                 "type": "object"
             },
+            "PacienteReserva": {
+                "description": "Datos del paciente embebidos en una reserva. Lo minimo para renderizar una\nlista sin pedirle al cliente una consulta extra por cada fila.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 24
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Ana"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Torres"
+                    }
+                },
+                "type": "object"
+            },
+            "ProfesionalReserva": {
+                "description": "Datos del profesional embebidos en una reserva. Incluye la profesion porque\nes lo que la UI muestra junto al nombre en el listado del paciente.",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "example": 12
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "example": "Lucero"
+                    },
+                    "apellido": {
+                        "type": "string",
+                        "example": "Gimenez"
+                    },
+                    "profesion": {
+                        "type": "string",
+                        "example": "Pediatra"
+                    }
+                },
+                "type": "object"
+            },
             "RespuestaReserva": {
+                "description": "Forma unica de una reserva en la API: los participantes vienen anidados y ya\nresueltos por JOIN, para que el cliente no tenga que pedirlos aparte.",
                 "properties": {
                     "idReserva": {
                         "type": "integer",
                         "example": 15
                     },
-                    "idPaciente": {
-                        "type": "integer",
-                        "example": "24"
+                    "paciente": {
+                        "$ref": "#/components/schemas/PacienteReserva"
                     },
-                    "idProfesional": {
-                        "type": "integer",
-                        "example": "12"
+                    "profesional": {
+                        "$ref": "#/components/schemas/ProfesionalReserva"
                     },
-                    "fecha": {
+                    "fecha_reserva": {
                         "type": "string",
                         "example": "2026-04-18 15:00:00"
                     },
@@ -1733,6 +2576,10 @@
         {
             "name": "Consultorios",
             "description": "Consultorios"
+        },
+        {
+            "name": "Notas",
+            "description": "Notas"
         },
         {
             "name": "Pacientes",
