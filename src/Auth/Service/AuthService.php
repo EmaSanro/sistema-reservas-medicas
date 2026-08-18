@@ -7,7 +7,7 @@ use App\Auth\Exceptions\UsuarioInactivoException;
 use App\Auth\Exceptions\WrongCredentialsException;
 use App\Auth\Mapper\AuthMapper;
 use App\Auth\Repository\AuthRepository;
-use App\Security\JWTHandler;
+use App\Security\JwtHandler;
 
 class AuthService {
     public function __construct(
@@ -39,7 +39,7 @@ class AuthService {
 
         $this->rateLimiter->clearLoginAttempts($identificador);
 
-        $token = JWTHandler::generateToken([
+        $token = JwtHandler::generateToken([
             "id" => $credenciales->id,
             "nombre" => $credenciales->nombreCompleto,
             "rol" => $credenciales->rol,

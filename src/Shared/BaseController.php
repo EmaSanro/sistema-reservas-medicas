@@ -1,5 +1,5 @@
 <?php
-namespace App\Shared; // CORREGIR NAMESPACE ACA Y EN LOS DEMAS CONTROLADORES
+namespace App\Shared;
 
 use App\Security\RequestContext;
 use OpenApi\Attributes as OA;

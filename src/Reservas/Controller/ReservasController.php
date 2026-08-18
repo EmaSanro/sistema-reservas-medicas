@@ -171,7 +171,7 @@ class ReservasController extends BaseController {
     )]
     public function actualizarReserva(string $id) {
         try {
-            ReservaValidator::validarId($id);
+            ReservaValidator::validarID($id);
             $input = json_decode(file_get_contents("php://input"), true) ?? [];
             ReservaValidator::validarRequestActualizar($input);
 
@@ -217,7 +217,7 @@ class ReservasController extends BaseController {
     public function cancelarReserva(string $id) {
         try {
             $paciente = $this->usuarioAutenticado();
-            ReservaValidator::validarId($id);
+            ReservaValidator::validarID($id);
 
             $this->service->cancelarReserva((int) $id, $paciente);
     
