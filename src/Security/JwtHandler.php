@@ -1,11 +1,11 @@
 <?php
 namespace App\Security;
 
-use App\Exceptions\Auth\InvalidTokenException;
+use App\Auth\Exceptions\InvalidTokenException;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
-class JWTHandler {
+class JwtHandler {
     private static function getSecretKey(): string {
         $key = $_ENV['SECRET_KEY'] ?? null;
         if (!$key) {
@@ -13,12 +13,12 @@ class JWTHandler {
         }
         return $key;
     }
-    public static function generateToken($data) {
+    public static function generateToken(mixed $data) {
         $time = time();
 
         $token = [
             "iat" => $time,
-            "exp" => $time * (60*60),
+            "exp" => $time + (60*60),
             "data" => $data 
         ];
 

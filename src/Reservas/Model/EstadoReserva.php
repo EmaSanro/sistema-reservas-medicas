@@ -1,5 +1,5 @@
 <?php
-namespace App\Model;
+namespace App\Reservas\Model;
 class EstadoReserva {
     public const CONFIRMADA = "Confirmada";
     public const COMPLETADA = "Completada";

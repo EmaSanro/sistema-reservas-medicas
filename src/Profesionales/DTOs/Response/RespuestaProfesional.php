@@ -1,5 +1,5 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Profesionales\DTOs\Response;
 
 use OpenApi\Attributes as OA;
 
@@ -28,7 +28,8 @@ class RespuestaProfesional {
         $this->profesion = $profesion;
         $this->email = $email ?? null;
         $this->telefono = $telefono ?? null;
-        $this->motivo_baja = $motivo_baja;
-        $this->fecha_baja = $fecha_baja;
+        $this->activo = $activo;
+        $this->motivo_baja = $motivo_baja ?? null;
+        $this->fecha_baja = $fecha_baja ?? null;
     }
 }

@@ -1,11 +1,12 @@
 <?php
 
-use App\Controller\NotaController;
-use App\Repository\ArchivoNotaRepository;
-use App\Repository\NotaRepository;
-use App\Repository\ReservasRepository;
-use App\Service\ArchivoNotaService;
-use App\Service\NotaService;
+use App\Auth\Model\Roles;
+use App\Nota\Controller\NotaController;
+use App\Nota\Repository\ArchivoNotaRepository;
+use App\Nota\Repository\NotaRepository;
+use App\Nota\Service\ArchivoNotaService;
+use App\Nota\Service\NotaService;
+use App\Reservas\Repository\ReservasRepository;
 
 $notaRepository = new NotaRepository();
 $reservasRepository = new ReservasRepository();
@@ -14,8 +15,8 @@ $archivoService = new ArchivoNotaService($archivoNotaRepository, $reservasReposi
 $notaService = new NotaService($notaRepository, $reservasRepository, $archivoService);
 $notaController = new NotaController($notaService, $archivoService);
 
-$router->get("/api/notas/:id", [$notaController, "obtenerNotaPorId"]);
-$router->get("/api/notas/:id/archivos/:idArchivo", [$notaController, "obtenerArchivoNota"]);
-$router->post("/api/notas", [$notaController, "crearNota"]);
-$router->put("/api/notas/:id", [$notaController, "actualizarNota"]);
-$router->delete("/api/notas/:idNota/archivos/:idArchivo", [$notaController, "eliminarArchivoNota"]);
+$router->get("/api/notas/:id", [$notaController, "obtenerNotaPorId"], [Roles::PROFESIONAL]);
+$router->get("/api/notas/:id/archivos/:idArchivo", [$notaController, "obtenerArchivoNota"], [Roles::PROFESIONAL]);
+$router->post("/api/notas", [$notaController, "crearNota"], [Roles::PROFESIONAL]);
+$router->put("/api/notas/:id", [$notaController, "actualizarNota"], [Roles::PROFESIONAL]);
+$router->delete("/api/notas/:idNota/archivos/:idArchivo", [$notaController, "eliminarArchivoNota"], [Roles::PROFESIONAL]);

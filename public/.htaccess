@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.+?)/?$ index.php [L,QSA,B]
+
+    Options -Indexes
+
+    <FilesMatch "\.(ics)$">
+        ForceType text/calendar
+        Header set Content-Disposition attachment
+    </FilesMatch>
+    
+    Header set Access-Control-Allow-Origin "http://localhost:5500"
+    Header set Access-Control-Allow-Methods "GET, POST, PATCH, OPTIONS, PUT, DELETE"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    
+</IfModule>

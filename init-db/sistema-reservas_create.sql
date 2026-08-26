@@ -1,19 +1,22 @@
 -- Created by Redgate Data Modeler (https://datamodeler.redgate-platform.com)
 -- Last modification date: 2026-02-09 21:20:22.429
+DROP DATABASE IF EXISTS sistemareservas;
 
-CREATE DATABASE IF NOT EXISTS sistemareservas;
+CREATE DATABASE sistemareservas CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE sistemareservas;
+
 -- tables
 -- Table: Consultorio
 CREATE TABLE consultorio (
-    id int  NOT NULL,
+    id int  NOT NULL AUTO_INCREMENT,
     direccion varchar(100)  NOT NULL,
     ciudad varchar(60)  NOT NULL,
-    horario_apertura datetime  NOT NULL,
-    horario_cierre datetime  NOT NULL,
-    id_profesional int  NULL,
-    UNIQUE INDEX ak_id_profesional (id_profesional),
+    horario_apertura time  NOT NULL,
+    horario_cierre time  NOT NULL,
+    idprofesional int  NULL,
+    UNIQUE INDEX ak_idprofesional (idprofesional),
     CONSTRAINT pk_id PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Table: Nota
 CREATE TABLE nota (
@@ -21,15 +24,16 @@ CREATE TABLE nota (
     motivo_visita varchar(150)  NOT NULL,
     texto_nota text  NOT NULL,
     reserva_id int  NOT NULL,
+    created_at date NOT NULL DEFAULT (CURRENT_DATE),
     CONSTRAINT pk_nota PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Table: Profesional
 CREATE TABLE profesional (
     idprofesional int  NOT NULL,
     profesion varchar(60)  NOT NULL,
     CONSTRAINT pk_profesional PRIMARY KEY (idprofesional)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Table: Reservas
 CREATE TABLE reservas (
@@ -39,10 +43,11 @@ CREATE TABLE reservas (
     fecha_reserva datetime  NOT NULL,
     estado varchar(15)  NOT NULL,
     fecha_cancelacion datetime  NULL,
-    UNIQUE INDEX reservas_ak_idprofesional (idprofesional),
-    UNIQUE INDEX reservas_ak_idpaciente (idpaciente),
+    notificado bool NOT NULL DEFAULT 0,
+    INDEX reservas_ak_idprofesional (idprofesional),
+    INDEX reservas_ak_idpaciente (idpaciente),
     CONSTRAINT pk_reservas PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Table: Usuario
 CREATE TABLE usuario (
@@ -56,10 +61,11 @@ CREATE TABLE usuario (
     activo bool  NOT NULL,
     motivo_baja varchar(255)  NULL,
     fecha_baja datetime  NULL,
+    INDEX usuario_ak_rol(rol),
     UNIQUE INDEX email_ak (email),
     UNIQUE INDEX telefono_ak (telefono),
     CONSTRAINT pk_usuario PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- Table: archivo_nota
 CREATE TABLE archivo_nota (
@@ -72,7 +78,22 @@ CREATE TABLE archivo_nota (
     fecha_subida datetime  NOT NULL,
     nota_id int  NOT NULL,
     CONSTRAINT pk_archivo_nota PRIMARY KEY (id)
-);
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+
+-- Table: access_attempt
+-- Contadores del rate limiting. Infraestructura pura: no mapea a ninguna
+-- entidad de dominio, por eso va nombrada en ingles.
+-- Una fila por intento y por clave: un login fallido escribe dos
+-- (identifier + ip), un intento de registro escribe una (solo ip).
+CREATE TABLE access_attempt (
+    id int  NOT NULL AUTO_INCREMENT,
+    action varchar(20)  NOT NULL,      -- 'login' | 'registration'
+    key_type varchar(20)  NOT NULL,    -- 'identifier' | 'ip'
+    key_value varchar(190)  NOT NULL,  -- identificador normalizado o IP
+    created_at datetime  NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_access_attempt_count (action, key_type, key_value, created_at),
+    CONSTRAINT pk_access_attempt PRIMARY KEY (id)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 
 -- foreign keys
 -- Reference: Reservas_Usuario (table: Reservas)
@@ -80,7 +101,7 @@ ALTER TABLE reservas ADD CONSTRAINT reservas_usuario FOREIGN KEY reservas_usuari
     REFERENCES usuario (id);
 
 -- Reference: fk_consultorio_profesional (table: Consultorio)
-ALTER TABLE consultorio ADD CONSTRAINT fk_consultorio_profesional FOREIGN KEY fk_consultorio_profesional (id_profesional)
+ALTER TABLE consultorio ADD CONSTRAINT fk_consultorio_profesional FOREIGN KEY fk_consultorio_profesional (idprofesional)
     REFERENCES profesional (idprofesional)
     ON DELETE CASCADE
     ON UPDATE CASCADE;

@@ -3,7 +3,7 @@ namespace App\Shared\Exceptions;
 
 class AlreadyExistsException extends AppException {
 
-    public function __construct(private string $entidad, string $campo, mixed $valor) {
+    public function __construct(private string $entidad, private string $campo, private mixed $valor) {
         parent::__construct(sprintf("%s con %s '%s' ya existe", $entidad, $campo, (string) $valor));
     }
 
@@ -13,6 +13,6 @@ class AlreadyExistsException extends AppException {
 
     public function getSafeMessage(): string
     {
-        return sprintf("%s ya existente", $this->entidad);
+        return sprintf("%s con %s '%s' ya existe", $this->entidad, $this->campo, (string) $this->valor);
     }
 }

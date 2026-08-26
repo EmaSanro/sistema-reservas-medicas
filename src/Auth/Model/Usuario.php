@@ -21,7 +21,7 @@ class Usuario extends Entity
 
     protected function __construct() {}
 
-    public static function create(string $nombre, string $apellido, string $rol, string|null $email, string|null $telefono, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null, string $password): self
+    public static function create(string $nombre, string $apellido, string $rol, string|null $email, string|null $telefono, string $password, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null): self
     {
         $usuario = new self();
         $usuario->setNombre($nombre);
@@ -128,9 +128,20 @@ class Usuario extends Entity
         return $this->fecha_baja ?? null;
     }
 
-    public function getPassword(): string
+    /**
+     * Columnas que componen una fila de usuario, en el mismo orden que las
+     * consume fromDatabase(). Mantener ambas en sincronia: si se agrega un
+     * campo hay que tocarlas juntas.
+     *
+     * Nota: password queda deliberadamente afuera. La unica query que la
+     * proyecta es AuthRepository::buscarCredenciales().
+     */
+    public static function columnasSelect(string $alias = ''): string
     {
-        return $this->password;
+        $prefijo = $alias === '' ? '' : $alias . '.';
+        $columnas = ['id', 'nombre', 'apellido', 'rol', 'email', 'telefono', 'activo', 'motivo_baja', 'fecha_baja'];
+
+        return implode(', ', array_map(static fn(string $c): string => $prefijo . $c, $columnas));
     }
 
     public static function fromDatabase(array $data): self
@@ -145,7 +156,6 @@ class Usuario extends Entity
         $usuario->activo = (bool) $data["activo"];
         $usuario->motivo_baja = $data["motivo_baja"];
         $usuario->fecha_baja = $data["fecha_baja"];
-        $usuario->password = $data["password"];
 
         return $usuario;
     }

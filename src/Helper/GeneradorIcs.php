@@ -10,7 +10,7 @@ class GeneradorIcs {
         string $titulo,
         string $descripcion
     ) {
-        $formato = "Ymd:THis";
+        $formato = 'Ymd\THis';
 
         $inicio = new DateTime($fechaInicio);
         $fin = new DateTime($fechaFin);
@@ -26,8 +26,8 @@ class GeneradorIcs {
         $ics .= "DTSTAMP:" . $ahora->format($formato) . "\r\n";
         $ics .= "DTSTART:" . $inicio->format($formato) . "\r\n";
         $ics .= "DTEND:" . $fin->format($formato) . "\r\n";
-        $ics .= "SUMMARY:$titulo\n";
-        $ics .= "DESCRIPTION:$descripcion.\n";
+        $ics .= "SUMMARY:$titulo\r\n";
+        $ics .= "DESCRIPTION:$descripcion.\r\n";
         $ics .= "END:VEVENT\r\n";
         $ics .= "END:VCALENDAR";
 

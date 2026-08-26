@@ -11,6 +11,6 @@ INSERT INTO usuario(
     "Perez",
     "Admin",
     "juancitoPerez@gmail.com",
-    "$2y$10$7sVTWkNIelav6.OAR8J95u/b8te6WolSj9EQ4fZNIhSPlPRwueVZ2",
+    "$2a$12$zYmsdEUMjUQXm88n.rSZ2u//DiSa.SitKC7lMb3fs9swnR9XXKWba",
     1
 );

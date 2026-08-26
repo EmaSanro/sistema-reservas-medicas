@@ -2,14 +2,16 @@
 
 namespace App\Shared;
 
-use App\Exceptions\DatabaseException;
+use App\Shared\Exceptions\DuplicatedEntryException;
 use AppConfig\Database;
 use PDO;
+use PDOException;
 use PDOStatement;
 use Throwable;
 
 abstract class Repository {
     protected PDO $db;
+    private const int MYSQL_DUPLICATED_CODE_ERROR = 1062;
 
     public function __construct() {
         $this->db = Database::getConnection();
@@ -19,7 +21,7 @@ abstract class Repository {
 
     abstract protected function getEntityClass(): string;
 
-    protected function findAll(): array {
+    public function findAll(): array {
         $sql = sprintf("SELECT * FROM %s", $this->getTableName());
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
@@ -34,7 +36,12 @@ abstract class Repository {
         return $entities;
     }
 
-    protected function findById(int $id): ?object {
+    public function findPaginated(int $page = 1, int $limit = 10): array {
+        $sql = sprintf("SELECT * FROM %s", $this->getTableName());
+        return $this->findPaginatedByQuery($sql, [], $page, $limit);
+    }
+
+    public function findById(int $id): ?Entity {
         $sql = sprintf("SELECT * FROM %s WHERE id = ?", $this->getTableName());
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id]);
@@ -58,7 +65,43 @@ abstract class Repository {
         return $entities;
     }
 
-    protected function findOneByQuery(string $sql, array $params = []): ?array {
+    protected function findPaginatedByQuery(string $sql, array $params = [], int $page = 1, int $limit = 10): array {
+        return [
+            'data' => $this->findByQuery($this->withLimit($sql, $page, $limit), $params),
+            'total' => $this->countByQuery($sql, $params),
+        ];
+    }
+
+    /**
+     * Paginado sobre una proyeccion que no corresponde a getEntityClass()
+     * (tipicamente un JOIN). $mapper recibe cada fila cruda y devuelve el
+     * read model correspondiente.
+     *
+     * @template T
+     * @param callable(array<string, mixed>): T $mapper
+     * @return array{data: list<T>, total: int}
+     */
+    protected function findPaginatedByQueryAs(string $sql, callable $mapper, array $params = [], int $page = 1, int $limit = 10): array {
+        return [
+            'data' => array_map($mapper, $this->fetchRows($this->withLimit($sql, $page, $limit), $params)),
+            'total' => $this->countByQuery($sql, $params),
+        ];
+    }
+
+    /**
+     * El COUNT corre sobre el SQL sin LIMIT: es el total de la busqueda, no
+     * el de la pagina.
+     */
+    private function countByQuery(string $sql, array $params = []): int {
+        return (int) $this->prepareAndExecute("SELECT COUNT(*) FROM ($sql) as sub", $params)->fetchColumn();
+    }
+
+    private function withLimit(string $sql, int $page, int $limit): string {
+        $offset = ($page - 1) * $limit;
+        return $sql . " LIMIT $limit OFFSET $offset";
+    }
+
+    protected function findOneByQuery(string $sql, array $params = []): ?Entity {
         $stmt = $this->prepareAndExecute($sql, $params);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         if($data === false) return null;
@@ -82,6 +125,32 @@ abstract class Repository {
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Para chequeos de existencia. La query debe proyectar una sola columna
+     * (tipicamente "SELECT 1 ... LIMIT 1"): no hidrata entidades.
+     */
+    protected function existsByQuery(string $sql, array $params = []): bool {
+        return (bool) $this->prepareAndExecute($sql, $params)->fetchColumn();
+    }
+
+    /**
+     * Devuelve la fila cruda sin pasar por getEntityClass(). Pensado para
+     * proyecciones que no corresponden a una entidad completa.
+     */
+    protected function fetchOneRow(string $sql, array $params = []): ?array {
+        $row = $this->prepareAndExecute($sql, $params)->fetch(PDO::FETCH_ASSOC);
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * Contraparte plural de fetchOneRow(): filas crudas, sin hidratar entidades.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function fetchRows(string $sql, array $params = []): array {
+        return $this->prepareAndExecute($sql, $params)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     protected function prepareAndExecute(string $sql, array $params = []): PDOStatement {
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
@@ -94,11 +163,26 @@ abstract class Repository {
             $result = $callback($this->db);
             $this->db->commit();
             return $result;
-        } catch (Throwable $th) {
+        } catch (Throwable $e) {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            throw new DatabaseException("Error en la base de datos", 0, $th);
+            // Se preserva la excepcion original: envolverla en una generica
+            // destruia tipo y stack trace, y ademas se tragaba la
+            // DuplicatedEntryException que las capas de arriba necesitan.
+            throw $this->translateException($e);
         }
+    }
+
+    /**
+     * Traduce excepciones del driver a excepciones propias, para que las capas
+     * superiores no necesiten conocer codigos de error de MySQL.
+     */
+    protected function translateException(Throwable $e): Throwable {
+        if ($e instanceof PDOException && ($e->errorInfo[1] ?? null) === self::MYSQL_DUPLICATED_CODE_ERROR) {
+            return new DuplicatedEntryException($e->getMessage(), $e);
+        }
+
+        return $e;
     }
 }

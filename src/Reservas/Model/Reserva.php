@@ -1,8 +1,8 @@
 <?php
-namespace App\Model;
+namespace App\Reservas\Model;
 
-use App\Model\DTOs\RespuestaReservaDTO;
 use App\Shared\Entity;
+use App\Shared\Exceptions\BusinessValidationException;
 
 class Reserva extends Entity
 {
@@ -13,7 +13,6 @@ class Reserva extends Entity
 
     private function __construct()
     {
-
     }
 
     public static function create(int $idPaciente, int $idProfesional, string $fecha_reserva, string $estado): self
@@ -44,6 +43,7 @@ class Reserva extends Entity
 
     public function setEstado(string $estado): void
     {
+        $this->validarEstado($estado);
         $this->estado = $estado;
     }
 
@@ -65,6 +65,13 @@ class Reserva extends Entity
     public function getEstadoReserva(): string
     {
         return $this->estado;
+    }
+
+    private function validarEstado(string $estado): void
+    {
+        if (!in_array($estado, EstadoReserva::todos())) {
+            throw new BusinessValidationException("Estado de reserva no válido. Los estados permitidos son: " . implode(", ", EstadoReserva::todos()));
+        }
     }
 
     public static function fromDatabase(array $data): self

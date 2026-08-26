@@ -1,18 +1,24 @@
 <?php
-use App\Controller\PacientesController;
-use App\Repository\PacientesRepository;
-use App\Repository\ReservasRepository;
-use App\Service\PacientesService;
+
+use App\Auth\Model\Roles;
+use App\Auth\Repository\AccessAttemptRepository;
+use App\Auth\Repository\AuthRepository;
+use App\Auth\Service\RateLimiter;
+use App\Pacientes\Controller\PacientesController;
+use App\Pacientes\Repository\PacientesRepository;
+use App\Pacientes\Service\PacientesService;
+use App\Reservas\Repository\ReservasRepository;
 
 $pacientesRepository = new PacientesRepository();
 $reservasRepository = new ReservasRepository();
-$pacientesService = new PacientesService($pacientesRepository, $reservasRepository);
+$authRepository = new AuthRepository();
+$rateLimiter = new RateLimiter(new AccessAttemptRepository());
+$pacientesService = new PacientesService($pacientesRepository, $reservasRepository, $authRepository, $rateLimiter);
 $pacientesController = new PacientesController($pacientesService);
 
 
-$router->get("/api/pacientes", [$pacientesController, "obtenerTodos"]);
-$router->get("/api/pacientes/buscar", [$pacientesController, "buscarPor"]);
-$router->get("/api/pacientes/:id", [$pacientesController, "obtenerPorId"]);
-$router->post("/api/pacientes/registrar", [$pacientesController, "registrarPaciente"]);
-$router->put("/api/pacientes/:id", [$pacientesController, "actualizarPaciente"]);
-$router->delete("/api/pacientes/:id", [$pacientesController, "eliminarPaciente"]);
+$router->get("/api/pacientes", [$pacientesController, "listar"], [Roles::ADMIN, Roles::PROFESIONAL]);
+$router->get("/api/pacientes/:id", [$pacientesController, "obtenerPorId"], [Roles::ADMIN, Roles::PROFESIONAL]);
+$router->post("/api/pacientes", [$pacientesController, "registrarPaciente"]);
+$router->patch("/api/pacientes/:id", [$pacientesController, "actualizarPaciente"], [Roles::PACIENTE, Roles::ADMIN]);
+$router->delete("/api/pacientes/:id", [$pacientesController, "eliminarPaciente"], [Roles::ADMIN]);

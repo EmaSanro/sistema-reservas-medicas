@@ -1,7 +1,8 @@
 <?php
-namespace App\Model;
+namespace App\Profesionales\Model;
 
-use App\Model\DTOs\RespuestaProfesionalDTO;
+use App\Auth\Model\Roles;
+use App\Auth\Model\Usuario;
 
 class Profesional extends Usuario
 {
@@ -9,10 +10,9 @@ class Profesional extends Usuario
 
     private function __construct()
     {
-
     }
 
-    public static function create(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null, string $password): self
+    public static function create(string $nombre, string $apellido, string $profesion, string|null $email, string|null $telefono, string $password, bool $activo = true, string|null $motivo_baja = null, string|null $fecha_baja = null): self
     {
         $profesional = new self();
         $profesional->setNombre($nombre);
@@ -53,7 +53,6 @@ class Profesional extends Usuario
         $profesional->activo = (bool) $data["activo"];
         $profesional->motivo_baja = $data["motivo_baja"];
         $profesional->fecha_baja = $data["fecha_baja"];
-        $profesional->password = $data["password"];
 
         return $profesional;
     }

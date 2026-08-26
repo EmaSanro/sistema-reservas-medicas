@@ -1,7 +1,6 @@
 <?php
-namespace App\Model;
+namespace App\Nota\Model;
 
-use App\Model\DTOs\RespuestaNotaDTO;
 use App\Shared\Entity;
 
 class Nota extends Entity
@@ -9,7 +8,6 @@ class Nota extends Entity
     private string $motivo_visita;
     private string $texto_nota;
     private int $reserva_id;
-    private array $adjuntos = [];
 
     private function __construct()
     {
@@ -55,31 +53,6 @@ class Nota extends Entity
     public function getReservaId(): int
     {
         return $this->reserva_id;
-    }
-
-    public function getAdjuntos(): array
-    {
-        return $this->adjuntos;
-    }
-
-    public function setAdjuntos(array $array): void
-    {
-        $this->adjuntos = $array;
-    }
-
-    public function agregarAdjuntos(ArchivoNota $archivo): void
-    {
-        $this->adjuntos[] = $archivo;
-    }
-
-    public function tieneAdjuntos(): bool
-    {
-        return !empty($this->adjuntos);
-    }
-
-    public function cantidadAdjuntos(): int
-    {
-        return count($this->adjuntos);
     }
 
     public static function fromDatabase(array $data): self

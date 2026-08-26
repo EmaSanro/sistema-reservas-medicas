@@ -1,9 +1,9 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Profesionales\DTOs\Request;
 
 use OpenApi\Attributes as OA;
 
-#[OA\Schema(schema: "Profesional", required: ["nombre", "apellido", "profesion", "email", "telefono", "password"])]
+#[OA\Schema(schema: "CrearProfesionalRequest", required: ["nombre", "apellido", "profesion", "email", "telefono", "password"])]
 class CrearProfesionalRequest {
     #[Oa\Property(example: "Roberto")]
     private string $nombre;
@@ -27,44 +27,26 @@ class CrearProfesionalRequest {
         $this->password = $password;
     }
 
-    public function getNombre() {
+    public function getNombre(): string {
         return $this->nombre;
     }
-    public function getApellido() {
+    public function getApellido(): string {
         return $this->apellido;
     }
 
-    public function getProfesion() {
+    public function getProfesion(): string {
         return $this->profesion;
     }
 
-    public function getEmail() {
+    public function getEmail(): string|null {
         return $this->email;
     }
 
-    public function getTelefono() {
+    public function getTelefono(): string|null {
         return $this->telefono;
     }
 
-    public function getPassword() {
+    public function getPassword(): string {
         return $this->password;
     }
-
-    public static function fromArray($input) {
-        if(!isset($input["nombre"], $input["apellido"], $input["password"], $input["profesion"]) || !(isset($input["email"]) || isset($input["telefono"]))) {
-            throw new \InvalidArgumentException("ERROR: Completa los campos requeridos(nombre, apellido, contraseña, profesion, email y/o telefono)");
-        }
-        if(isset($input["email"]) && !filter_var($input["email"], FILTER_VALIDATE_EMAIL)) {
-            throw new \InvalidArgumentException("ERROR : Email invalido");
-        }
-
-        return new self(
-            ucwords(strtolower($input["nombre"])), 
-            ucwords(strtolower($input["apellido"])), 
-            ucwords(strtolower($input["profesion"])), 
-            $input["email"] ?? null, 
-            $input["telefono"] ?? null,
-            $input["password"]
-            );
-    } 
 }

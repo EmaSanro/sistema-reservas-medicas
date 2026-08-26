@@ -1,10 +1,11 @@
 <?php
-namespace App\Controller;
+namespace App\Auth\Controller;
 
+use App\Auth\Mapper\AuthMapper;
+use App\Auth\Service\AuthService;
+use App\Auth\Validators\AuthValidator;
 use App\Middleware\ErrorMiddleware;
-use App\Shared\Exceptions\DatabaseException;
-use App\Security\Validaciones;
-use App\Service\AuthService;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
 
 class AuthController extends BaseController {
@@ -18,12 +19,12 @@ class AuthController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(ref: "#/components/schemas/LoginRequest")
     )]
     #[OA\Response(
         response: 200,
         description: "Logueado correctamente",
-        content: new OA\JsonContent(example:["OK" => "correctamente", "TOKEN" => "{token}"])
+        content: new OA\JsonContent(ref: "#/components/schemas/LoginResponse")
     )]
     #[OA\Response(
         response: 400,
@@ -35,30 +36,24 @@ class AuthController extends BaseController {
         description: "Datos incorrectos",
         content: new OA\JsonContent(example:["ERROR" => "Credenciales incorrectas"])
     )]
+    #[OA\Response(
+        response: 403,
+        description: "La cuenta se encuentra dada de baja",
+        content: new OA\JsonContent(example:["message" => "Este usuario se encuentra dado de baja"])
+    )]
+    #[OA\Response(
+        response: 429,
+        description: "Demasiados intentos. Incluye header Retry-After con los segundos restantes",
+        content: new OA\JsonContent(example:["message" => "Demasiados intentos. Probá de nuevo más tarde."])
+    )]
     public function login() {
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
-        Validaciones::validarLogin($input);
-
         try {
-            $token = $this->service->login($input);
-            
-            if($token) {
-                return $this->jsonResponse(
-                    200,
-                    [
-                        "OK" => "logueado correctamente",
-                        "TOKEN" => $token
-                    ]
-                );
-            } else {
-                return $this->jsonResponse(
-                    401,
-                    [
-                        "ERROR" => "Credenciales incorrectas!"
-                    ]
-                );
-            }
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            AuthValidator::validateInputLogin($input);
+
+            $response = $this->service->login(AuthMapper::toLoginRequest($input), $this->clientIp());
+
+            $this->jsonResponse(200, $response);
         } catch (\Throwable $e) {
             ErrorMiddleware::handleException($e);
         }

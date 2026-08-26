@@ -1,15 +1,13 @@
 <?php
-namespace App\Controller;
+namespace App\Pacientes\Controller;
 
-use App\Middleware\AuthMiddleware;
-use App\Model\DTOs\PacienteDTO;
-use App\Model\Roles;
-use App\Security\Validaciones;
-use App\Service\PacientesService;
-use OpenApi\Annotations\Tag;
+use App\Middleware\ErrorMiddleware;
+use App\Pacientes\Mapper\PacienteMapper;
+use App\Pacientes\Service\PacientesService;
+use App\Pacientes\Validators\PacienteSearchValidator;
+use App\Pacientes\Validators\PacienteValidator;
+use App\Shared\BaseController;
 use OpenApi\Attributes as OA;
-
-use function PHPSTORM_META\map;
 
 class PacientesController extends BaseController {
 
@@ -17,24 +15,48 @@ class PacientesController extends BaseController {
 
     #[OA\Get(
         path: "/pacientes",
-        summary: "Lista de pacientes",
+        summary: "Lista de pacientes. Opcionalmente se pueden pasar filtros como query params (nombre, apellido, email, telefono)",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]
     )]
+    #[OA\Parameter(name: "nombre", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "apellido", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "email", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "telefono", in: "query", required: false, schema: new OA\Schema(type: "string"))]
+    #[OA\Parameter(name: "page", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
+    #[OA\Parameter(name: "limit", in: "query", required: false, schema: new OA\Schema(type: "integer"))]
     #[OA\Response(
         response: 200,
-        description: "Lista de pacientes",
+        description: "Lista paginada de pacientes (opcionalmente filtrada)",
         content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
+            properties: [
+                new OA\Property(
+                    property: "data",
+                    type: "array",
+                    items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
+                ),
+                new OA\Property(property: "total", type: "integer", example: 42),
+                new OA\Property(property: "page", type: "integer", example: 1),
+                new OA\Property(property: "limit", type: "integer", example: 10),
+            ]
         )
     )]
-    public function obtenerTodos() {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
+    #[OA\Response(
+        response: 400,
+        description: "Filtro no permitido o valor invalido",
+        content: new OA\JsonContent(example:["ERROR" => "Filtro no permitido"])
+    )]
+    public function listar() {
+        try {
+            $filtros = PacienteSearchValidator::validar($this->extractFilterParams());
+            ['page' => $page, 'limit' => $limit] = $this->extractPagination();
 
-        $pacientes = $this->service->obtenerTodos();
+            $paginated = $this->service->listar($filtros, $page, $limit);
 
-        return $this->jsonResponse(200, $pacientes);
+            return $this->paginatedResponse(200, $paginated['data'], $paginated['total'], $page, $limit);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
 
     #[OA\Get(
@@ -64,60 +86,16 @@ class PacientesController extends BaseController {
         description: "Paciente no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No hay un paciente con ese id"])
     )]
-    public function obtenerPorId($id) {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-        Validaciones::validarID($id);
+    public function obtenerPorId(string $id) {
+        try {
+            PacienteValidator::validarID($id);
 
-        $pac = $this->service->obtenerPorId($id);
-        
-        return $this->jsonResponse(200, $pac);
-    }
-
-    #[OA\Get(
-        path: "/pacientes/buscar",
-        summary: "Buscar pacientes",
-        tags: ["Pacientes"],
-        security: [ ["bearerAuth" => []] ]
-    )]
-    #[OA\Parameter(
-        name: "filtro",
-        in: "query",
-        description: "Filtro de busqueda(nombre, apellido, email, telefono)",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Parameter(
-        name: "valor",
-        in: "query",
-        description: "Valor de busqueda",
-        required: true,
-        schema: new OA\Schema(type: "string")
-    )]
-    #[OA\Response(
-        response: 200,
-        description: "Listado de pacientes filtrados",
-        content: new OA\JsonContent(
-            type: "array",
-            items: new OA\Items(ref: "#/components/schemas/RespuestaPaciente")
-        )
-    )]
-    #[OA\Response(
-        response: 400,
-        description: "Filtro invalido",
-        content: new OA\JsonContent(example:["ERROR" => "El filtro ingresado es un filtro invalido"])
-    )]
-    public function buscarPor() {
-        AuthMiddleware::handle([Roles::ADMIN, Roles::PROFESIONAL]);
-
-        if(!isset($_GET["filtro"]) || !isset($_GET["valor"])) {
-            return $this->jsonResponse(400, ["ERROR" => "Es necesario poner un filtro y un valor de busqueda"]);
+            $paciente = $this->service->obtenerPorId((int) $id);
+            
+            return $this->jsonResponse(200, $paciente);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-        $filtro = $_GET["filtro"];
-        $valor = $_GET["valor"];
-        
-        $pacientes = $this->service->buscarPor($filtro, $valor);
-
-        return $this->jsonResponse(200, $pacientes);
     }
 
     #[OA\Post(
@@ -127,7 +105,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(ref: "#/components/schemas/CrearPacienteRequest")
     )]
     #[OA\Response(
         response: 201,
@@ -144,21 +122,30 @@ class PacientesController extends BaseController {
         description: "Usuario ya registrado",
         content: new OA\JsonContent(example:["ERROR" => "Ya se registro un usuario con ese email y/o telefono"])
     )]
+    #[OA\Response(
+        response: 429,
+        description: "Demasiados intentos desde esta IP. Incluye header Retry-After con los segundos restantes",
+        content: new OA\JsonContent(example:["message" => "Demasiados intentos. Probá de nuevo más tarde."])
+    )]
     public function registrarPaciente() {
-        $input = json_decode(file_get_contents('php://input'), true);
-        
-        Validaciones::validarInput($input);
-        Validaciones::validarCriteriosPassword($input["password"]);
-        
-        $dto = PacienteDTO::fromArray($input);
+        try {
+            $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
-        $pac = $this->service->registrarPaciente($dto);
-        
-        return $this->jsonResponse(201, $pac);
+            PacienteValidator::validarRequestCrear($input);
+
+            $pacienteCreado = $this->service->registrarPaciente(
+                PacienteMapper::toRequestCrear($input),
+                $this->clientIp()
+            );
+
+            return $this->jsonResponse(201, $pacienteCreado);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
+        }
     }
     
-    #[OA\Put(
-        path: "/paciente/{id}",
+    #[OA\Patch(
+        path: "/pacientes/{id}",
         summary: "Actualizar datos del usuario",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]
@@ -171,7 +158,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\RequestBody(
         required: true,
-        content: new OA\JsonContent(example: "#/components/schemas/Paciente")
+        content: new OA\JsonContent(ref: "#/components/schemas/ActualizarPacienteRequest")
     )]
     #[OA\Response(
         response: 200,
@@ -180,7 +167,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\Response(
         response: 400,
-        description: "id o json invalido o criterios de contraseña no respetados",
+        description: "id o campo/s invalido/s",
         content: new OA\JsonContent(example:["ERROR" => "JSON invalido"])
     )]
     #[OA\Response(
@@ -188,27 +175,25 @@ class PacientesController extends BaseController {
         description: "Usuario existente",
         content: new OA\JsonContent(example:["ERROR" => "Ya existe un usuario registrado con ese email y/o telefono"])
     )]
-    public function actualizarPaciente($id) {
-        $usuario = AuthMiddleware::handle([Roles::PACIENTE, Roles::ADMIN]);
-        Validaciones::validarID($id);
+    public function actualizarPaciente(string $id) {
+        try {
+            $usuario = $this->usuarioAutenticado();
+            PacienteValidator::validarID($id);
 
-        $input = json_decode(file_get_contents("php://input"), true);
-        Validaciones::validarInput($input);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            PacienteValidator::validarRequestActualizar($input);
 
-        if(isset($input["password"])) {
-            Validaciones::validarCriteriosPassword($input["password"]);
+            $pacienteActualizado = $this->service->actualizarPaciente((int) $id, PacienteMapper::toRequestActualizar($input), $usuario);
+            
+            return $this->jsonResponse(200, $pacienteActualizado);
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $dto = PacienteDTO::fromArray($input);
-
-        $pac = $this->service->actualizarPaciente($id, $dto, $usuario);
-        
-        return $this->jsonResponse(200, $pac);
     }
     
     #[OA\Delete(
         path: "/pacientes/{id}",
-        summary: "Eliminar paciente",
+        summary: "Dar de baja paciente",
         tags: ["Pacientes"],
         security: [ ["bearerAuth" => []] ]
     )]
@@ -220,7 +205,7 @@ class PacientesController extends BaseController {
     )]
     #[OA\Response(
         response: 204,
-        description: "Paciente eliminado",
+        description: "Paciente dado de baja correctamente",
         content: new OA\JsonContent()
     )]
     #[OA\Response(
@@ -233,18 +218,17 @@ class PacientesController extends BaseController {
         description: "Paciente no encontrado",
         content: new OA\JsonContent(example:["ERROR" => "No existe un paciente con el id especificado"])
     )]
-    public function eliminarPaciente($id) {
-        AuthMiddleware::handle([Roles::ADMIN]);
-        Validaciones::validarID($id);
-        $data = json_decode(file_get_contents("php://input"), true);
-        $motivo = $data["motivo"] ?? "";
+    public function eliminarPaciente(string $id) {
+        try {
+            PacienteValidator::validarID($id);
+            $input = json_decode(file_get_contents("php://input"), true) ?? [];
+            PacienteValidator::validarInputBajaPaciente($input);
+            
+            $this->service->darDeBajaPaciente((int) $id, $input["motivo"]);
 
-        if(empty(trim($motivo))) {
-            return $this->jsonResponse(400, ["ERROR" => "El motivo de baja es obligatorio!"]);
+            return $this->jsonResponse(204, "");
+        } catch (\Throwable $e) {
+            ErrorMiddleware::handleException($e);
         }
-
-        $this->service->darDeBajaPaciente($id, $motivo);
-
-        return $this->jsonResponse(204, "");
     }
 }

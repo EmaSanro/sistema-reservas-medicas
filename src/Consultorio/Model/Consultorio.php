@@ -1,7 +1,6 @@
 <?php
-namespace App\Model;
+namespace App\Consultorio\Model;
 
-use App\Model\DTOs\RespuestaConsultorioDTO;
 use App\Shared\Entity;
 
 class Consultorio extends Entity
@@ -87,8 +86,8 @@ class Consultorio extends Entity
         $consultorio->id = (int) $data["id"];
         $consultorio->ciudad = $data["ciudad"];
         $consultorio->direccion = $data["direccion"];
-        $consultorio->horario_apertura = $data["horario_apertura"];
-        $consultorio->horario_cierre = $data["horario_cierre"];
+        $consultorio->horario_apertura = date("H:i", strtotime($data["horario_apertura"]));
+        $consultorio->horario_cierre = date("H:i", strtotime($data["horario_cierre"]));
         $consultorio->idprofesional = $data["idprofesional"] ?? null;
 
         return $consultorio;

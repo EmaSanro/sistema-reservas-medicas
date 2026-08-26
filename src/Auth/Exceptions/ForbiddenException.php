@@ -16,6 +16,6 @@ class ForbiddenException extends AppException {
 
     public function getSafeMessage(): string
     {
-        return "Acceso denegado";
+        return $this->message;
     }
 }

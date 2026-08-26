@@ -1,91 +1,108 @@
 <?php
-namespace App\Service;
+namespace App\Profesionales\Service;
 
-use App\Exceptions\Auth\ForbiddenException;
-use App\Exceptions\InvalidFilterException;
-use App\Exceptions\Profesionales\ProfesionalNotFoundException;
-use App\Exceptions\Profesionales\ProfesionalWithReserveException;
-use App\Exceptions\UserAlreadyExistsException;
-use App\Exceptions\ValidationException;
-use App\Model\DTOs\RespuestaProfesionalDTO;
-use App\Model\Roles;
-use App\Repository\ProfesionalesRepository;
-use App\Repository\ReservasRepository;
+use App\Auth\Exceptions\ForbiddenException;
+use App\Auth\Exceptions\UserAlreadyExistsException;
+use App\Auth\Model\Roles;
+use App\Auth\Repository\AuthRepository;
+use App\Profesionales\DTOs\Request\ActualizarProfesionalRequest;
+use App\Profesionales\DTOs\Request\CrearProfesionalRequest;
+use App\Profesionales\DTOs\Response\RespuestaProfesional;
+use App\Profesionales\Exceptions\ProfesionalNotFoundException;
+use App\Profesionales\Exceptions\ProfesionalWithReserveException;
+use App\Profesionales\Mapper\ProfesionalMapper;
+use App\Profesionales\Repository\ProfesionalesRepository;
+use App\Reservas\Repository\ReservasRepository;
+use App\Shared\Exceptions\DuplicatedEntryException;
 
 class ProfesionalesService {
 
-    public function __construct(private ProfesionalesRepository $repo, private ReservasRepository $reservaRepo) { }
+    public function __construct(
+        private ProfesionalesRepository $repo, 
+        private ReservasRepository $reservaRepo,
+        private AuthRepository $authRepository) { }
 
-    public function obtenerTodos(): array {
-        $profesionales = $this->repo->obtenerTodos();
-
-        return array_map(fn($profesional) => $profesional->toDTO(), $profesionales ?? []);
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array {
+        $paginated = $this->repo->listar($filtros, $page, $limit);
+        $paginated['data'] = array_map(fn($profesional) => ProfesionalMapper::toResponse($profesional), $paginated['data']);
+        return $paginated;
     }
 
-    public function obtenerPorId($id): RespuestaProfesionalDTO {
+    public function obtenerPorId(int $id): RespuestaProfesional {
         $profesional = $this->repo->obtenerPorId($id);
         if(!$profesional) {
-            throw new ProfesionalNotFoundException("No se encontro un profesional con ese id");
+            throw new ProfesionalNotFoundException($id);
         }
-        return $profesional->toDTO();
+        return ProfesionalMapper::toResponse($profesional);
     }
 
-    public function obtenerPor($filtro, $valor): array {
-        $columnasPermitidas = ["nombre", "apellido", "profesion", "email", "telefono", "consultorio"];
-            
-        if(!in_array($filtro, $columnasPermitidas)) {
-            throw new InvalidFilterException("El filtro ingresado no es valido para la busqueda(nombre, apellido, profesion, email, telefono, consultorio)");
+    public function registrarProfesional(CrearProfesionalRequest $request): RespuestaProfesional {
+        $profesional = ProfesionalMapper::fromRequestCrear($request);
+
+        $this->verificarContactoDisponible($profesional->getEmail(), $profesional->getTelefono());
+
+        $passwordHash = password_hash($request->getPassword(), PASSWORD_BCRYPT);
+
+        try {
+            $profesionalCreado = $this->repo->registrarProfesional($profesional, $passwordHash);
+        } catch (DuplicatedEntryException $e) {
+            // Perdimos una carrera: entre el chequeo de arriba y el INSERT otro
+            // request tomo el mismo contacto. Ahora el SELECT si lo encuentra,
+            // asi que se puede responder 409 con el campo exacto en vez de 500.
+            $this->verificarContactoDisponible($profesional->getEmail(), $profesional->getTelefono());
+            throw $e;
         }
 
-        $profs = match($filtro) {
-            'profesion' => $this->repo->obtenerPorProfesion($valor),
-            'consultorio' => $this->repo->obtenerProfesionalPorUbicacion($valor),
-            default => $this->repo->buscarPor($filtro, $valor)
-        };
-
-        return array_map(fn($prof) => $prof->toDTO(), $profs ?? []);
+        return ProfesionalMapper::toResponse($profesionalCreado);
     }
 
-    public function registrarProfesional($dto): RespuestaProfesionalDTO {
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
-        if($coincidencia) {
-            throw new UserAlreadyExistsException("Asegurate de que no haya ningun usuario con ese email y/o telefono ya registrado");
-        }
-
-        $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
-
-        $prof = $this->repo->registrarProfesional($dto, $passwordHash);
-
-        return $prof->toDTO();
-    }
-
-    public function actualizarProfesional($id, $dto, $usuario): RespuestaProfesionalDTO|null {
-        if(!$this->repo->obtenerPorId($id)) {
-            throw new ProfesionalNotFoundException("No se encontro un profesional con ese id");
+    public function actualizarProfesional(int $id, ActualizarProfesionalRequest $request, mixed $usuario): RespuestaProfesional {
+        $profesionalExistente = $this->repo->obtenerPorId($id);
+        if(!$profesionalExistente) {
+            throw new ProfesionalNotFoundException($id);
         }
         if($id != $usuario->id && $usuario->rol != Roles::ADMIN) {
            throw new ForbiddenException("No tienes permisos para actualizar un perfil que no sea el tuyo!");
         }
+        ProfesionalMapper::fromRequestActualizar($profesionalExistente, $request);
 
-        $coincidencia = $this->repo->buscarCoincidencia($dto);
-        if($coincidencia && $coincidencia["id"] != $id) {
-            throw new UserAlreadyExistsException("Ya hay un usuario con ese email/telefono");
+        $this->verificarContactoDisponible(
+            $profesionalExistente->getEmail(),
+            $profesionalExistente->getTelefono(),
+            $id
+        );
+
+        try {
+            $profActualizado = $this->repo->actualizarProfesional($id, $profesionalExistente);
+        } catch (DuplicatedEntryException $e) {
+            $this->verificarContactoDisponible(
+                $profesionalExistente->getEmail(),
+                $profesionalExistente->getTelefono(),
+                $id
+            );
+            throw $e;
         }
-        $passwordHash = null;
-        if($dto->getPassword()) {
-            $passwordHash = password_hash($dto->getPassword(), PASSWORD_BCRYPT);
-        }
-        $profActualizado = $this->repo->actualizarProfesional($id, $dto, $passwordHash);
-        return $profActualizado->toDTO();
+
+        return ProfesionalMapper::toResponse($profActualizado);
     }
 
-    public function darDeBajaProfesional($id, $motivo) {
-        if(strlen($motivo) > 255) {
-            throw new ValidationException("El motivo no puede superar los 255 caracteres");
-        }
+    public function darDeBajaProfesional(int $id, string $motivo) {
         if($this->reservaRepo->tieneFuturasReservasProfesional($id)) {
-            throw new ProfesionalWithReserveException("El profesional tiene futuras reservas");
+            throw new ProfesionalWithReserveException("El profesional tiene reservas pendientes");
         }
         $this->repo->darDeBajaProfesional($id, $motivo);
+    }
+
+    /**
+     * @param int|null $excluirId Id del propio usuario al actualizar, para que
+     *                            reenviar sus datos actuales no cuente como duplicado.
+     */
+    private function verificarContactoDisponible(?string $email, ?string $telefono, ?int $excluirId = null): void {
+        if ($email !== null && $this->authRepository->emailEnUso($email, $excluirId)) {
+            throw new UserAlreadyExistsException("email", $email);
+        }
+        if ($telefono !== null && $this->authRepository->telefonoEnUso($telefono, $excluirId)) {
+            throw new UserAlreadyExistsException("telefono", $telefono);
+        }
     }
 }

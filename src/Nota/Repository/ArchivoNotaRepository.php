@@ -1,7 +1,7 @@
 <?php
-namespace App\Repository;
+namespace App\Nota\Repository;
 
-use App\Model\ArchivoNota;
+use App\Nota\Model\ArchivoNota;
 use App\Shared\Repository;
 
 class ArchivoNotaRepository extends Repository {
@@ -19,7 +19,7 @@ class ArchivoNotaRepository extends Repository {
             $this->db->beginTransaction();
             $stmtGuardar = $this->db->prepare("
                 INSERT INTO archivo_nota(nombre_original, nombre_sistema, ruta, tipo_archivo, peso, fecha_subida, nota_id) 
-                VALUES(:nombre_original,:nombre_sistema,:ruta,:tipo_archivo,:peso,:fecha_subida,:nota_id)   
+                VALUES(:nombre_original, :nombre_sistema, :ruta, :tipo_archivo, :peso, :fecha_subida, :nota_id)   
             ");
             $stmtGuardar->execute([
                 "nombre_original" => $archivo->getNombreOriginal(),
@@ -39,8 +39,10 @@ class ArchivoNotaRepository extends Repository {
 
             return $archivo;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
@@ -55,5 +57,8 @@ class ArchivoNotaRepository extends Repository {
             DELETE FROM archivo_nota WHERE id = :id
         ");
         $stmtBorrar->execute(["id" => $id]);
+        if ($stmtBorrar->rowCount() === 0) {
+            throw new \Exception("No se pudo eliminar el archivo");
+        }
     }
 }

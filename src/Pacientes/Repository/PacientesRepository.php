@@ -1,13 +1,14 @@
 <?php
 
-namespace App\Repository;
+namespace App\Pacientes\Repository;
 
-use App\Exceptions\DatabaseException;
-use App\Exceptions\Pacientes\PacienteNotFoundException;
-use App\Exceptions\UserAlreadyInactiveException;
-use App\Model\Roles;
+use App\Auth\Exceptions\UserAlreadyInactiveException;
+use App\Auth\Model\Roles;
+use App\Auth\Model\Usuario;
+use App\Pacientes\Exceptions\PacienteNotFoundException;
+use App\Pacientes\Validators\PacienteSearchValidator;
 use App\Shared\Repository;
-use App\Model\Usuario;
+use App\Shared\Search\SearchQueryBuilder;
 use PDO;
 
 class PacientesRepository extends Repository
@@ -23,43 +24,31 @@ class PacientesRepository extends Repository
         return Usuario::class;
     }
 
-    public function obtenerTodos(): array
+    public function listar(array $filtros = [], int $page = 1, int $limit = 10): array
     {
-        $sql = "SELECT * FROM usuario WHERE rol = :rol";
-        $pacientes = $this->findByQuery($sql, ["rol" => Roles::PACIENTE]);
-        return $pacientes;
+        $built = SearchQueryBuilder::build(PacienteSearchValidator::definitions(), $filtros);
+
+        $where = array_merge(["rol = :rol"], $built['where']);
+        $params = array_merge(["rol" => Roles::PACIENTE], $built['params']);
+
+        $sql = "SELECT " . Usuario::columnasSelect() . " FROM usuario WHERE " . implode(" AND ", $where);
+        return $this->findPaginatedByQuery($sql, $params, $page, $limit);
     }
 
     public function obtenerPorId(int $id): Usuario|null
     {
-        $sql = "SELECT * FROM usuario WHERE id = :id AND rol = :rol";
+        $sql = "SELECT " . Usuario::columnasSelect() . " FROM usuario WHERE id = :id AND rol = :rol";
         $paciente = $this->findOneByQuery($sql, ["id" => $id, "rol" => Roles::PACIENTE]);
         return $paciente;
     }
-
-    public function buscarPor(string $filtro, string $valor): array
-    {
-        $sql = "SELECT * FROM usuario WHERE $filtro LIKE :valor AND rol = :rol";
-        $pacientes = $this->findByQuery($sql, ["valor" => "%$valor%", "rol" => Roles::PACIENTE]);
-        return $pacientes;
-    }
-
-    public function buscarCoincidencia(Usuario $paciente): array
-    {
-        $sql = "SELECT * FROM usuario WHERE (telefono = :telefono OR email = :email) AND rol = :rol";
-        $pacientes = $this->findByQuery($sql, [
-            "telefono" => $paciente->getTelefono(),
-            "email" => $paciente->getEmail(),
-            "rol" => Roles::PACIENTE
-        ]);
-        return $pacientes;
-    }
-
+    
     public function registrarPaciente(Usuario $usuario, string $passwordHash): Usuario
     {
         try {
             $this->db->beginTransaction();
-            $stmtUsuario = $this->db->prepare("INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) VALUES(:nombre,:apellido,:rol,:email,:telefono,:activo,:password)");
+            $stmtUsuario = $this->db->prepare(
+                        "INSERT INTO usuario(nombre, apellido, rol, email, telefono, activo, password) 
+                        VALUES(:nombre,:apellido,:rol,:email,:telefono,:activo,:password)");
             $stmtUsuario->execute([
                 "nombre" => $usuario->getNombre(),
                 "apellido" => $usuario->getApellido(),
@@ -78,12 +67,14 @@ class PacientesRepository extends Repository
 
             return $usuario;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
-    public function actualizarPaciente(int $id, Usuario $usuario, ?string $passwordHash = null): Usuario
+    public function actualizarPaciente(int $id, Usuario $usuario): Usuario
     {
         try {
             $this->db->beginTransaction();
@@ -96,11 +87,6 @@ class PacientesRepository extends Repository
                 "telefono" => $usuario->getTelefono()
             ];
 
-            if ($passwordHash != null) {
-                $query .= ", password = :password";
-                $params["password"] = $passwordHash;
-            }
-
             $query .= " WHERE id = :id AND rol = :rol";
             $params["id"] = $id;
             $params["rol"] = Roles::PACIENTE;
@@ -112,12 +98,14 @@ class PacientesRepository extends Repository
 
             return $usuario;
         } catch (\Throwable $e) {
-            $this->db->rollBack();
-            throw $e;
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            throw $this->translateException($e);
         }
     }
 
-    public function darDeBajaPaciente(int $id, string $motivo): bool
+    public function darDeBajaPaciente(int $id, string $motivo): void
     {
         $pac = $this->db->prepare("
             UPDATE usuario SET activo = false, motivo_baja = :motivo, fecha_baja = NOW()
@@ -133,14 +121,13 @@ class PacientesRepository extends Repository
             $usuario = $stmtCheck->fetch(PDO::FETCH_ASSOC);
 
             if (!$usuario) {
-                throw new PacienteNotFoundException("Paciente no encontrado");
+                throw new PacienteNotFoundException($id);
             }
             if (!$usuario["activo"]) {
                 throw new UserAlreadyInactiveException("El paciente ya se encuentra inactivo!");
             }
 
-            throw new DatabaseException("No se pudo dar de baja el paciente");
+            throw new \Exception("No se pudo dar de baja el paciente");
         }
-        return true;
     }
 }

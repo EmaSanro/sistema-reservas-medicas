@@ -2,3 +2,4 @@ vendor/
 .env
 public/temp_ics/
 storage/
+.vscode/

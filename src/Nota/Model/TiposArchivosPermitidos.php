@@ -1,5 +1,5 @@
 <?php
-namespace App\Model;
+namespace App\Nota\Model;
 
 class TiposArchivosPermitidos {
     public const PDF = "application/pdf";

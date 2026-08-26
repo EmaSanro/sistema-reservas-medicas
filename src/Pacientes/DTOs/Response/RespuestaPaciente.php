@@ -1,5 +1,5 @@
 <?php
-namespace App\Model\DTOs;
+namespace App\Pacientes\DTOs\Response;
 
 use OpenApi\Attributes as OA;
 
@@ -25,6 +25,7 @@ class RespuestaPaciente {
         $this->nombre = $nombre;
         $this->email = $email ?? null;
         $this->telefono = $telefono ?? null;
+        $this->activo = $activo;
         $this->motivo_baja = $motivo_baja;
         $this->fecha_baja = $fecha_baja;
     }
