@@ -5,7 +5,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Schema(
     schema: "CrearArchivoNotaRequest",
-    required: ["nombreOriginal", "nombreSistema", "ruta", "tipoArchivo", "tamanio", "fechaSubida", "idNota"]
+    required: ["nombre_original", "nombre_sistema", "ruta", "tipo_archivo", "tamanio", "fecha_subida", "nota_id"]
 )]
 class CrearArchivoNotaRequest {
     #[OA\Property(example: "nombre_original.jpg")]
@@ -16,7 +16,7 @@ class CrearArchivoNotaRequest {
     private string $ruta;
     #[OA\Property(example: "image/jpeg")]
     private string $tipo_archivo;
-    #[OA\Property(example: "204800KB")]
+    #[OA\Property(example: 204800)]
     private int $peso;
     #[OA\Property(example: "2024-06-01 15:00:00")]
     private string $fecha_subida;

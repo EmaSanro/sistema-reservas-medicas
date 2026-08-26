@@ -46,7 +46,7 @@ class ConsultorioRepository extends Repository {
         }
     }
 
-    public function actualizarConsultorio(Consultorio $consultorio, int $id): Consultorio {
+    public function actualizarConsultorio(Consultorio $consultorio, int $id): ?Consultorio {
         try {
             $this->db->beginTransaction();
             $updateQuery = $this->db->prepare("

@@ -2,7 +2,7 @@
 namespace App\Nota\Service;
 
 use App\Auth\Exceptions\ForbiddenException;
-use App\Model\Reserva;
+use App\Reservas\Model\Reserva;
 use App\Nota\DTOs\Response\RespuestaArchivoNota;
 use App\Nota\Exceptions\ArchivoNotFoundException;
 use App\Nota\Exceptions\NotaNotFoundException;
@@ -16,7 +16,7 @@ use App\Nota\Validators\ArchivoNotaValidator;
 use App\Reservas\Repository\ReservasRepository;
 
 class ArchivoNotaService {
-    private const RUTA_BASE = __DIR__ . '/../../storage/notas_adjuntos/';
+    private const RUTA_BASE = __DIR__ . '/../../../storage/';
 
     public function __construct(
         private ArchivoNotaRepository $repo,
